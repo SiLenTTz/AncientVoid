@@ -4,7 +4,7 @@
   "private": true,
   "description": "aider adapter (P3, T3.13): spawns `aider --message`, unproven — see src/index.ts's doc comment for why.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

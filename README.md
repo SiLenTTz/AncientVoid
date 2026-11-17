@@ -1,241 +1,291 @@
+<div align="center">
+
 # AncientVoid
 
-[![ci](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml)
+**Run Claude Code, Codex, pi and every other coding agent on your own machines, and steer them from your phone, tablet or PC.**
 
-**AncientVoid** is a local-first, vendor-neutral command center for coding
-agents: supervise, steer and audit every agent session on all of your own
-machines from your phone — over Tailscale, without a public port, without a
-cloud service in between.
+Self-hosted · open source · no cloud: the only server is yours.
 
-| Sign-in | Overview (queue) | Approval in a turn | Desktop workspace |
-|---|---|---|---|
-| ![Sign-in](docs/assets/readme-login-412.webp) | ![Overview](docs/assets/readme-start-412.webp) | ![Approval](docs/assets/readme-freigabe-412.webp) | ![Desktop](docs/assets/readme-desktop-1280.webp) |
+[![CI](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SiLenTTz/AncientVoid/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-34d399)](LICENSE)
+[![Node 22.18+](https://img.shields.io/badge/node-22.18%2B-339933?logo=node.js&logoColor=white)](package.json)
+[![Hub: Linux · Windows](https://img.shields.io/badge/hub-Linux%20%C2%B7%20Windows-4b5563)](#platform-support)
+[![Client: any browser (PWA)](https://img.shields.io/badge/client-any%20browser%20(PWA)-7c3aed)](docs/guide/README.md)
 
-Screenshots come from a **demo hub with synthetic stand-ins**
-(`scripts/readme-screenshots.mjs`) — no real sessions, no secrets;
-reproducible from the repo.
+<img src="apps/site/assets/social-preview-01.jpg" width="100%" alt="AncientVoid: every coding agent, every machine, in your pocket. A phone shows an agent asking for approval to run a shell command.">
 
-> **Language note:** this README, `CONTRIBUTING.md` and `SECURITY.md` are in
-> English. The app UI and most of `docs/`, `epics/` and `bugs/` are currently
-> **German** (the project grew as a personal tool; multi-language support is
-> planned). Index of all docs pages: [`docs/uebersicht.md`](docs/uebersicht.md).
+[Quick start](#quick-start) · [Why](#why-ancientvoid) · [Features](#what-you-can-do) · [Agents](#works-with-the-agents-you-already-use) · [Security](#security-model) · [FAQ](#faq) · [User guide](docs/guide/README.md)
 
-## What it does
+</div>
 
-- **One hub per machine** (`apps/hub`) runs your coding-agent CLIs as
-  supervised workers (tmux or child processes) and records every session as an
-  append-only event log (JSONL + SQLite + blobs).
-- **A mobile-first PWA** shows all sessions as a queue: follow a session turn by
-  turn, send follow-up prompts, answer agent questions, approve or deny tool
-  calls, attach files, pause/resume/stop — from your phone or desktop.
-- **Vendor-neutral adapters** for Claude Code, Codex, opencode, GitHub Copilot
-  CLI, pi, Hermes, Cursor, aider, any ACP harness and any OpenAI-compatible
-  endpoint (llama.cpp, LM Studio, Ollama, vLLM). Read-only observers
-  (`claude-clip`, `cursor-clip`) watch sessions you started yourself.
-- **Approvals with classes** (`read` free, `write` tap-to-confirm,
-  `destructive` WebAuthn/biometric), fail-closed on timeout, fully audited.
-- **Multi-host fleet**: several hubs appear in one UI; hand a session over
-  between PC and phone.
-- **Workspace features**: git worktree per session, diff review, file/project
-  explorer, search, slash commands, automations, loops (external "factories"
-  observed and steered as sessions), knowledge-vault notes, voice input
-  (configurable STT endpoint).
-- **Desktop companion** (`apps/companion`, Wayland: Hyprland/sway): types what
-  you dictate on the phone into the focused window of your PC —
-  [`docs/desktop-companion.md`](docs/desktop-companion.md).
-- **Optional MCP gateway sidecar** (`apps/gateway-mcp`, off by default) exposes
-  the hub to other agents via three meta-tools.
+## Why AncientVoid
 
-The full, current feature inventory with E2E evidence lives in
-[`docs/funktionsinventar.md`](docs/funktionsinventar.md) (German). The
-planning history (PRD, epics P0 … P60) is in [`epics/README.md`](epics/README.md)
-(German).
+Coding agents work on their own for half an hour, then stop for one question
+or one risky command. Away from your desk, the work stalls. AncientVoid puts every
+session from all your machines into **one queue on your phone**: you answer,
+approve or redirect, and the *running* agent continues.
 
-## Platform support
+- **Your code stays home.** The hub runs on your machine, reachable only
+  through your private network ([Tailscale](https://tailscale.com)). There is
+  no AncientVoid cloud, no account and no telemetry.
+- **One app for every screen.** An installable PWA, so there is no app store,
+  with layouts for phone, foldable, tablet and a four-tile desktop.
+- **Any agent, your subscriptions.** Claude Code, Codex, pi, opencode, Copilot
+  CLI, Cursor, Hermes, aider, any [ACP](https://agentclientprotocol.com) agent
+  and local models. It is a control plane, not another bill.
+- **Take over terminal sessions.** *Discovery* finds agent sessions you
+  started in a terminal. Preview them, take them over or fork a copy.
+- **Approve safely from anywhere.** Destructive tool calls need your
+  fingerprint or face (passkey). No answer means no.
+- **Crash-proof.** Every session is an append-only event log, so after
+  `kill -9` the hub is back in under 3 s.
 
-| Platform | Status |
-|---|---|
-| **Linux** | Primary target. Developed and run daily on Arch Linux (Omarchy); hub as a systemd user service — [`docs/operations-runbook.md`](docs/operations-runbook.md). The desktop companion needs Wayland (Hyprland or sway). |
-| **macOS** | Partial / untested. The hub and PWA are plain Node + browser, but some tests and helper scripts assume GNU tools; no service integration. |
-| **Windows** | Untested. Only via WSL2 (as Linux); no native support. |
+## See it
 
-Phone: any modern mobile browser that can install a PWA (developed against
-Android/Chromium), reaching the hub through your tailnet.
+<p align="center">
+  <img src="docs/assets/readme-start-412.webp" width="260" alt="The session queue on a phone, with the sessions that need you first">
+  <img src="docs/assets/readme-freigabe-412.webp" width="260" alt="Approving a shell command from the phone in the middle of a turn">
+</p>
+<p align="center">
+  <img src="docs/assets/readme-desktop-1280.webp" width="100%" alt="Desktop workspace: session list on the left, a session tile on the right">
+</p>
 
-## Quick start — one command
+The images show the queue on the phone, a shell command approved mid-turn and
+the desktop workspace. They come from a demo hub with synthetic sessions
+([reproducible](scripts/readme-screenshots.mjs)). **The UI is German today.**
+An English UI is in progress ([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md));
+the [user guide](docs/guide/README.md) is already in English.
 
-Requirements: **Node `^22.18.0 || ^24 || >=26`** (no build step for server
-code — Node's type stripping runs TypeScript directly), npm, git, bash, curl;
-optional tmux; [Tailscale](https://tailscale.com) for phone access.
+## Quick start
+
+You need Node `^22.18.0 || ^24 || >=26`, git and bash (on Windows, Git Bash).
+tmux is optional (Linux), and you need [Tailscale](https://tailscale.com) for
+phone access.
 
 ```bash
-git clone https://github.com/SiLenTTz/AncientVoid.git && cd AncientVoid
-./setup.sh          # or: npm run setup
-# wizard: Node check → connect first provider → npm install →
-#         build PWA → device token → start hub
+git clone https://github.com/SiLenTTz/AncientVoid.git
+cd AncientVoid
+./setup.sh
 ```
 
-The wizard is idempotent (re-running is safe) and fails loudly with an exit
-code when a prerequisite is missing. It detects installed harness CLIs
-(`claude`, `codex`, `opencode`, `copilot`, `pi`, `hermes`, `dsh`) and wires up
-the chosen provider; OpenAI-compatible endpoints use the example template;
-the synthetic `dummy` adapter always works and needs no account.
+The wizard checks Node and detects your installed agents (`claude`, `codex`,
+`opencode`, `copilot`, `pi`, `hermes`, `dsh`). It then builds the PWA, issues a
+device token and starts the hub on `http://127.0.0.1:7373`. If you don't have
+an agent installed yet, `./setup.sh --adapter=dummy` gives you a synthetic
+agent that needs no account. Re-running is safe; a missing prerequisite fails
+loudly with an [exit code](docs/referenz-wizard.md).
 
-Flags: `--yes`, `--adapter=<id>`, `--base-url=<url>`/`--model=<id>` (with
-`--adapter=openai`), `--port=<n>` (if 7373 is taken), `--device-label=<name>`,
-`--no-pwa`, `--no-start`, `--voidwarden` (additionally issues a read-only
-`agent:` and a `display:` token for the optional VoidWarden companion — a
-separate, non-public project of the author). Exit codes:
-[`docs/referenz-wizard.md`](docs/referenz-wizard.md).
+**On your phone**, in three steps:
 
-**Manual route** (agents/CI, equivalent to the wizard):
+1. Run `scripts/setup-tailscale-serve.sh`. It publishes the hub **inside your
+   tailnet only** and prints `https://<machine>.<tailnet>.ts.net`.
+2. Open that URL on your phone and choose *Add to Home Screen*.
+3. Issue a token per device (`node apps/hubctl/src/cli.ts token issue my-phone --db data/hub.db`)
+   and paste it once. It is shown once and stored only as a hash
+   ([why there is no QR code](docs/adr/0073-handy-kopplung.md)).
+
+<details>
+<summary><b>Manual setup, wizard flags, running as a service</b></summary>
 
 ```bash
-node --version          # 22.18+, 24 or 26+
 npm install
 cp apps/hub/hub.config.example.json hub.config.json   # list your adapters
 npm -w @ancientvoid/pwa run build
-node apps/hub/src/main.ts            # listens on 127.0.0.1:7373
-
-node apps/hubctl/src/cli.ts token issue "my-phone" --db data/hub.db   # shown once
+node apps/hub/src/main.ts                             # 127.0.0.1:7373, no build step
+node apps/hubctl/src/cli.ts token issue "my-phone" --db data/hub.db
 ANCIENTVOID_TOKEN=<token> node apps/hubctl/src/cli.ts sessions
-
-scripts/setup-tailscale-serve.sh     # phone access via tailnet — never a public port
 ```
 
-**User guide (English, with screenshots of every page):**
-[docs/guide/README.md](docs/guide/README.md) — every surface, one section
-each, pinned by the [surface inventory](docs/guide/inventory.md).
-Next steps (German): [first 15 minutes](docs/tutorial-erste-schritte.md) ·
-[onboarding & manual setup](docs/onboarding.md) ·
-[configuration](docs/configuration.md) ·
-[operations runbook](docs/operations-runbook.md) ·
-[encrypted backup/restore](docs/backup-restore.md) ·
-[multi-host fleet](docs/fleet.md).
+Wizard flags: `--yes`, `--adapter=<id>`, `--base-url=<url>` and `--model=<id>`
+(with `--adapter=openai`), `--port=<n>`, `--device-label=<name>`, `--no-pwa`,
+`--no-start`, `--voidwarden` (extra read-only `agent:` and `display:` tokens
+for the optional VoidWarden companion, a separate non-public project). Running
+the hub as a systemd user service: [operations runbook](docs/operations-runbook.md).
 
-## Architecture — modular by contract
+</details>
 
-Everything is plugged together through contracts; nothing provider-specific is
-hard-wired into the hub. Structure: modular monolith, cut by domain
-([ADR-0020](docs/adr/0020-modular-monolith-structure.md)); boundaries are
-enforced by `npm run check:arch`. Details: [`docs/architecture.md`](docs/architecture.md).
+Next: the [user guide](docs/guide/README.md) (English, a screenshot of every
+page). Deeper docs are in German for now: [first 15 minutes](docs/tutorial-erste-schritte.md) ·
+[configuration](docs/configuration.md) · [multi-host fleet](docs/fleet.md) ·
+[encrypted backup](docs/backup-restore.md) · [all docs](docs/uebersicht.md).
 
-| Building block | Package / path | Extensible by |
-|---|---|---|
-| Contracts (events, adapter, worker, wire protocol, per-module schemas) | `@ancientvoid/contracts` (`packages/contracts`) | — (stability guarantee, changes need an ADR) |
-| Hub kernel (EventStore, sessions, registry, SQLite, domain modules) | `@ancientvoid/core` (`packages/core`) | internal modules via ADR |
-| Model metadata (context windows per model id) | `@ancientvoid/models` (`packages/models`) | adapter config overrides |
-| Worker runners (tmux / child_process) | `@ancientvoid/workers` (`packages/workers`) | own runners |
-| **Adapters** (providers, coding CLIs, local models) | `@ancientvoid/adapter-*` (`packages/adapters/*`) | **your own endpoints — see below** |
-| JSON-RPC stdio transport (ACP, codex app-server) | `@ancientvoid/adapter-jsonrpc` | — |
-| Adapter test kit (contract suite) | `@ancientvoid/adapter-testkit` | — |
-| Loop connectors (external agent factories) | `@ancientvoid/loop-*` (`packages/loops/*`): `aspark-factory`, `securesight-factory` | own connectors — [`docs/loops.md`](docs/loops.md) |
-| Hub daemon (REST/WS, auth, PWA serving) | `@ancientvoid/hub` (`apps/hub`) | — |
-| CLI reference client | `@ancientvoid/hubctl` (`apps/hubctl`) | — |
-| PWA (Preact, dark-first, offline-tolerant) | `@ancientvoid/pwa` (`apps/pwa`) | — |
-| Desktop companion (Wayland typing target) | `@ancientvoid/companion` (`apps/companion`) | — |
-| MCP gateway sidecar (default **off**) | `@ancientvoid/gateway-mcp` (`apps/gateway-mcp`) | own operations — [its README](apps/gateway-mcp/README.md) |
+## What you can do
 
-`securesight-factory` connects the agent factory of SecureSight, the author's
-company; `aspark-factory` speaks the aSPARK factory's MQTT protocol. Both are
-optional and read the external system only through their own config.
+| | |
+|---|---|
+| **Monitor** | One live queue for every session on every machine, with the ones that need you first. Web push when an agent waits. The last state stays readable offline. |
+| **Steer** | Send follow-ups to the *running* agent, answer its questions, line up the next prompt, attach files and images, or dictate via your own speech-to-text endpoint. Pause, stop and resume. |
+| **Approve** | *read* / *write* / *destructive* classes, a passkey for destructive actions, fail-closed timeouts and a full audit trail. |
+| **Review** | A git worktree per session, diffs by file and hunk, notes on diff lines sent back to the agent, code search and a file explorer. |
+| **Scale out** | A multi-host fleet in one UI. Hand a session from PC to phone. Agent teams planned as a DAG with gates. Automations and external agent "factories" as loops. |
+| **Integrate** | The `hubctl` CLI and an optional MCP gateway (off by default) for other agents. A desktop companion types your phone dictation into the focused PC window (Wayland). |
 
-### Connect your own endpoint (no fork needed)
+Every feature with its end-to-end test: [feature inventory](docs/funktionsinventar.md) (German).
 
-An adapter is a module exporting `createAdapter(config)` — a local file or an
-npm package. Register it in `hub.config.json`:
+## Works with the agents you already use
+
+- **Native adapters:** Claude Code · Codex · pi · opencode · GitHub Copilot CLI · Cursor · Hermes · aider
+- **Any ACP harness** through presets, with no adapter needed: Copilot `--acp`, opencode `acp`, DeepSeek `dsh`, maki, …
+- **Local and API models:** any OpenAI-compatible endpoint, such as llama.cpp, LM Studio, Ollama, vLLM or DeepSeek
+- **Observe only:** `claude-clip` and `cursor-clip` follow sessions you run yourself, without steering them
+
+<details>
+<summary><b>Capability matrix, checked against the real code in CI</b></summary>
+
+What each harness supports in detail (follow-up, interrupt, tool approval,
+questions, model choice, attachments) is listed in the
+[harness matrix](docs/harness-matrix.md) ([ADR-0018](docs/adr/0018-harness-features-and-native-gates.md)).
+
+| Adapter | Integration | Reasoning | Tools | Cost | Steer | Quota | Status | Resume ([ADR-0036](docs/adr/0036-resume-referenzen-im-adapter-contract.md)) |
+|---|---|---|---|---|---|---|---|---|
+| `dummy` | synthetic | ✓ | ✓ | — | ✓ | — | proven | — |
+| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | `claude --resume <id>` |
+| `codex` | CLI (`app-server` JSON-RPC) | ✓ | ✓ | ~ | ✓ | ✓ | proven | `codex resume <id>` |
+| `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | `opencode --session <id>` |
+| `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (Copilot CLI 1.0.86, live captures) | — |
+| `pi` | CLI (`pi -p`, JSON events) | ✓ | ✓ | — | ✓ | — | proven (headless `pi -p` live) | — |
+| `cursor` | CLI (`cursor-agent`, stream-json) | ✓ | ✓ | — | ✓ | — | built (capabilities live-checked) | `cursor-agent --resume <id>` |
+| `hermes` | CLI (`chat -q`, plaintext) | — | ✓ | — | ✓ | — | built + smoke (resume live-verified) | `hermes --resume <id>` |
+| `aider` | CLI (`--message`, plaintext) | — | ✓ | — | ✓ | — | built, unproven (no real LLM turn yet) | — |
+| `local-llm` | OpenAI-compatible | ✓ | — | — | ✓ | — | template (no local instance verified) | — |
+| `deepseek` | OpenAI-compatible (`api.deepseek.com`) | ✓ | — | — | ✓ | — | template (no API key verified) | — |
+| `cursor-clip` | `state.vscdb` (read-only) | ✓ | ✓ | — | **no** | — | proven, may break by design (K9) | — |
+| `claude-clip` | transcript JSONL (read-only) | ✓ | ✓ | — | **no** | — | proven, observes only (K9) | — |
+
+Legend: ✓ supported · — verified absent · `~` partial. Quota means
+`capabilities().usage`, an account-level quota window
+([ADR-0004](docs/adr/0004-account-level-usage-quota.md)) that is never guessed.
+**Honesty clause:** an adapter only becomes "proven" after its contract tests
+pass. `npm run check:adapter-matrix` checks the Reasoning to Quota columns
+against each adapter's real `capabilities()`.
+
+</details>
+
+<details>
+<summary><b>Bring your own endpoint, no fork needed</b></summary>
+
+An adapter is a module that exports `createAdapter(config)`, either a local
+file or an npm package. Register it in `hub.config.json`:
 
 ```json
 {
-  "adapters": [
-    { "id": "my-provider", "module": "./adapters/my-provider/adapter.ts" },
-    { "id": "local-llm", "module": "./examples/adapters/openai-compat/adapter.ts",
-      "config": { "baseUrl": "http://127.0.0.1:8080/v1", "model": "qwen2.5-coder" } }
-  ]
+  "adapters": [{
+    "id": "local-llm",
+    "module": "./examples/adapters/openai-compat/adapter.ts",
+    "config": { "baseUrl": "http://127.0.0.1:8080/v1", "model": "qwen2.5-coder" }
+  }]
 }
 ```
 
-Template: [`examples/adapters/openai-compat/`](examples/adapters/openai-compat/) —
-works with any OpenAI-compatible endpoint. Guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
-and [`docs/adapters.md`](docs/adapters.md). ACP-capable harnesses need **no
-adapter of their own** — a preset is enough (`docs/adapters.md` §ACP).
+Template: [`examples/adapters/openai-compat/`](examples/adapters/openai-compat/) ·
+guide: [`docs/adapters.md`](docs/adapters.md) · contract test kit:
+`@ancientvoid/adapter-testkit` (green means the adapter can be integrated into the hub).
 
-### Adapter status matrix
+</details>
 
-What each harness really supports (follow-up, interrupt, tool approval,
-questions, model choice, attachments): [`docs/harness-matrix.md`](docs/harness-matrix.md)
-([ADR-0018](docs/adr/0018-harness-features-and-native-gates.md)).
+## How it works
 
-| Adapter | Type | Reasoning | Tools | Cost | Steer | Quota | Status | Phase | Resume ([ADR-0036](docs/adr/0036-resume-referenzen-im-adapter-contract.md)) |
-|---|---|---|---|---|---|---|---|---|---|
-| `dummy` | synthetic | ✓ | ✓ | — | ✓ | — | proven | P0 | — |
-| `claude` | CLI (stream-json) | ✓ | ✓ | ✓ | ✓ | ✓ | proven | P1 | `claude --resume <id>` |
-| `codex` | CLI (`app-server` JSON-RPC, formerly `exec`) | ✓ | ✓ | ~ | ✓ | ✓ | proven | P1 | `codex resume <id>` |
-| `opencode` | CLI (`--format json`) | ✓ | ✓ | ✓ | ✓ | — | proven | P3 | `opencode --session <id>` |
-| `copilot` | CLI (`--output-format json`) | — | ✓ | — | ✓ | — | proven (real authenticated Copilot CLI 1.0.86, live captures incl. tool success/failure) | P3 | — |
-| `pi` | CLI (`pi -p`, JSON events) | ✓ | ✓ | — | ✓ | — | proven (headless `pi -p` live) | P16 | — |
-| `cursor` | CLI (`cursor-agent`, stream-json) | ✓ | ✓ | — | ✓ | — | built (capabilities live-checked; not yet in the automated matrix check) | — | `cursor-agent --resume <id>` |
-| `swarm` | custom RAG coding-swarm REST | ✓ | ✓ | ✓ | ✓ | ? | planned (spec only, no live instance, no package) | P3 | — |
-| ~~`zai`~~ | — | — | — | — | — | — | **dropped** — use `opencode` with provider `zai-coding-plan` | P3 | — |
-| `local-llm` | OpenAI-compatible | ✓ | — | — | ✓ | — | template ready (no local instance verified) | P3 | — |
-| `deepseek` | OpenAI-compatible (`api.deepseek.com`) | ✓ | — | — | ✓ | — | template ready (no API key verified) | P3 | — |
-| `aider` | CLI (`--message`, plaintext) | — | ✓ | — | ✓ | — | structurally built, unproven (no real LLM turn verified) | P3 | — |
-| `hermes` | CLI (`chat -q --yolo -Q --pass-session-id`, plaintext) | — | ✓ | — | ✓ | — | built + smoke (real binary, session id/resume live-verified) | P13 | `hermes --resume <id>` |
-| `cursor-clip` | `state.vscdb` (read-only) | ✓ | ✓ | — | **no** | — | proven (real SQLite reads against a live Cursor WAL database) — may break by design (K9) | P3 | — |
-| `claude-clip` | Claude Code transcript JSONL (read-only) | ✓ | ✓ | — | **no** | — | proven (real transcript format, synthetic privacy fixtures, live tailing) — may break by design (K9); observes only, never steers | P3 | — |
+```mermaid
+flowchart TB
+  P["Phone · tablet · desktop<br/>installable PWA"]
+  H["AncientVoid hub on your PC<br/>event log · approvals · worktrees"]
+  A["Claude Code · Codex · pi<br/>opencode · Copilot · …"]
+  H2["Hub on another machine"]
+  P <-->|"your tailnet only"| H
+  H -->|adapters| A
+  H <-.->|fleet| H2
+```
 
-Legend: ✓ supported · — verified absent · `~` partial · `?` not built/checked
-yet. Quota = `capabilities().usage`, an account-level quota window
-([ADR-0004](docs/adr/0004-account-level-usage-quota.md)) — never guessed.
-ACP harnesses (`copilot --acp`, `opencode acp`, DeepSeek `dsh`) run through
-`@ancientvoid/adapter-acp` presets and are listed in the harness matrix.
+- **One hub per machine** runs your agent CLIs as supervised workers (tmux or
+  child processes). It records every session as an append-only event log in
+  JSONL, SQLite (`node:sqlite`, no native modules) and blobs.
+- **Contracts first:** adapters only see a narrow `AdapterContext` and never
+  hub internals. Boundaries are enforced in CI (`npm run check:arch`), and
+  contract changes need an ADR. Details: [architecture](docs/architecture.md),
+  [ADR-0020](docs/adr/0020-modular-monolith-structure.md).
+- **No build step for the server:** Node runs the TypeScript directly. The PWA
+  is Preact and Vite.
 
-Honesty clause: a status becomes "proven" only after contract tests pass. The
-Reasoning/Tools/Cost/Steer/Quota columns are checked automatically against
-each adapter's real `capabilities()` by `npm run check:adapter-matrix`
-([`scripts/check-adapter-matrix.mjs`](scripts/check-adapter-matrix.mjs));
-Status/Phase stay manual because they rest on evidence (tests, measurement runs).
+Measured quality bars, not adjectives ([PRD §9](epics/2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)):
 
-## Quality bars (excerpt, PRD §9)
-
-| ID | Metric | Implementation |
+| ID | Bar | How it is enforced |
 |---|---|---|
-| K5 | Event payload ≤ 4 KB, the rest in blobs | EventStore capping + `blob_ref`, property-tested |
-| K7 | `kill -9` → 100 % state restore < 3 s | JSONL replay + snapshot + `adapter.recover()` |
-| K8 | 20 sessions × 30 ev/s without loss | `npm run loadtest` (green: 605 ev/s aggregate) |
-| K10 | PWA offline: last projection + timestamp | service worker with `X-AncientVoid-Cached-At` |
+| K5 | Event payload ≤ 4 KB, everything larger goes to blobs | EventStore capping + `blob_ref`, property-tested |
+| K7 | `kill -9` → 100 % state restored in < 3 s | JSONL replay + snapshot + `adapter.recover()` |
+| K8 | 20 sessions × 30 events/s without loss | `npm run loadtest` (green: 605 ev/s aggregate) |
+| K10 | PWA offline shows last state + timestamp | service worker with `X-AncientVoid-Cached-At` |
 
-## Security model (summary)
+## Security model
 
-- **No public port.** The hub binds `127.0.0.1`; phones reach it through
-  `tailscale serve` inside your tailnet. Binding elsewhere needs an explicit
+- **No public port.** The hub binds `127.0.0.1`, and phones reach it through
+  `tailscale serve` inside your tailnet. Any other binding needs an explicit
   opt-in (`ANCIENTVOID_EXPOSE=1`, at your own risk).
-- **Device tokens**, stored only as SHA-256 hashes in SQLite and shown once on
-  issue; optional enforcement of Tailscale identity; scoped `agent:`/`display:`
-  tokens for least-privilege integrations.
-- **Approval classes** with fail-closed timeouts; destructive actions need
-  WebAuthn; every decision is part of the audit trail.
-- **Prompt-injection boundary:** agent output is *data* for the PWA, never an
-  instruction. No free shell from the phone — only registered adapter operations.
+- **Device tokens** are shown once and stored only as SHA-256 hashes. Tailscale
+  identity can optionally be enforced. Scoped `agent:` and `display:` tokens
+  give integrations least privilege.
+- **Approval classes** have fail-closed timeouts, destructive actions need a
+  passkey, and every decision is part of the audit trail.
+- **Prompt-injection boundary:** agent output is *data* for the UI, never an
+  instruction. There is no free shell from the phone, only registered adapter
+  operations.
+- **No telemetry, no analytics, no phoning home.**
 
 Details and known gaps: [`docs/security.md`](docs/security.md) (German).
-Reporting vulnerabilities: [`SECURITY.md`](SECURITY.md).
+Report vulnerabilities privately via [`SECURITY.md`](SECURITY.md).
+
+## Platform support
+
+| Where | Status |
+|---|---|
+| **Linux** | Primary. Used daily, with the hub as a systemd user service ([runbook](docs/operations-runbook.md)). |
+| **Windows** | Native, no WSL needed. Run the setup in Git Bash; workers run as child processes (tmux is Linux-only). |
+| **macOS** | Untested. The hub is plain Node, so it may well work. Reports and PRs are welcome. |
+| **Clients** | Any modern browser as an installable PWA, with layouts for phone, foldable, tablet and desktop. Developed on Android/Chromium and desktop browsers; iOS Safari is not regularly tested. |
+
+The desktop companion needs Wayland (Hyprland or sway).
+
+## FAQ
+
+**How is this different from vendor remote controls (for example Claude Code
+remote control, or Codex in the ChatGPT app)?** Those steer one vendor's agent
+through that vendor's cloud. AncientVoid steers all your agents side by side,
+and nothing passes through a service of ours, because there isn't one.
+
+**And from relay-based mobile apps?** Those route your sessions through a relay
+server (usually end-to-end encrypted) and need a native app. AncientVoid talks
+to your own hub over your private network and runs in the browser.
+
+**Why not just SSH + tmux on my phone?** You get structured turns, one-tap
+approvals, diffs, push notifications and offline state instead of a terminal on
+a phone keyboard. On Linux, your sessions can still run in tmux.
+
+**Does it need API keys or cost anything?** No. It drives the CLIs you are
+already logged into. For local models, point it at your own endpoint.
+
+**Is it ready?** It is pre-1.0 and used daily by its author. It has 300+ test
+files, 100+ Playwright specs against a real hub, a load test and 80+ ADRs.
+Expect rough edges, and an English UI soon.
 
 ## Contributing
 
-Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
-[Code of Conduct](CODE_OF_CONDUCT.md). Coding agents working in this repo follow
-[`AGENTS.md`](AGENTS.md) (German) and the skills in `.claude/skills/`.
+Contributions are welcome. The easiest first one is an adapter for your
+favourite agent ([guide](docs/adapters.md)), or a look at the
+[good first issues](https://github.com/SiLenTTz/AncientVoid/labels/good%20first%20issue).
+Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Coding agents working in this repo
+follow [`AGENTS.md`](AGENTS.md) and the skills in `.claude/skills/`.
 
 ## License
 
-[PolyForm Noncommercial 1.0.0](LICENSE) — source-available, **free for
-private and other noncommercial use** (personal projects, research, education,
-hobby, noncommercial organizations). It is not an OSI open-source license.
+AncientVoid is open source under the [GNU AGPL-3.0-only](LICENSE). You may use,
+self-host, modify and share it freely, at work too. If you run a **modified**
+version as a network service for others, you must publish your changes under
+the same license.
 
-**Commercial use requires a separate license** with the author's written
-permission. To ask, contact the maintainer at
-[jan.pfrommer@securesight.ai](mailto:jan.pfrommer@securesight.ai) and describe
-your intended use.
+**Commercial license:** if the AGPL does not fit your use (for example closed
+modifications or embedding in a proprietary product), the copyright holder
+offers a separate commercial license. Contact
+[jan.pfrommer@securesight.ai](mailto:jan.pfrommer@securesight.ai)
+([ADR-0086](docs/adr/0086-lizenz-agpl-mit-kauflizenz.md)).
 
-Required Notice: Copyright 2026 SiLenT_Tz (Jan Pfrommer)
+Copyright © 2026 SiLenT_Tz (Jan Pfrommer) and contributors.

@@ -4,7 +4,7 @@
   "private": true,
   "description": "pi adapter (P16): spawns `pi -p --mode json` headless, maps its JSON event stream to NormalizedEvent.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

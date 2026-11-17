@@ -4,7 +4,7 @@
   "private": true,
   "description": "WorkerRunner implementations: tmux-backed (default, attachable) and plain child_process fallback.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
     "./tmux": "./src/tmux.ts",

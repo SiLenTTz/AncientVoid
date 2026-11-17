@@ -4,7 +4,7 @@
   "private": true,
   "description": "Reference claude adapter (P1): spawns `claude -p --output-format stream-json`, maps its event stream to NormalizedEvent.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

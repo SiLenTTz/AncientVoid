@@ -1,7 +1,7 @@
 {
   "name": "@ancientvoid/pwa",
   "version": "0.1.0",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "description": "AncientVoid mobile PWA — projection renderer for hub deltas (dark-first, offline-tolerant).",
   "type": "module",

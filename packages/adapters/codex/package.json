@@ -4,7 +4,7 @@
   "private": true,
   "description": "codex adapter (P1): spawns `codex exec --json`, maps its event stream to NormalizedEvent.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -4,7 +4,7 @@
   "private": true,
   "description": "Loop connector for the aSPARK factory (ADR-0038): observes and steers a line over its MQTT Leitstand protocol (AsyncAPI 0.9.0).",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

@@ -4,7 +4,7 @@
   "private": true,
   "description": "AncientVoid. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "author": "SiLenT_Tz (Jan Pfrommer)",
   "homepage": "https://github.com/SiLenTTz/AncientVoid",
   "repository": {
@@ -60,7 +60,8 @@
     "docs:reference": "node scripts/gen-reference.mjs",
     "check:knip": "knip",
     "demo:seed": "node scripts/demo-seed.ts",
-    "guide:shots": "node scripts/guide-shots.ts"
+    "guide:shots": "node scripts/guide-shots.ts",
+    "readme:hero": "node scripts/readme-hero.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
