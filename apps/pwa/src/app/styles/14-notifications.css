@@ -252,6 +252,22 @@
 .app-page:has(.notif-bell.flow) .topbar {
   padding-right: 0;
 }
+/* EPIC-P64 T64.4: die 44-px-Glocke macht die Topbar der schmalen
+ * Listenspalte (360–420 px) eng — der Brand darf schrumpfen (Ellipse),
+ * statt die Zeile über die Spalte hinaus zu drücken (Font-Metrik-Unterschied
+ * Desktop-Chrome vs. Mobile-Emulation, Nutzerfläche Z Fold). */
+.app-page:has(.notif-bell.flow) .topbar h1 {
+  min-width: 0;
+  overflow: hidden;
+}
+.app-page:has(.notif-bell.flow) .brand-link {
+  min-width: 0;
+}
+.app-page:has(.notif-bell.flow) .brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* EPIC-P64 T64.4/T64.5: im Fluss-Modus hängt das Panel gemessen unter der
  * Glocke (top/left/max-width inline aus der Bell-Rect), rechtsbündig zu
  * ihr — der Anker folgt der Glocke, nie mittig im Bild. */

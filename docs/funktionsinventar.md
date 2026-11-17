@@ -52,6 +52,8 @@ Werkzeugseiten füllen die Detailspalte.
 | G19 | Freigaben-Seite | Deeplink `#/freigaben` | T43.3 | inventar |
 | G20 | Provider-Status | Kopfzeile „Status“ | T43.3 | inventar |
 | G21 | Benachrichtigungen | Glocke | — | inventar |
+| G21a | Glocken-Glow nach Dringlichkeit (rot Fehler, gelb offene Frage, grün Lauf beendet; statisch bei reduzierter Bewegung) | Glocke, sobald offen/ungelesen | P64 | spec:notifications-glow.spec.ts |
+| G21b | Glocke am PC im Kopf der Übersichtsliste (zugeklappt/Handy: Fenstereck), Panel hängt an der Glocke — nie mittig | Kopf der Listenspalte bzw. Fenstereck | P64 | spec:notifications.spec.ts |
 | G22 | Auftrag in Worten | Kopfzeile „✦“ | T43.6 | inventar |
 | G23 | Auftrag in Worten per Tastatur (nur PC) | Strg+K | T43.6 | inventar |
 | G24 | Umschalter Projekte | Start → „Projekte“ | — | inventar |

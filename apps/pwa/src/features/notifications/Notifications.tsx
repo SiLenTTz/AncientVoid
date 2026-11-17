@@ -84,7 +84,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   const closeBtn = useRef<HTMLButtonElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
   /** T64.4: gemessene Panel-Position (nur Fluss-Modus). */
-  const [panelPos, setPanelPos] = useState<{ top: string; left: string; maxWidth: string } | undefined>(undefined);
+  const [panelPos, setPanelPos] = useState<{ top: string; left: string; width: string } | undefined>(undefined);
   const { ref: panelRef } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => closeBtn.current });
   const openRef = useRef(false);
   const closePanel = () => {
@@ -236,12 +236,20 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
     if (!openRef.current) return;
     // EPIC-P64 T64.4/T64.5: im Fluss-Modus hängt das Panel gemessen unter
     // der Glocke (rechtsbündig zu ihr) — robust für jede Spaltenbreite und
-    // UI-Skalierung, statt die Geometrie in CSS nachzubauen.
+    // UI-Skalierung, statt die Geometrie in CSS nachzubauen. Rect ist in
+    // Render-Px, Inline-Styles in CSS-px — daher die Zoom-Division
+    // (--ui-zoom ist CSS `zoom` auf <html>, Muster siehe 14-notifications.css).
     if (flow) {
+      const zoom = Number(document.documentElement.style.getPropertyValue("--ui-zoom")) || 1;
       const rect = bellRef.current?.getBoundingClientRect();
       if (rect) {
-        const width = Math.min(380, window.innerWidth - 16);
-        setPanelPos({ top: `${Math.round(rect.bottom + 8)}px`, left: `${Math.max(8, Math.round(rect.right - width))}px`, maxWidth: `${Math.round(width)}px` });
+        const width = Math.min(380, window.innerWidth / zoom - 16);
+        const cssRight = rect.right / zoom;
+        setPanelPos({
+          top: `${Math.round(rect.bottom / zoom + 8)}px`,
+          left: `${Math.max(8, Math.round(cssRight - width))}px`,
+          width: `${Math.round(width)}px`,
+        });
       }
     }
     refreshPending();

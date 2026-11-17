@@ -156,7 +156,7 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
   }
 });
 
-test.describe("Glocke im Fenstereck am PC (EPIC-P51 T51.4) @desktop", () => {
+test.describe("Glocke am PC: Listenkopf wenn die Liste offen, Fenstereck wenn zu (EPIC-P64 T64.4 löst T51.4 ab) @desktop", () => {
   // Läuft in beiden Projekten als PC-Szenario (Muster: zoom-flaechen „Desktop-Fläche").
   test.use({ viewport: { width: 1440, height: 900 } });
   const CORNER_TOLERANCE = 14; // 8 px Anker + Subpixel-/Rundungstoleranz
@@ -178,23 +178,58 @@ test.describe("Glocke im Fenstereck am PC (EPIC-P51 T51.4) @desktop", () => {
     await expect(panel).toHaveCount(0);
   }
 
-  test("Glocke und Panel stehen in der Ecke — Liste offen, eingeklappt und wieder offen", async ({ app, hub }) => {
+  /** T64.4: Fluss-Modus — Glocke liegt im Kopf der Listenspalte, größer als
+   * die Umgebung (44 px), überdeckt nichts (kein fixed), Panel hängt gemessen
+   * rechtsbündig unter ihr. Größen und Abstände gelten in CSS-px: mit
+   * --ui-zoom (CSS `zoom`) skalieren gerenderte Boxen entsprechend. */
+  async function expectInListHead(page: Page, note = "") {
+    const zoom = await page.evaluate(() => Number(document.documentElement.style.getPropertyValue("--ui-zoom")) || 1);
+    const bell = (await page.locator(".notif-bell").boundingBox())!;
+    const column = (await page.locator(".split-list").boundingBox())!;
+    const topbar = (await page.locator(".split-list .topbar").boundingBox())!;
+    const vw = await page.evaluate(() => window.innerWidth);
+    // In der Spalte, nicht am Fensterrand: deutlich Abstand zum rechten Rand.
+    expect(bell.x + bell.width, `Glocke in der Spalte ${note}`).toBeLessThan(column.x + column.width + 0.5);
+    expect(vw - (bell.x + bell.width), `Glocke nicht im Fenstereck ${note}`).toBeGreaterThan(40);
+    // Im Fluss: die Topbar enthält sie (gleiche Zeile, innerhalb der Box).
+    expect(bell.y).toBeGreaterThanOrEqual(topbar.y - 1);
+    expect(bell.y + bell.height).toBeLessThanOrEqual(topbar.y + topbar.height + 1);
+    // 44 px CSS — größer als die 36-px-Alte und jedes umliegende Icon der Topbar.
+    expect(Math.abs(bell.width - 44 * zoom), `Glocke 44 px ${note}`).toBeLessThanOrEqual(1 + zoom);
+    expect(Math.abs(bell.height - 44 * zoom), `Glocke 44 px hoch ${note}`).toBeLessThanOrEqual(1 + zoom);
+    await page.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const panel = page.locator(".notif-panel");
+    await expect(panel).toBeVisible();
+    const box = (await panel.boundingBox())!;
+    // Panel hängt unter der Glocke, rechtsbündig zu ihr — nie mittig.
+    expect(Math.abs(box.y - (bell.y + bell.height + 8 * zoom)), `Panel unter der Glocke ${note}`).toBeLessThanOrEqual(2 * zoom + 1);
+    expect(Math.abs(box.x + box.width - (bell.x + bell.width)), `Panel rechtsbündig ${note}`).toBeLessThanOrEqual(2 * zoom + 1);
+    const { vw: vw2, vh } = await page.evaluate(() => ({ vw: window.innerWidth, vh: window.innerHeight }));
+    expect(box.x).toBeGreaterThanOrEqual(-0.5);
+    expect(box.y).toBeGreaterThanOrEqual(-0.5);
+    expect(box.x + box.width).toBeLessThanOrEqual(vw2 + 0.5);
+    expect(box.y + box.height).toBeLessThanOrEqual(vh + 0.5);
+    await panel.locator(".notif-panel-head .btn").click();
+    await expect(panel).toHaveCount(0);
+  }
+
+  test("Liste offen: Glocke im Listenkopf, Panel unter ihr — eingeklappt: Fenstereck", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
-    await expect(app.locator(".split")).toBeVisible();
-    await expectCornered(app, "(Liste offen)");
+    await expect(app.locator(".split:not(.list-collapsed)")).toBeVisible();
+    await expectInListHead(app, "(Liste offen)");
     await app.locator(".tile-list-toggle").click();
     await expect(app.locator(".split.list-collapsed")).toBeVisible();
     await expectCornered(app, "(Liste eingeklappt)");
     await app.locator(".tile-list-toggle").click();
     await expect(app.locator(".split:not(.list-collapsed)")).toBeVisible();
-    await expectCornered(app, "(Liste wieder offen)");
+    await expectInListHead(app, "(Liste wieder offen)");
   });
 
-  test("Ecke hält bei 130 % UI-Zoom (Zoom-Formel, P50)", async ({ app, hub }) => {
+  test("Listenkopf hält bei 130 % UI-Zoom (Zoom-Formel, P50)", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" });
     await app.evaluate(() => localStorage.setItem("ancientvoid.uiScale", "1.3"));
     await app.reload();
-    await expect(app.locator(".split")).toBeVisible();
-    await expectCornered(app, "(Zoom 130 %)");
+    await expect(app.locator(".split:not(.list-collapsed)")).toBeVisible();
+    await expectInListHead(app, "(Zoom 130 %)");
   });
 });
