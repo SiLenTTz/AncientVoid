@@ -505,6 +505,24 @@ export const MIGRATIONS: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_checkout_tenants_session ON checkout_tenants (session_id);
     `,
   },
+  {
+    id: 35,
+    name: "queue-position",
+    // ADR-0085: die Warteschlange war rein zeitbestellt (created_at). Jetzt darf der
+    // Nutzer einen vorgemerkten Prompt nach vorn oder nach hinten setzen und ihn
+    // nachtraeglich bearbeiten — dafuer braucht die Reihenfolge eine eigene Spalte.
+    // Aufwaertsgang: bestehende Eintraege bekommen ihre bisherige Reihenfolge.
+    sql: `
+      ALTER TABLE session_queue ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+      UPDATE session_queue SET position = (
+        SELECT rn FROM (
+          SELECT id, ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at ASC, id ASC) AS rn
+          FROM session_queue
+        ) ranked WHERE ranked.id = session_queue.id
+      );
+      CREATE INDEX IF NOT EXISTS session_queue_order ON session_queue (session_id, position, created_at);
+    `,
+  },
 ];
 
 export class HubDatabase {

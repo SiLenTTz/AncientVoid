@@ -112,6 +112,14 @@ export interface SlashCommand {
 export interface AdapterCapabilities {
   /** ADR-0076: adapters without native live steering use the durable hub queue. */
   promptDelivery?: "live" | "next-turn";
+  /**
+   * ADR-0085: der Adapter kann eine Meldung **mitten im laufenden Zug** annehmen, ohne
+   * eine zweite native Session zu oeffnen (Pi: jeder Lenk-Aufruf ist ein eigener Lauf).
+   * Das ist nicht dasselbe wie `steer` — Claude lenkt, aber nur im naechsten Zug, und ein
+   * zweiter Prozess auf dieselbe native Session verbietet ADR-0074. Deshalb bleibt die
+   * Ablehnung von "jetzt senden" fuer alle Adapter ohne diese Zusicherung erhalten.
+   */
+  midTurnInput?: boolean;
   /** Adapter emits reasoning/thinking events. */
   reasoning: boolean;
   /** Adapter performs tool calls (tool_use/tool_result events). */

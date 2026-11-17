@@ -86,3 +86,49 @@
     min-height: 20px;
   }
 }
+
+/* BUG-0194: im niedrigen Querformat (915x412 gemessen) war das Dock an die Zweispaltigkeit
+ * der Sitzungsliste gekoppelt (41-tablet.css: left: strip-col + 24px). Die kurzen Regeln oben
+ * setzen das Dock aber auf volle Breite zentriert — die Zeile gewinnt erst durch diese
+ * Aufloesung: die Liste bleibt Spalte (BUG-0180), das Dock bleibt mittig und die Eingabe
+ * erreichbar. */
+@media (max-height: 520px) {
+  .tablet-split .dock-stack {
+    left: 0;
+    right: 0;
+    max-width: var(--chat-max-width);
+    margin: 0 auto;
+  }
+
+  /* Die Liste darf im niedrigen Fenster nicht die halbe Bildhoehen fressen — sonst bleibt
+     fuer Chat und Dock zu wenig. */
+  .tablet-split .session-strip {
+    max-height: calc(100dvh - 210px);
+  }
+}
+
+/* ADR-0085: die zweizeilige Warteschlangen-Zeile (Text, darunter die Knopfe) braucht im
+ * niedrigen Fenster weniger Hohe — sonst rutscht die Knopfreihe unter das Eingabefeld
+ * (eigener Review 17.11.2026, Querformat 915x412: die Halften von funf Symbolen).
+ * 36 px sind hier die Trefferflache, nicht 44: im Querformat ist die Hohe das knappere Gut. */
+@media (max-height: 520px) {
+  .queue-list {
+    max-height: 30dvh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .queue-item {
+    gap: 0 6px;
+  }
+
+  .queue-actions {
+    gap: 0;
+  }
+
+  .queue-actions .icon-action {
+    min-height: 36px;
+    min-width: 36px;
+    padding: 4px 8px;
+  }
+}

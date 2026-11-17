@@ -1,6 +1,6 @@
 # PROGRESS — AncientVoid
 
-Stand: 2026-11-16, nach dem Umzug auf GitHub (`SiLenTTz/AncientVoid`).
+Stand: 2026-11-17, nach dem Umzug auf GitHub (`SiLenTTz/AncientVoid`).
 
 ## Ziel
 
@@ -9,6 +9,22 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-0085, Zweig
+  `feat/queue-liefern-und-editieren`)**: während ein Zug läuft, sitzt im Composer ein Chip
+  `⏳ am Zugende` / `⚡ lenken` (bleibt über Neuladen gleich), der Hauptknopf heißt passend
+  „Vormerken“ oder „Jetzt lenken“. Die Wahl existiert nur, wo der Adapter Eingaben mitten im
+  Zug zusagt — dafür gibt es die neue Capability `midTurnInput` (Pi: `true`); Claude behält
+  die Ablehnung aus ADR-0074 und zeigt die Wahl sichtbar nicht. Vorgemerktes ist danach
+  änderbar: Text (✎) und Reihe (↑ nach vorn / ↓ nach hinten) über die neue Spalte `position`
+  (Migration 35 `queue-position`) und `PATCH /api/sessions/:id/queue/:queueId`; Events
+  `session.queue_edited` / `session.queue_moved`. Bei `delivery: "unknown"` bleiben Text und
+  Reihe gesperrt. Belege: `session-queue.test.ts` 20 Fälle (14 vorhandene + 6 neue, 19 grün —
+  der K7-Neustart-Fall schlägt auf Windows mit `EBUSY: hub.db` fehl, auf `origin/main`
+  identisch, BUG-0170), Hub-Route 13 grün, PWA-Suite 460 grün, E2E `pause-queue.spec.ts` +
+  `querformat.spec.ts` 18 grün (`--workers=1`). Mitgeflogen: BUG-0194 — im niedrigen
+  Querformat hing das Dock an der Listenspalte (Eingabe unter der Kante), und der
+  Warteschlangen-Text war bei 390 px auf ~15 Zeichen gekürzt.
+
 - **BUG-0181 App dreht nicht mit (PR #41, Zweig `fix/orientation-mitdrehen`)**: das Manifest
   stand seit dem ersten öffentlichen Release auf `"orientation": "portrait-primary"` — eine
   installierte PWA dreht sich nicht. Außerdem verlor `08-session-events.css` die Kaskade für
