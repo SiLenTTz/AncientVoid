@@ -12,7 +12,14 @@ Self-hosted · open source · no cloud: the only server is yours.
 [![Hub: Linux · Windows](https://img.shields.io/badge/hub-Linux%20%C2%B7%20Windows-4b5563)](#platform-support)
 [![Client: any browser (PWA)](https://img.shields.io/badge/client-any%20browser%20(PWA)-7c3aed)](docs/guide/README.md)
 
-<img src="apps/site/assets/social-preview-01.jpg" width="100%" alt="AncientVoid: every coding agent, every machine, in your pocket. A phone shows an agent asking for approval to run a shell command.">
+<picture>
+  <source media="(max-width: 700px)" srcset="apps/site/assets/demo-02.webp">
+  <img src="apps/site/assets/demo-01.webp" width="100%" alt="Animated demo: an agent asks to run a shell command, it is approved with one tap on the phone, and the desktop updates live while the agent continues">
+</picture>
+
+<sub>Real recording from a demo hub with a stand-in agent, no real data
+(<a href="scripts/readme-demo.mjs">reproducible</a>). The UI is German today;
+an English UI is <a href="epics/EPIC-P61-mehrsprachigkeit-englisch.md">in progress</a>.</sub>
 
 [Quick start](#quick-start) · [Why](#why-ancientvoid) · [Features](#what-you-can-do) · [Agents](#works-with-the-agents-you-already-use) · [Security](#security-model) · [FAQ](#faq) · [User guide](docs/guide/README.md)
 
@@ -39,21 +46,6 @@ approve or redirect, and the *running* agent continues.
   fingerprint or face (passkey). No answer means no.
 - **Crash-proof.** Every session is an append-only event log, so after
   `kill -9` the hub is back in under 3 s.
-
-## See it
-
-<picture>
-  <source media="(max-width: 700px)" srcset="apps/site/assets/showcase-02.jpg">
-  <img src="apps/site/assets/showcase-01.jpg" width="100%" alt="AncientVoid on a desktop browser and two phones: the session queue, and a shell command waiting for approval on both the phone and the desktop">
-</picture>
-
-One hub, every screen: the queue on your phone, a shell command waiting for
-your approval, and the same session on the desktop. The images come from a
-demo hub with synthetic sessions ([reproducible](scripts/readme-hero.mjs)).
-**The UI is German today.** An English UI is in progress
-([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md)); the
-[user guide](docs/guide/README.md), with every page at full size, is already
-in English.
 
 ## Quick start
 
