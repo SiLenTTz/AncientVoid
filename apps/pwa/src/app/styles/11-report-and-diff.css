@@ -334,7 +334,7 @@
   margin: 8px 0;
 }
 .review-pick-btn {
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   background: transparent;
   color: inherit;
   border-radius: 8px;
@@ -359,7 +359,7 @@
   flex: 1;
 }
 .review-save-btn {
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   background: var(--accent);
   color: #0b0d12;
   border-radius: 8px;
@@ -393,7 +393,7 @@
 /* Panel mit Notizen */
 .review-panel {
   margin-top: 12px;
-  border-top: 1px solid var(--border, #2a2f3a);
+  border-top: 1px solid var(--border);
   padding-top: 8px;
 }
 .review-panel h3 {
@@ -405,7 +405,7 @@
   gap: 8px;
   align-items: flex-start;
   padding: 8px;
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   border-radius: 10px;
   margin: 6px 0;
 }
@@ -446,7 +446,7 @@
   font-size: 11px;
   padding: 3px 8px;
   border-radius: 6px;
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -455,14 +455,14 @@
   padding: 0 8px;
   border-radius: 999px;
   font-size: 11px;
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
 }
 .review-status.draft { color: var(--warn); }
 .review-status.sent { color: #7ad97a; }
 .review-status.open { color: var(--accent); }
 .review-status.done { color: #9aa3b2; }
 .review-stale-badge {
-  color: var(--danger, #ff7a7a);
+  color: var(--err);
   font-size: 11px;
 }
 .review-unclear-badge {
@@ -475,7 +475,7 @@
   margin: 4px 0;
 }
 .review-warn-inline {
-  color: var(--danger, #ff7a7a);
+  color: var(--err);
   font-size: 11px;
 }
 
@@ -508,8 +508,8 @@
   z-index: 60;
 }
 .review-send-dialog .modal-card {
-  background: var(--panel, #12151d);
-  border: 1px solid var(--border, #2a2f3a);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   width: min(640px, calc(92vw / var(--ui-zoom))); /* BUG-0122 */
@@ -525,7 +525,7 @@
   font-size: 13px;
 }
 .review-prompt-preview {
-  border: 1px solid var(--border, #2a2f3a);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
   font-size: 12px;

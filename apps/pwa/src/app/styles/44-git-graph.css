@@ -13,7 +13,7 @@
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--bg-chip);
-  background: var(--bg-card, #151515);
+  background: var(--bg-elev);
   overflow: hidden;
 }
 .git-layer.drawer {
@@ -48,8 +48,8 @@
   font-size: calc(11px * var(--font-scale));
   padding: 2px 8px;
   border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--lane, var(--accent)) 55%, var(--bg-chip));
-  color: var(--lane, var(--accent));
+  border: 1px solid color-mix(in srgb, var(--lane) 55%, var(--bg-chip));
+  color: var(--lane);
 }
 .git-graph-list { list-style: none; margin: 0; padding: 0; overflow: auto; flex: 1; min-height: 0; }
 .git-graph-row { display: flex; gap: 4px; align-items: stretch; min-height: 44px; }

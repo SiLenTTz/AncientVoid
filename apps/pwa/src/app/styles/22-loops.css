@@ -26,13 +26,13 @@
 }
 .loop-badge.ok { color: var(--ok); }
 .loop-badge.warn { color: var(--warn); }
-.loop-badge.bad { color: var(--bad, #f85149); }
+.loop-badge.bad { color: var(--err); }
 .loop-panel {
   display: grid;
   gap: 8px;
   padding: 10px 12px;
   margin: 8px 0;
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 10px;
 }
 .loop-head,
@@ -47,24 +47,24 @@
   border-radius: 8px;
   border: 1px solid currentColor;
 }
-.loop-alert.bad { color: var(--bad, #f85149); }
+.loop-alert.bad { color: var(--err); }
 .loop-alert.warn { color: var(--warn); }
 .loop-progress { display: grid; gap: 4px; }
 .loop-bar {
   height: 6px;
   border-radius: 3px;
-  background: var(--border, #30363d);
+  background: var(--border);
   overflow: hidden;
 }
 .loop-bar > div { height: 100%; background: var(--ok); }
 .gate-passed { color: var(--ok); }
-.gate-failed { color: var(--bad, #f85149); }
+.gate-failed { color: var(--err); }
 .loop-notices { margin: 0; padding-left: 18px; font-size: 0.85em; }
 .loop-report pre { white-space: pre-wrap; max-height: 40vh; overflow: auto; }
 .loop-onboard {
   display: grid;
   gap: 8px;
-  border: 1px dashed var(--border, #30363d);
+  border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 8px 10px;
 }

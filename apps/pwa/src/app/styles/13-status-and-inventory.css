@@ -66,7 +66,7 @@
 .inventory-table td {
   text-align: left;
   padding: 4px 6px;
-  border-bottom: 1px solid var(--line, rgba(127, 127, 127, 0.2));
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 .inventory-table .support.verified {

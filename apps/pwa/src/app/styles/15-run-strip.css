@@ -92,7 +92,7 @@ button.run-progress {
 }
 .run-todo-list {
   margin: 2px 0 0 0; padding: 6px 8px; list-style: none;
-  background: var(--panel, #1c1f26); border: 1px solid var(--line, #2a2e38);
+  background: var(--bg-elev); border: 1px solid var(--border);
   border-radius: 8px; max-height: 220px; overflow-y: auto;
   display: flex; flex-direction: column; gap: 3px;
 }
