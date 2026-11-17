@@ -155,5 +155,7 @@ describe("installierter Stand eines Geräts (BUG-0186)", () => {
       askServiceWorker: async () => "ancientvoid-v6",
     });
     expect(deviceStatusLines(drehtSchon).some((l) => l.includes("aus ihrer Installation"))).toBe(false);
+    // Der Buendel-St gehoert in die Standanzeige: nur das Buendel weiss, welches Buendel laeuft.
+    expect(deviceStatusLines(drehtSchon).some((l) => l.startsWith("App-Stand: "))).toBe(true);
   });
 });

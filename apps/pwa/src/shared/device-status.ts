@@ -8,6 +8,8 @@
  * Anzeigemodus, Ausrichtung des Fensters, ausgeliefertes Manifest und ob es in einem
  * Cache liegt — dazu die Cache-Version des aktiven Service Workers.
  */
+import { BUILD_SHA_SHORT } from "./build-id.ts";
+
 export interface DeviceStatus {
   /** Wie die App gerade läuft: eigenes Fenster (installiert) oder Browser-Tab. */
   displayMode: "installiert (eigenes Fenster)" | "Browser-Tab" | "unbekannt";
@@ -158,6 +160,9 @@ export function deviceStatusLines(status: DeviceStatus): string[] {
     `Manifest-Ausrichtung: ${status.manifestOrientation}`,
     cacheLine,
     `Service-Worker-Cache: ${status.swCache ?? "kein Worker antwortet"}`,
+    // Welches Bündel hier läuft, kann nur das Bündel selbst beantworten: der Server weiß
+    // nur, was er ausliefert, und ein Geräte-Cache kann älter sein als das.
+    `App-Stand: ${BUILD_SHA_SHORT}`,
     ...(folge ? [folge] : []),
   ];
 }

@@ -9,6 +9,22 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **Build-Stempel im Buendel (Zweig `feat/app-stand-im-geraetebericht`).** Auf Kais Frage
+  „sehe ich das am Handy schon?“ war von aussen nicht entscheidbar, WELCHES Buendel auf
+  dem Geraet laeuft — der Server sagt nur, was er ausliefert, und ein Geraetecache kann
+  aelter sein. Neu: Vite setzt `__BUILD_SHA__` zur Bauzeit ins Buendel (apps/pwa/vite.config
+  liefert sha/dirty jetzt aus EINER Quelle fuer version.json und das Buendel), die
+  Standanzeige zeigt `App-Stand: <sha kurz>`, und der Geraete-Selbstbericht traegt `build`
+  (Vertrag, begrenzt auf 40 Zeichen); der Hub protokolliert `stand:` in derselben Zeile.
+  Damit ist „welcher Stand laeuft bei Kai?“ eine Protokollzeile statt Raten.
+  Zusaetzlich: die Routen-Tests fuer `POST /api/diagnostics/client-report` fehlen im
+  Zweig — ich habe sie neu geschrieben (5 Faelle: voller Bericht 202, unbekannter Typ 400,
+  Detail > 200 400, Build > 40 400, ohne Geraet 401). Ehrlich: frueher gemeldete
+  „4 passed“ fuer diese Route sind im aktuellen Zweig nicht wiederfindbar — sie sind
+  jetzt erst wirklich im Repo.
+  Tores: `apps/hub/test/modules/diagnostics/client-report.routes.test.ts` + `build-id`,
+  `device-report`, `device-status` zusammen **21 passed**; Typecheck 0; ESLint 0;
+  gebaut und im Buendel nachgewiesen: sha `de4ce48a1d0c…` steckt im ausgelieferten JS.
 - **BUG-0204 behoben (Zweig `fix/0204-grosser-diff-teilausweis`).** Ein Commit-Diff ueber
   der Groessenkante loeschte bisher den gesamten Aenderungsdiff (live gemessen:
   `git diff fehlgeschlagen: stdout maxBuffer length exceeded`, Browser-Zaehler 0). Neu:

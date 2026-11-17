@@ -1,4 +1,5 @@
 import { getToken } from "./api.ts";
+import { BUILD_SHA } from "./build-id.ts";
 import { gatherDeviceStatus, type DeviceStatus } from "./device-status.ts";
 
 /**
@@ -31,6 +32,8 @@ export function orientationReportBody(status: DeviceStatus, how: ReportHow, deta
     devicePixelRatio: win?.devicePixelRatio,
     platform: (nav as { userAgentData?: { platform?: string } } | undefined)?.userAgentData?.platform ?? nav?.platform,
     userAgent: nav?.userAgent?.slice(0, 300),
+    /** Welches Buendel auf diesem Geraet laeuft — der Server sieht nur, was er ausliefert. */
+    build: BUILD_SHA.slice(0, 40),
   };
 }
 
