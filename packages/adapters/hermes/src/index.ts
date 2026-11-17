@@ -61,6 +61,9 @@ type HermesConfig = z.infer<typeof HermesConfig>;
 interface SessionMeta {
   healthy: boolean;
   nativeSessionId?: string;
+  /** BUG-0188: Owner-Konflikt-Retry-Budget — genau einer pro Session, kein
+   * endloses Nachschieben gegen einen hängenden Lock. */
+  ownerRetries?: number;
 }
 
 /** Matches `session_id: <id>` anywhere in a line (live format has a
@@ -78,6 +81,13 @@ const ANSI_RE = /\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\\)|\[[0-9;?]*[a-zA-Z]|[=>]|\(
  * 2026-10-03) — but the tmux pane merges them into stdout, so they must
  * be filtered from the answer text. Each is a complete line. */
 const STATUS_LINE_RE = /^(?:↻ Resumed session |Model restored from session: )/;
+
+/** BUG-0188: hermes v0.21 sperrt native Sessions auf genau einen Live-Owner.
+ * Ein --resume-Spawn, während der alte CLI-Owner noch lebt, stirbt mit
+ * Exit 1 und dieser Meldung (live belegt 2026-11-09, Session cb017253) —
+ * der Lock fällt mit dem Owner-Prozess, also hilft genau ein Neuversuch. */
+const OWNER_CONFLICT_RE = /already has a live owner/;
+const OWNER_CONFLICT_RETRY_MS = 1200;
 
 /** Strip PTY noise from a chunk. Exported for unit tests. */
 export function stripAnsi(s: string): string {
@@ -123,7 +133,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   const procs = new Map<string, WorkerProcess>();
   const sessions = new Map<string, SessionMeta>();
 
-  function attach(sessionId: string, proc: WorkerProcess, ctx: AdapterContext, meta: SessionMeta): void {
+  function attach(
+    sessionId: string,
+    proc: WorkerProcess,
+    ctx: AdapterContext,
+    meta: SessionMeta,
+    retry: { prompt: string; spec: SessionSpec } | null,
+  ): void {
     meta.healthy = true;
     procs.set(sessionId, proc);
     sessions.set(sessionId, meta);
@@ -181,6 +197,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         handleStderrLine(stderrBuf);
         stderrBuf = "";
       }
+      // BUG-0188: Exit 1 mit der Owner-Meldung ist weder Antworttext noch
+      // ein Defekt — der Turn wird genau einmal neu gestartet (unten), erst
+      // ein zweiter Konflikt gilt als gescheitert.
+      const ownerConflict = code === 1 && OWNER_CONFLICT_RE.test(stripAnsi(stdout));
       // T13.3/T13.4 answer hygiene — everything below verified against a
       // REAL tmux-PTY run (2026-10-03, session 20261003_203423_1d2848):
       // stdout arrives ANSI-polluted (`\x1b]11;?\x1b\\`, `\x1b[c`) with
@@ -191,19 +211,21 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // via handleLine above), keep the rest verbatim.
       const lines = stripAnsi(stdout).split("\n");
       const answerLines: string[] = [];
-      for (const line of lines) {
-        if (SESSION_ID_RE.test(line)) continue;
-        if (/^Warning: /.test(line)) {
-          ctx.log("warn", "hermes stdout warning", { line: line.slice(0, 500) });
-          continue;
+      if (!ownerConflict) {
+        for (const line of lines) {
+          if (SESSION_ID_RE.test(line)) continue;
+          if (/^Warning: /.test(line)) {
+            ctx.log("warn", "hermes stdout warning", { line: line.slice(0, 500) });
+            continue;
+          }
+          // hermes status lines (resume banner, model restore) belong to the
+          // session chrome, not the answer — logged, never emitted.
+          if (STATUS_LINE_RE.test(line)) {
+            ctx.log("info", "hermes status line", { line: line.slice(0, 500) });
+            continue;
+          }
+          answerLines.push(line);
         }
-        // hermes status lines (resume banner, model restore) belong to the
-        // session chrome, not the answer — logged, never emitted.
-        if (STATUS_LINE_RE.test(line)) {
-          ctx.log("info", "hermes status line", { line: line.slice(0, 500) });
-          continue;
-        }
-        answerLines.push(line);
       }
       const answer = answerLines.join("\n").trim();
       if (answer) {
@@ -213,11 +235,33 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // the turn finished and the session is idle BETWEEN turns, not down
       // (same lesson as claude BUG-0008 — never mark unhealthy on clean
       // one-shot exit).
-      if (code !== 0 && code !== null) {
+      if (code !== 0 && code !== null && !ownerConflict) {
         meta.healthy = false;
         ctx.emit({ type: "system", summary: `hermes: process exited with code ${code}`, payload: { code } });
       }
       if (procs.get(sessionId) === proc) procs.delete(sessionId);
+      if (ownerConflict) {
+        if (retry && (meta.ownerRetries ?? 0) < 1 && !ctx.signal.aborted) {
+          meta.ownerRetries = (meta.ownerRetries ?? 0) + 1;
+          ctx.emit({
+            type: "system",
+            summary: "hermes: voriger Prozess hält die native Session noch — Turn wird erneut gestartet",
+            payload: { kind: "hermes.owner_conflict", retryInMs: OWNER_CONFLICT_RETRY_MS },
+          });
+          setTimeout(() => {
+            // Ein jüngerer Turn (neuer Prompt) hat Vorrang — kein Parallel-Spawn.
+            if (procs.get(sessionId) || ctx.signal.aborted) return;
+            void spawnTurn(sessionId, retry.prompt, retry.spec, ctx, meta).catch(() => undefined);
+          }, OWNER_CONFLICT_RETRY_MS).unref();
+        } else {
+          meta.healthy = false;
+          ctx.emit({
+            type: "system",
+            summary: "hermes: native Session ist noch durch einen anderen Prozess belegt",
+            payload: { kind: "hermes.owner_conflict_final", code },
+          });
+        }
+      }
     });
   }
 
@@ -238,7 +282,17 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       [cfg.command, ...args],
       spec.env ? { env: spec.env } : undefined,
     );
-    attach(sessionId, proc, ctx, meta);
+    attach(sessionId, proc, ctx, meta, { prompt, spec });
+    // BUG-0188: hermes -Q druckt Antwort UND session_id erst am Zugende —
+    // ein langer Turn wäre minutenlang stumm („passiert nichts"). Dieses
+    // Event ist das sofortige Feedback, dass der Turn läuft; mehr Zwischen-
+    // stand gibt der CLI nicht her, und ein künstlicher Heartbeat wäre
+    // Rauschen (BUG-0070).
+    ctx.emit({
+      type: "system",
+      summary: `Hermes · Turn gestartet${proc.pid !== undefined ? ` (pid ${proc.pid})` : ""}`,
+      payload: { kind: "hermes.turn_started" },
+    });
     return proc;
   }
 
@@ -306,6 +360,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       }
       sessions.set(ctx.sessionId, meta);
       if (spec.prompt) {
+        meta.ownerRetries = 0; // BUG-0188: Budget je Turn, nicht je Session
         await spawnTurn(ctx.sessionId, spec.prompt, spec, ctx, meta);
       }
       const handle: SessionHandle = {
@@ -320,6 +375,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (!meta) return { ok: false, detail: "hermes: unknown session" };
       switch (input.kind) {
         case "prompt": {
+          meta.ownerRetries = 0; // BUG-0188: Budget je Turn, nicht je Session
           const proc = await spawnTurn(handle.sessionId, input.text, { adapter: "hermes", project: ctx.workdir } as SessionSpec, ctx, meta);
           return { ok: true, ...(proc.pid !== undefined ? { detail: `pid ${proc.pid}` } : {}) };
         }

@@ -2683,7 +2683,27 @@ export class SessionManager {
         logger[level](msg, extra);
       },
       emit: (event: EmittedEvent) => {
-        if (signal.aborted || this.shuttingDown) return;
+        if (this.shuttingDown) return;
+        if (signal.aborted) {
+          // BUG-0188: stop() abortet das Signal, bevor der Adapter den
+          // onExit-Flush der Worker-Ausgabe liefert. Ein Event mit
+          // payload.nativeSessionId ist der generische Resume-Griff
+          // (emitEvents bindet ihn) — hermes druckt die session_id genau
+          // dann. Er überlebt den Stop (K7: die geleistete Arbeit bleibt
+          // über --resume erreichbar). Alles andere nach dem Stop bleibt
+          // verworfen, wird aber geloggt — still war der Drop nie wieder.
+          const late = event.payload as { nativeSessionId?: unknown } | undefined;
+          if (typeof late?.nativeSessionId === "string" && late.nativeSessionId.length > 0) {
+            void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
+          } else {
+            this.logger.warn("adapter event after stop dropped", {
+              sessionId: session.record.id,
+              type: event.type,
+              kind: (event.payload as { kind?: unknown } | undefined)?.kind ?? null,
+            });
+          }
+          return;
+        }
         if (event.type === "error" || event.payload?.kind === "provider.error" || event.payload?.kind === "cursor.usage_limit") session.turnFailed = true;
         void this.emitEvents(session, [event]).catch((err) => this.handleEmitFailure(session, event, err));
       },

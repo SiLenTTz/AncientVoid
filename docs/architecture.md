@@ -2,10 +2,11 @@
 
 **Art:** erklaerung
 
-Stand: 2026-11-12. Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
-bis P56 sind eingearbeitet, soweit sie Struktur verändern — fachliche
-Details und Verlauf leben in `epics/` (Index: `epics/README.md`). Diese
-Doku beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Der
+Stand: 2026-11-17. Basis: PRD §4 und `epics/EPIC-P0-hub-kern.md` ff.; Epics
+bis P56 (Statistik) und strukturrelevante Nachfolger (u. a. Teams P60,
+Live-Deltas ADR-0083) sind eingearbeitet, soweit sie Struktur verändern —
+fachliche Details und Verlauf leben in `epics/` (Index: `epics/README.md`).
+Diese Doku beschreibt den umgesetzten Stand; Abweichungen = ADR-Pflicht. Der
 P0-Grundriss gilt weiterhin, die Abschnitte „Erweiterungen“ fassen zusammen,
 was seitdem dazugekommen ist, ohne den Grundriss neu zu schreiben.
 
@@ -36,13 +37,14 @@ apps/                            lauffähige Programme
   companion/      (@ancientvoid/companion)  Desktop-Companion (P11, ADR-0031): Diktat ins fokussierte Fenster
 packages/                        Bibliotheken
   contracts/src/<modul>/         Verträge
-  core/src/modules/<modul>/      approvals, attachments, automations, browser, code,
-                                 commands, connections, custom-models, desktop,
-                                 devices, diagnostics, discovery, fleet, forge,
-                                 gatekeeper, git-graph, graph, handover, harness,
-                                 identity, loops, media, notifications,
-                                 observability, team, push, reporting,
-                                 reviews, runs, sessions, skills, vault, workspace
+  core/src/modules/<modul>/      aimetrics, approvals, attachments, automations,
+                                 browser, code, commands, connections,
+                                 custom-models, desktop, devices, diagnostics,
+                                 discovery, fleet, forge, gatekeeper, git-graph,
+                                 graph, handover, harness, identity, loops,
+                                 media, notifications, observability, team,
+                                 push, reporting, reviews, runs, sessions,
+                                 skills, statistics, vault, workspace
   core/src/platform/             db, eventstore, config, logger, metrics
   workers/                       WorkerRunner (tmux, process)
   adapters/<name>/               acp, aider, claude, claude-clip, codex, copilot,
@@ -99,7 +101,13 @@ Regeln:
 - Jede Zustandsänderung ist `system`-Event + Snapshot (`snapshot.json`).
 - `recoverAll()` (K7): SQLite-Rows + JSONL-Replay + optional
   `adapter.recover()` + tmux-Orphan-Reaping. Restore-Ziel < 3 s.
-- Adapter bekommen nur `AdapterContext` — emit/blob/spawnWorker/log/signal.
+- Adapter bekommen nur `AdapterContext` — emit/blob/spawnWorker/log/signal
+  plus `stream` für transient Live-Frames (ADR-0083, nicht JSONL).
+- **Stop vs. Native-Binding (K7):** `stop()` bricht das Session-Signal ab,
+  bevor der Worker-Exit-Flush ankommt. Events mit `nativeSessionId` werden
+  nach dem Abort weiter journalisiert (Resume-Griff bleibt erreichbar);
+  andere Post-Abort-Drops werden geloggt, `shuttingDown` verwirft weiter
+  alles.
 
 ### AdapterRegistry (`@ancientvoid/core`)
 
@@ -176,7 +184,10 @@ ADR-0038: `packages/loops/*` als Connectoren hinter dem Adapter-Contract),
 Automations-Host (P41), Vault/Notizen (P49), Datei-Galaxie (P52, vorher Repo-Graph P48,
 ADR-0062), Git-Commit-Graph (ADR-0071),
 Forge-Integration GitLab (P37), Browser-Testarbeitsplatz (P39,
-ADR-0059) und Desktop-Flächen (P18/P34, Companion P11/ADR-0031).
+ADR-0059), Desktop-Flächen (P18/P34, Companion P11/ADR-0031),
+Live-Deltas über `ctx.stream` (ADR-0083, transient am WS-Tail),
+Statistik-Modul + Rollup (P56, ADR-0079) und Agenten-Teams (P60,
+ADR-0077).
 
 ### Adapter-Flotte (P1/P3)
 
