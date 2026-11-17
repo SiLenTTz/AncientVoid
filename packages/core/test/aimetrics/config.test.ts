@@ -9,7 +9,7 @@ describe("config aiMetrics (EPIC-P59)", () => {
 
   it("Defaults: 10 s Intervall, 15 min Fenster, Host-Probe an", () => {
     const cfg = HubConfig.parse({ aiMetrics: {} });
-    expect(cfg.aiMetrics).toMatchObject({ intervalSec: 10, windowSec: 900, retentionSamples: 5400, hostProbe: true, probeKnown: true, servers: [] });
+    expect(cfg.aiMetrics).toMatchObject({ intervalSec: 10, windowSec: 900, retentionSamples: 5400, hostProbe: true, probeKnown: true, mergePeers: true, servers: [] });
   });
 
   it("Server nur mit URL oder apiKeyFile (ADR-0011: kein Key-Wert)", () => {

@@ -131,12 +131,11 @@ echte Live-Abnahme, sobald `ancientvoid-llama` auf gpubox wieder läuft.
 **Live-Abnahme-Teilstand 2026-11-17 (evox2, live belegt):** Sampler ist
 konfiguriert (runtime `hub.config.json`, git-ignored; Secrets nur als
 Datei-Referenz nach ADR-0011) und beprobt Hub-Host (sysfs/os — Werte live
-sichtbar), evox2/Halogen (:8100), evox2/Vision (:8095) und die Cloud-Quelle
-(probeKnown). evox2/Halogen antwortet auf `/health`, aber `/metrics` gibt
-404 — Metrik bleibt dort „nicht gemeldet“ (K9-Zustand, nie 0), bis der
-Startdienst auf evox2 die Metrik aktiviert; das ist ein bewusster
-Nutzer-Schritt, weil der Dienstneustart laufende Agentensitzungen über
-dieses Modell trennt (docs/local-llm.md). Vision (:8095) und
-`ancientvoid-llama` (:8081) sind auf evox2 aktuell nicht erreichbar und
-stehen als Fehlerzustand da — sie melden sich von selbst, sobald die
+sichtbar). Halogen ist peonist flash-server (kein llama.cpp): `/metrics`
+404, `/health` ok — ADR-0078-Nachtrag: Fallback auf `/health` + optional
+`halogenLog` (Kais livelog-Format). Peer-Merge für Systemmetriken des
+KI-Hosts über Fleet (`mergePeers`). Bewusst manuell: auf dem Peer-Hub
+(`securesight`) `aiMetrics.hostProbe` + Halogen-Server inkl. Log-Pfad
+setzen und Hub neu starten; Leserecht auf `halogen.log` (docs/local-llm.md).
+Vision (:8095) / `ancientvoid-llama` (:8081) bleiben Fehlerquellen, bis die
 Dienste laufen.
