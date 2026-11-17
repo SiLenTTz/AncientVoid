@@ -1,5 +1,5 @@
 ---
-id: BUG-0189
+id: BUG-0192
 slug: slash-commands-nicht-bei-allen-anbietern
 status: done
 severity: S3
@@ -12,7 +12,7 @@ reporter: "Jan (PWA, Nutzerauftrag 17.11.2026)"
 epic: "EPIC-P25 (T25.6 Folge)"
 ---
 
-# BUG-0189 — Slash-Commands fehlen bei den meisten Anbietern („/commands funktionieren nicht in allen Providern")
+# BUG-0192 — Slash-Commands fehlen bei den meisten Anbietern („/commands funktionieren nicht in allen Providern")
 
 ## Gesehen
 

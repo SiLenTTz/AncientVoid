@@ -89,7 +89,7 @@ export const ACP_PRESETS = {
  * built-in slash commands from a text block (docs.github.com …/acp-server,
  * picker commands excluded), omp dispatches its built-in registry in ACP
  * mode too (slash-command-internals.md). opencode: live verified
- * 17.11.2026 against 2.1.4 (BUG-0189) — "/compact" as prompt text ran as a
+ * 17.11.2026 against 2.1.4 (BUG-0192) — "/compact" as prompt text ran as a
  * command (session_info_update _meta.opencode/compaction "started"→
  * "completed", reason "manual"; no model turn about the word), and the
  * agent advertises /init, /review, /compact via available_commands_update;

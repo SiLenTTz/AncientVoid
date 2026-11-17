@@ -27,11 +27,11 @@ describe("acp capabilities().commands — maki-Brücke (bridgeCommands)", () => 
   });
 });
 
-/** BUG-0189: opencode führt advertised Commands im getriebenen ACP-Modus als
+/** BUG-0192: opencode führt advertised Commands im getriebenen ACP-Modus als
  * Prompt-Text aus — live belegt 17.11.2026 gegen opencode 2.1.4: /compact
  * lief als Command (compaction started→completed, reason "manual", kein
  * Modellturn), /init und /review advertised über dieselbe Registry. */
-describe("acp capabilities().commands — preset opencode (BUG-0189)", () => {
+describe("acp capabilities().commands — preset opencode (BUG-0192)", () => {
   it("deklariert genau die belegten Commands, wohlgeformt", () => {
     const caps = createAdapter({ preset: "opencode" }).capabilities();
     const names = (caps.commands ?? []).map((c) => c.name);
