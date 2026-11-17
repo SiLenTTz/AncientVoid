@@ -1,6 +1,6 @@
-# BUG-0200 — in ausgelösten Fenstern („eigene Fenster“) öffnet das „Mehr“-Menü nicht mehr
+# BUG-0200 — „Mehr“-Menüpunkte liegen hinter der Steuerung und sind nicht trafbar
 
-- **Status:** offen
+- **Status:** done (Stapelreihenicht Portal — gemessen)
 - **Schicht:** pwa (EPIC-P63 Design-System, Auslösen von Ansichten in eigene Fenster)
 - **Schwere:** S2 — vier inventarisierte Funktionen sind in diesem Modus nicht mehr
   erreichbar; am Hauptfenster funktioniert dasselbe weiterhin
@@ -31,16 +31,38 @@ Geräte — gemessen mit einer Wegwerfsonde bei 390, 834 und 1280 px Breite).
 „jede Ansicht lässt sich am PC herauslösen“). Die Inventarwege S10/S33/S65/S66 laufen über
 genau dieses Menü.
 
-## Ursache (Verdacht, zu prüfen)
+## Ursache (gemessen, nicht geraten)
 
-Das Menü liegt seit EPIC-P63 in einem Baustein (`Sheet`), der bei ausgelösten Fenstern
-**außerhalb** der Kachel gemountet wird (Portal unter `body`) oder gar nicht, weil das
-Fenster-Layout (`.tile`) kein `subtabs-wrap` mehr besitzt. Der Spec-Locator ist auf die
-Kachel beschränkt — wenn das Menü ein Portal ist, findet ihn die Spec nicht; wenn das Menü
-im Fenster gar nicht existiert, ist die Funktion im Fenster weg. Beides wäre hier zu
-unterscheiden und zu beheben (Portal-Ablage in die Kachel, oder Spec auf das Fenster
-ausweiten — aber nur, wenn das Menü wirklich öffnet).
+Das Menü **öffnet** sich, der Menüpunkt wird gefunden, ist sichtbar und stabil — nur die
+Zeigerereignisse fängt etwas anderes ab. Aus dem Playwright-Call-Log:
 
+```
+S10  … <button class="dock-toggle" aria-expanded="true">▾</button> from <div class="dock-stack">
+        subtree intercepts pointer events
+S33  … <div class="draft-state dim saved">Entwurf gespeichert …</div>        intercepts
+S65  … <div class="reply-templates">…</div>                                   intercepts
+S66  … element is not stable (der Dock-Höhenänderndes Menüs verschiebt den Punkt)
+```
+
+**Stapelreihenfolge, kein Portal:** der Kachelkopf `.session-topbar` steht auf
+`--z-sticky` (10), die Steuerung `.dock-stack` auf `--z-dock` (20). Der Kopf bildet einen
+Stapelkontext — was darin an Menüs hängt (bis `--z-overlay` 50), kann nicht über die
+Steuerung hinaus. Der bestehende Versuch `.tile-tabs:has(.subtabs-more) { z-index: 20 }`
+bleibt innerhalb dieses Kontexts und wirkt deshalb nicht. Die Titel-Vermutung dieser Akte
+(„Portal außerhalb der Kachel / gar kein Menü im Fenster“) war **falsch**.
+
+## Behoben
+
+In `40-turns.css`: der Kopf erhält `--z-sheet` (60), **solange** dort ein Menü offen ist
+(`.session-topbar:has(.subtabs-more)`, zusätzlich `:has(.session-menu[open])` für das
+„⋯“-Menü desselben Musters). Geschlossen bleibt der Kopf bei 10, die Steuerung bleibt
+also im Normalzustand oben — geändert wird nur der geöffnete Zustand.
+
+| Messung | Ergebnis |
+|---|---|
+| `funktionsinventar.spec.ts --grep "erreichbar"` vorher | **1 failed** (S10/S33/S65/S66) |
+| nach dem Fix | **9 passed** (1,5 min) |
+| `pause-queue.spec.ts` (Dock-Wache) | **12 passed** |
 ## Nachweis
 
 `npx playwright test e2e/specs/funktionsinventar.spec.ts --workers=1` → 10 passed / 1 failed
