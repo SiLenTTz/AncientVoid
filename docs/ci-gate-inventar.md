@@ -152,7 +152,10 @@ Public-Mirror, kein Minutenkauf. Vergleich der Optionen (Kosten, Wartung,
 Tailnet, Secrets, Ausfall) und die Betriebsverantwortung stehen im ADR;
 die externe Einrichtung folgt erst nach dieser Entscheidung (Reihenfolge
 eingehalten). Mit dem Umzug auf das öffentliche GitHub-Repo (16.11.2026)
-ist der eigene Runner abgelöst: kein self-hosted Runner für Fork-PRs.
+ist der eigene Runner abgelöst: kein self-hosted Runner für Fork-PRs. Der PR-Gate cacht
+`node_modules` über den exakten Lockfile-Hash (`actions/cache`, nur ein exakter Treffer zählt);
+der **Kaltlauf-Beweis** — frische Installation aus dem Lockfile — bleibt im Nightly-Lauf, der
+ohne diesen Cache `npm ci` fährt.
 
 ## 5. Nachweislauf-Register (Historie GitLab, drei aufeinanderfolgende grüne Läufe)
 

@@ -39,7 +39,7 @@ Links auf `gitlab.com/SiLenT_Tz/…` zeigen auf das private Archiv.
 
 | Job | Inhalt | Lokales Gegenstück |
 |---|---|---|
-| `verify` (`ci.yml`, PR-Gate) | `npm ci`, Typecheck, Lint, Checks (`check:*`), schnelle Kern-Tests (ohne Slow-Liste), PWA-Build | `npm run test:fast && npm run lint && npm run typecheck` |
+| `verify` (`ci.yml`, PR-Gate) | `npm ci` (aus `node_modules`-Cache nur bei exaktem Lockfile-Treffer), Typecheck, Lint, Checks (`check:*`), schnelle Kern-Tests (ohne Slow-Liste), PWA-Build — die Kern-Tests laufen im Hintergrund parallel zu Guards und Build | `npm run test:fast && npm run lint && npm run typecheck` |
 | `vitest-full` (`nightly.yml`) | die komplette Vitest-Suite inkl. Slow-Tests (Liste `scripts/slow-tests.json`, Generator `scripts/gen-slow-tests.mjs`, Drift-Vorschlag im Log) | `npm test` |
 | `k8` (`nightly.yml`) | Lasttest 20 Sessions × 30 ev/s | `npm run loadtest` |
 | `e2e-shards` + `e2e` (`nightly.yml`) | Playwright Chromium gegen einen echten Hub, danach Skip-Bericht (4 Shards parallel, Browser-Cache); der Aggregations-Job `e2e` fasst die Shard-Berichte nach denselben Regeln zusammen (fehlender Bericht, null Tests, Failures — `scripts/ci-e2e-aggregate.mjs`) | `npm run test:e2e` |
