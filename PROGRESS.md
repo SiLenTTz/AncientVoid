@@ -24,7 +24,8 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   Cache auf main (Lockfile-Wechsel oder Handausloesung), dort laeuft echtes `npm ci` — der
   Kaltlauf-Beweis (frische Installation) bleibt erhalten. Gesaet: Lauf 44180995622 mit
   Key `nm-Linux--node24-…`; nach dem Key-Fix auf `runner.arch` neu gesaet in Lauf 44183836239
-  (35 s), Key `nm-Linux-X64-node24-06b19507…`. Entfernt ausserdem: ein von mir hinterlassener
+  (35 s), Key `nm-Linux-X64-node24-06b19507…`. Letzter Messlauf PR #137: **2:12** — Cache
+  getroffen, `npm ci` entfallen (Restore der `node_modules` in 2 s). Entfernt ausserdem: ein von mir hinterlassener
   Duplikat-Schritt, der Guards und Tests ein zweites Mal laufen liess.
 - **Build-Stempel im Buendel (Zweig `feat/app-stand-im-geraetebericht`).** Auf Kais Frage
   „sehe ich das am Handy schon?“ war von aussen nicht entscheidbar, WELCHES Buendel auf
@@ -166,14 +167,15 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   immer zuerst `bugs/README.md` auf dem aktuellen `main` prüfen.
 
 ## Nächste Schritte
-- **Cache-Treffer im PR-Gate nachpruefen** (Cache ist auf main gesaet, Lauf 44180995622): der
-  naechste PR-Lauf muss „node_modules aus dem Cache — Lockfile exakt, npm ci entfaellt“ melden
-  und sollte unter ~2:45 landen. Bleibt er bei ~3:20, trifft der Key nicht — der Bild-Teil fehlt
-  noch im Key, weil `ImageOS` im Key-Ausdruck nicht als `env`-Variable sichtbar ist (richtig
-  gemaechst durch einen Schritt, der `RUNNER_IMAGE_ID` nach `$GITHUB_ENV` schreibt).
-- **Auto-Merge einrichten lassen** (eine Ruleset-Einstellung, `allow_auto_merge`): GitHub
-  merged in der Sekunde, in der `verify` gruen wird; ich warte dann nicht mehr auf den
-  Manuell-Merge. Notwendig, weil `gh pr merge --auto` vom aktuellen Ruleset abgelehnt wird.
+- **Gate-Tempo: das Warten laeuft, waehrend ich arbeite.** Der `verify`-Lauf kostet ~2:10–2:40;
+  geblockt wird nur mit `gh pr checks --watch` (kehrt in der Sekunde der Gruenheit zurueck) —
+  sleep-Schleifen sind verboten, sie haben pro PR 25–90 s gekostet. Rezept steht im Skill
+  `git-workflow` (Abschnitt 4).
+- **Auto-Merge bleibt aus, bis Kai ihn im GitHub-UI einschaltet.** Repo-seitig ist
+  `allow_auto_merge` bereits `true`, aber `gh pr merge --auto --merge` lehnt das Ruleset
+  `main-gate` ab („Protected branch rules not configured for this branch“); der Hebel sitzt in
+  der Ruleset-Bearbeitung (Owner-Rechte, nicht mein Token). Ohne das bleibt der Manuell-Merge
+  direkt nach gruenem `--watch` — die Verzoegerung ist dann nur noch die Gate-Laenge selbst.
 
 1. Gates auf GitHub-Basis fertig fahren (`typecheck`, `lint`, `check:context`,
    Tier A, `test:e2e` für Workspace-Specs), dann PR mit `gh pr create`.

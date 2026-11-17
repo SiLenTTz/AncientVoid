@@ -132,9 +132,13 @@ Zusammenfassung ≤ 100 Zeichen, Bereich = Paket/Modul. Keine Secrets.
 ```bash
 git push -u origin feat/adapter-local-llm
 gh pr create --base main --title "^ F adapter-local-llm: Stream des llama.cpp-Servers lesen" --body-file pr-desc.md
-gh pr checks --watch                       # CI (GitHub Actions) muss grün sein
+gh pr checks --watch                       # blockiert bis grün — NICHT mit sleep-Schleifen pollern
 gh pr merge <nr> --merge --delete-branch \
   --subject "$(gh pr view <nr> --json title -q .title)"   # Self-Merge zulässig (Solo-Projekt)
+
+# Vor dem Warten absichern, dass Push und PR wirklich existieren:
+git ls-remote --heads origin <branch>          # Push bewiesen (nicht aus dem Ausgang annehmen)
+gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Nummer nicht pollen
 ```
 
 - **Merge-Commit, kein Squash/Rebase:** Die Branch-Commits behalten ihre
@@ -146,6 +150,14 @@ gh pr merge <nr> --merge --delete-branch \
   [`docs/ci-runbook.md`](../../../docs/ci-runbook.md) (`gh run view --log-failed`).
 - Branch-Protection auf `main` verlangt die CI-Checks; `gh pr merge` scheitert,
   solange sie rot oder ausstehend sind — nicht mit Admin-Override umgehen.
+- **Warten ist Produktivzeit:** das Ruleset `main-gate` verlangt `verify`, darum bleibt
+  Warten unvermeidbar — aber es ist das bewachte Warten: `gh pr checks --watch` kehrt in
+  dem Augenblick zurück, in dem `verify` grün wird (Schleifen mit `sleep 25/85` kosten pro
+  PR 25–90 s und sind der Fehler, nicht die Vorsicht). Gemessene Gate-Länge nach der
+  Tempobeschleunigung (PR #131/#134/#135/#136/#137): 3:41 → 2:12; Ausgangslage war 5:14.
+- `gh pr merge --auto --merge` wird vom aktuellen Ruleset abgelehnt („Protected branch
+  rules not configured for this branch“), obwohl `allow_auto_merge` im Repo an ist —
+  nicht erneut probieren, sondern `--watch` benutzen.
 
 Body: Warum, Testplan, Link Issue (`Fixes #<nr>`). Der PR bleibt Pflicht als
 Log-Eintrag — der Merge-Klick/`gh pr merge` ist der **einzige** Weg, wie
