@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type MediaInfo, type MediaJob, type MediaResult, type SessionRecord } from "../../shared/api.ts";
 import { formatTimestamp, handOver, MEDIA_STEP_LABELS, MEDIA_STEPS, timestampLink } from "../../shared/media.ts";
 import { pageHash, sessionHash } from "../../app/route.ts";
+import { projectName } from "../../shared/project-name.ts";
 import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
@@ -107,7 +108,7 @@ function ResultView({ job, result, sessions }: { job: MediaJob; result: MediaRes
             <option value="new">neuer Session</option>
             {local.slice(0, 20).map((s) => (
               <option key={s.id} value={s.id}>
-                {(s.title ?? s.project.split("/").pop() ?? s.id).slice(0, 50)} · {s.adapter}
+                {(s.title ?? projectName(s.project) ?? s.id).slice(0, 50)} · {s.adapter}
               </option>
             ))}
           </select>

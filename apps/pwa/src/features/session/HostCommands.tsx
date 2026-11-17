@@ -1,5 +1,6 @@
 import { useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
+import { projectName } from "../../shared/project-name.ts";
 import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
@@ -73,7 +74,7 @@ export function WorktreeCard({
   return (
     <Card data-testid="worktree-card">
       <div class="dim" style="font-size: calc(12px * var(--font-scale, 1)); margin-bottom: 6px">
-        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {project.split("/").pop()}.
+        Die Änderungen dieser Session liegen in einem eigenen Git-Worktree{host ? ` auf ${host}` : ""}, nicht in {projectName(project)}.
         Branch <span class="mono">{worktree.branch}</span>.
       </div>
       <div class="attach-cmd-row">
@@ -108,7 +109,7 @@ export function ApplyToProject({
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
   const running = status === "working" || status === "starting";
-  const projectName = project.split("/").pop() ?? project;
+  const projectLabel = projectName(project);
   const apply = async () => {
     setBusy(true);
     try {
@@ -130,7 +131,7 @@ export function ApplyToProject({
       {confirming ? (
         <div class="apply-confirm">
           <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">
-            Committet alle Änderungen auf {worktree.branch} und merged sie in den ausgecheckten Branch von {projectName}.
+            Committet alle Änderungen auf {worktree.branch} und merged sie in den ausgecheckten Branch von {projectLabel}.
           </div>
           <div class="row" style="gap: 8px">
             <Button disabled={busy} onClick={() => void apply()} variant="primary" class={busy ? "busy" : undefined}>

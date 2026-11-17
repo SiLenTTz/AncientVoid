@@ -32,6 +32,14 @@ describe("groupDiscovery", () => {
     expect(groups[0]!.sessions.map((s) => s.observedAt)).toEqual(["2026-09-28T14:00:00.000Z", "2026-09-28T09:00:00.000Z"]);
   });
 
+  it("names Windows project paths by their last segment, not the whole path (BUG-0196)", () => {
+    const groups = groupDiscovery([
+      item({ project: "C:\\Users\\demo\\repos\\website", observedAt: "2026-11-17T10:00:00.000Z" }),
+      item({ project: "D:\\work\\api\\", observedAt: "2026-11-17T09:00:00.000Z" }),
+    ]);
+    expect(groups.map((g) => g.project)).toEqual(["website", "api"]);
+  });
+
   it("sessions of the same repo merge into one group, whatever their source path", () => {
     const groups = groupDiscovery([
       item({ project: "/mnt/data/30_repos/arch/arbeitsbaeume/securesight-harnez", observedAt: "2026-09-28T14:00:00.000Z" }),

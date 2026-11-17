@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import { promisify } from "node:util";
 import { registerSttStreamRoutes, type SttStreamingConfig } from "./stt-stream.ts";
 
@@ -48,7 +48,7 @@ async function toWav(audio: Buffer, mime: string): Promise<Buffer> {
 
 /** Project-name vocabulary for STT matching (directory names, capped at 40). */
 export function projectVocabulary(paths: readonly string[]): string {
-  const names = [...new Set(paths.map((p) => p.split("/").filter(Boolean).pop() ?? "").filter((n) => n.length > 1))];
+  const names = [...new Set(paths.map((p) => win32.basename(p)).filter((n) => n.length > 1))];
   return names.slice(0, 40).join(", ");
 }
 

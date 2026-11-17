@@ -1,4 +1,5 @@
 import type { ListPage } from "../../app/route.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /**
  * EPIC-P43 T43.6: Schnellsuche im Befehlsfeld — Springen zu Sessions, Projekten, Dateien, Werkzeugen und
@@ -56,7 +57,7 @@ const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] = [
 export const COMMANDS: readonly string[] = ["Zeig wartende Sessions", "Starte Codex in Projekt …: …", "Antworte dort: …", "Korrigiere den Text"];
 
 const PER_KIND = 5;
-const base = (path: string) => path.split("/").filter(Boolean).pop() ?? path;
+const base = projectName;
 const norm = (s: string) => s.toLocaleLowerCase("de-DE");
 
 /** Rang eines Treffers: Wortanfang vor Teilstring; -1 = kein Treffer. */

@@ -1,3 +1,4 @@
+import { win32 } from "node:path";
 import { COMMANDS, type CommandContext, type CommandId, type PlanQuestion, type PlanStep } from "@ancientvoid/contracts";
 import type { Intent } from "./parse.ts";
 
@@ -12,7 +13,7 @@ export interface ResolveData {
 
 export type Resolved = { steps: PlanStep[]; question: PlanQuestion | null; refusal: string | null };
 
-const base = (p: string) => p.split("/").filter(Boolean).pop() ?? p;
+const base = (p: string) => win32.basename(p) || p; // trennt an / und \ (BUG-0196)
 const n = (s: string) =>
   s
     .toLowerCase()

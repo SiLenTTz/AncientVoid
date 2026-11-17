@@ -22,6 +22,7 @@ import { StartGuide, FirstSuccessSignal } from "./StartGuide.tsx";
 import { emptyText, showStartGuide } from "./start-guide.ts";
 import { initSeen, isUnseen, seenKey } from "../../shared/seen.ts";
 import { DiscoveryPane } from "../discovery/Discovery.tsx";
+import { projectName } from "../../shared/project-name.ts";
 
 export function formatUsd(n: number): string {
   if (n === 0) return "$0";
@@ -89,10 +90,6 @@ const HOST_STATE_LABEL: Record<FleetHost["state"], string> = {
   incompatible: "inkompatibel",
   unauthorized: "Zugriff entzogen",
 };
-
-function projectName(project: string): string {
-  return project.split("/").filter(Boolean).pop() ?? project;
-}
 
 const RECENT_LIMIT = 15;
 const QUIET_KEY = "ancientvoid.overview.quietOpen";

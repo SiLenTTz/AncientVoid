@@ -15,6 +15,7 @@ import { publishHubStatus } from "../shell/hub-status.ts";
 import { App } from "../../app/App.tsx";
 import { HEARTBEAT_MS, SESSION_VIEW_KINDS, VIEW_LABEL, VIEW_TAB, type SessionViewKind, type WindowTarget } from "./protocol.ts";
 import { rememberWindowGeometry, onWindowMessage, openPopout, postWindowMessage, startWindowHub } from "./windows.ts";
+import { projectName } from "../../shared/project-name.ts";
 import { Button } from "../../shared/ui/index.ts";
 
 type ViewTarget = Extract<WindowTarget, { kind: SessionViewKind }>;
@@ -78,7 +79,7 @@ export function PopoutShell() {
   const id = useRef(crypto.randomUUID()).current;
   const [session, setSession] = useState<SessionRecord | null>(null);
   // Titel-Zeile: Session-Titel, sonst der Projektname — eine Session ohne Titel heißt nicht nur „Session“.
-  const sessionLabel = session?.title ?? session?.project.split("/").filter(Boolean).pop() ?? "Session";
+  const sessionLabel = session?.title ?? (session ? projectName(session.project) : undefined) ?? "Session";
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -117,7 +118,7 @@ export function PopoutShell() {
       .session(target.sessionId)
       .then((s) => {
         setSession(s);
-        const label = s.title ?? s.project.split("/").pop() ?? "Session";
+        const label = s.title ?? projectName(s.project) ?? "Session";
         document.title = `⧉ ${target.kind === "graph" ? `Graph · ${label}` : target.kind === "file" ? `${target.path.split("/").pop()} · ${label}` : isViewTarget(target) ? `${VIEW_LABEL[target.kind]} · ${label}` : label}`;
       })
       .catch(() => setError("Diese Session gibt es nicht mehr oder sie ist nicht erreichbar."));

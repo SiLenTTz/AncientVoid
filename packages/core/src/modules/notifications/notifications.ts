@@ -1,3 +1,4 @@
+import { win32 } from "node:path";
 import type { NormalizedEvent, NotificationLevel } from "@ancientvoid/contracts";
 
 export interface NotificationDraft {
@@ -12,8 +13,9 @@ export interface NotificationContext {
   project: string;
 }
 
+/** Anzeigename eines Projektpfads. Ein Windows-Hub meldet `C:\…`; win32.basename trennt an / und \ (BUG-0196). */
 export function projectName(project: string): string {
-  return project.split("/").filter(Boolean).pop() ?? project;
+  return win32.basename(project) || project;
 }
 
 /**
