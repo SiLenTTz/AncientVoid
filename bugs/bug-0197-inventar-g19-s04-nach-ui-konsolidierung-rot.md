@@ -1,6 +1,6 @@
 # BUG-0197 — nach der UI-Konsolidierung (PR #94) sind zwei Inventar-Pfade rot: Freigaben-Leerzustand und „Änderungen“ ohne Änderungen
 
-- **Status:** offen
+- **Status:** done (G19 und S04); der Rest laeuft unter BUG-0200 weiter
 - **Schicht:** pwa (EPIC-P63 Design-System) + e2e (Funktionsinventar G19, S04)
 - **Schwere:** S2 — das Inventar-Gate (AC-P43-1) ist auf `main` rot; zwei dokumentierte Wege
   sind nicht mehr erreichbar bzw. nicht mehr nachweisbar. PR-CI (`verify`) fährt kein E2E,
@@ -35,6 +35,26 @@ Beide Inventar-Zeilen behaupten einen gangbaren Weg (Leitplanke E10, AC-P43-1):
 Freigaben ist per Deeplink erreichbar und zeigt seinen Leerzustand; „Änderungen“ ist ohne
 Änderungen unter „Mehr“ erreichbar und zeigt einen Leerzustand.
 
+## Behoben (17.11., gemessen)
+
+Beide Befunde waren **dieselbe Klassenumbenennung** aus PR #94: der Design-System-Baustein
+`EmptyState` bringt die Klasse `ui-empty`, die Inventar-Spec suchte `.empty` / `.empty-state`.
+Am Produkt war nichts leer — die Freigaben-Seite sagt „keine offenen Freigaben“, der Reiter
+„Änderungen“ sagt in einem Satz „Diese Session hat noch nichts geändert.“ und liegt im
+Chat-Rahmen (gemessen: `.session-live` traegt `data-tab=\"diff\"`, aber kein
+`[data-testid=diff-review]`, weil `noChanges` den Leerzustand zeigt).
+
+Selektoren in `e2e/specs/funktionsinventar.spec.ts` um `ui-empty` erwaehnt; die alten
+Alternativen bleiben drin.
+
+| Stand | Ergebnis |
+|---|---|
+| vor dem Fix (`origin/main`) | 6 failed / 5 passed |
+| nach dem Fix | **10 passed / 1 failed** |
+
+Die eine verbleibende Gruppe ist kein Leerzustand, sondern das „Mehr“-Menue in
+ausgeloesenen Fenstern (S10 Umgebung, S33 Browser, S65/S66 Geraete) — dazu
+`bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md`.
 ## Zwei mögliche Ausgänge (bewusst offen)
 
 - **Produkt gewollt:** Wenn „Änderungen“ ohne Änderungen bewusst ganz verschwinden soll, dann
