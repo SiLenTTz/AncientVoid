@@ -231,8 +231,9 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0195](bug-0195-live-thinking-groesser-als-die-denk-notiz.md) | das live uebertragene Denken war groesser, gerahmt und hinterlegt (15 px + Akzentkasten) statt wie eine Denk-Notiz (12 px, dimmt, kursiv) | done | S3 | pwa | — |
 | [BUG-0197](bug-0197-inventar-g19-s04-nach-ui-konsolidierung-rot.md) | nach PR #94 sind zwei Inventar-Pfade rot: Freigaben-Leerzustand heisst `ui-empty` (Spec sucht `.empty`), „Aendern“ ist ohne Aenderungen weder Reiter noch unter „Mehr“ erreichbar | offen | S2 | pwa | — |
 | [BUG-0198](bug-0198-check-context-token-tabelle-falschalarm-auf-windows.md) | `check:context` meldet auf Windows (CRLF-Checkout) „Token-Tabelle veraltet“, obwohl nichts veraltet ist — Generator schreibt LF in ein CRLF-Dokument | done | S3 | repo | — |
+| [BUG-0199](bug-0199-sprach-fab-liegt-auf-einstellungen-ueber-einer-reihe.md) | der Sprach-FAB verdeckt auf langen Seiten (Einstellungen, y=3200) den Pinch-Zoom-Schalter — elementFromPoint trifft `nyx-fab`, der Schalter ist nicht erreichbar | offen | S2 | pwa | — |
 
-Die nächste freie Nummer ist **0199** (0196 ist auf dem Zweig `fix/pwa-projektname-windows` fuer PR #93 schon vergeben) (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0200** (0196 ist auf dem Zweig `fix/pwa-projektname-windows` fuer PR #93 schon vergeben) (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
