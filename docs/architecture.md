@@ -35,6 +35,7 @@ apps/                            lauffähige Programme
   hubctl/         (@ancientvoid/hubctl)     CLI (auch `npm run hubctl`)
   gateway-mcp/    (@ancientvoid/gateway-mcp) MCP-Sidecar, nie vom Hub gestartet
   companion/      (@ancientvoid/companion)  Desktop-Companion (P11, ADR-0031): Diktat ins fokussierte Fenster
+  site/           Promo-Seite (GitHub Pages, ADR-0082)
 packages/                        Bibliotheken
   contracts/src/<modul>/         Verträge
   core/src/modules/<modul>/      aimetrics, approvals, attachments, automations,
@@ -186,8 +187,11 @@ ADR-0062), Git-Commit-Graph (ADR-0071),
 Forge-Integration GitLab (P37), Browser-Testarbeitsplatz (P39,
 ADR-0059), Desktop-Flächen (P18/P34, Companion P11/ADR-0031),
 Live-Deltas über `ctx.stream` (ADR-0083, transient am WS-Tail),
-Statistik-Modul + Rollup (P56, ADR-0079) und Agenten-Teams (P60,
-ADR-0077).
+Statistik-Modul + Rollup (P56, ADR-0079), Agenten-Teams (P60,
+ADR-0077), einheitliche UI-Bausteine unter `shared/ui` als einzige Form der
+Button-/Form-Sprache (P63), Terminal-Tab mit Allowlist-SSH über den Hub —
+keine nativen PTY-Module (ADR-0087) und Status-Sounds rein clientseitig als
+WebAudio-Synthese, ohne Contract-Änderung und ohne Assets (P65).
 
 ### Adapter-Flotte (P1/P3)
 
@@ -278,5 +282,6 @@ gemessen: 306 Tokens.
 | [0006](adr/0006-session-tokens-est-aggregation.md) | `tokensEst` nach demselben Muster wie `costUsd` | dasselbe Summierungs-Bedürfnis, ein zweites Mal auftauchend |
 | [0007](adr/0007-approval-service-contract.md) | Approval-Signatur ist ein HMAC über den rohen Device-Token (write), nie eine Bool-Attrappe | ADR-0007 begründet, warum das kein Behelfs-Downgrade ist, bis T2.5s WebAuthn für `destructive` übernimmt |
 | [0008](adr/0008-session-park-reason.md) | `SessionRecord.parkReason` unterscheidet manuell/budget/Tages-Cap | ein Budget-Top-up darf nur eine wegen Budget geparkte Session automatisch fortsetzen |
+| [0087](adr/0087-pwa-terminal-ssh.md) | Terminal im Browser führt Shells über Allowlist-Konfiguration, nie über freie Client-Hostnamen | kein natives PTY-Modul; Auth und Containment bleiben beim Hub |
 
 Neue Architekturentscheidungen: `docs/adr/` + PR.
