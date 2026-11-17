@@ -8,7 +8,15 @@ import { execFileSync } from "node:child_process";
 function gitIdentity(): { sha: string | null; dirty: boolean | null } {
   try {
     const sha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
-    const dirty = execFileSync("git", ["status", "--porcelain", "--untracked-files=no"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim().length > 0;
+    // `git status` meldet reine Austauschungen der Zeilenenden (Windows-CRLF) als
+    // „geändert“ — das würde einen sauberen Bau als verschmutzt ausweisen. Gezählt wird
+    // deshalb der echte Inhalt, ohne Zeilenenden.
+    let dirty = false;
+    try {
+      execFileSync("git", ["diff", "--quiet", "--ignore-cr-at-eol", "HEAD"], { stdio: ["ignore", "ignore", "ignore"] });
+    } catch {
+      dirty = true; // `git diff --quiet` endet nicht Null, wenn sich Inhalt unterscheidet
+    }
     return { sha, dirty };
   } catch {
     /* Source-Archiven melden ehrlich unbekannte Revision. */
