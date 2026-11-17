@@ -127,3 +127,16 @@ PWA-Build grün; ADR-0078 merged. Die gitlab.com-Pipelines (3069277607,
 zeitkritische Tests ohne P59-Berührung (runbook-§6-Bild), lokal bei jedem
 Lauf grün; nach Runbook §4 (gitlab.com) zählt das lokale Gate. Offen:
 echte Live-Abnahme, sobald `ancientvoid-llama` auf gpubox wieder läuft.
+
+**Live-Abnahme-Teilstand 2026-11-17 (evox2, live belegt):** Sampler ist
+konfiguriert (runtime `hub.config.json`, git-ignored; Secrets nur als
+Datei-Referenz nach ADR-0011) und beprobt Hub-Host (sysfs/os — Werte live
+sichtbar), evox2/Halogen (:8100), evox2/Vision (:8095) und die Cloud-Quelle
+(probeKnown). evox2/Halogen antwortet auf `/health`, aber `/metrics` gibt
+404 — Metrik bleibt dort „nicht gemeldet“ (K9-Zustand, nie 0), bis der
+Startdienst auf evox2 die Metrik aktiviert; das ist ein bewusster
+Nutzer-Schritt, weil der Dienstneustart laufende Agentensitzungen über
+dieses Modell trennt (docs/local-llm.md). Vision (:8095) und
+`ancientvoid-llama` (:8081) sind auf evox2 aktuell nicht erreichbar und
+stehen als Fehlerzustand da — sie melden sich von selbst, sobald die
+Dienste laufen.
