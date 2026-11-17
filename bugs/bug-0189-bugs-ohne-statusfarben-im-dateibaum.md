@@ -1,7 +1,7 @@
 ---
 id: BUG-0189
 slug: bugs-ohne-statusfarben-im-dateibaum
-status: open
+status: done
 severity: S4
 area: pwa
 instance: dev

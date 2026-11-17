@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { epicStatusOf, listTree } from "../../../src/modules/code/explorer.ts";
+import { bugStatusOf, epicStatusOf, listTree } from "../../../src/modules/code/explorer.ts";
 
 /**
  * Nutzerauftrag 14.11.2026: Epic-Status im Dateibaum — Kategorie aus der
@@ -42,6 +42,17 @@ describe("epicStatusOf (Nutzerauftrag 14.11.2026)", () => {
   });
 });
 
+describe("bugStatusOf (BUG-0189)", () => {
+  it("mapped Frontmatter-status auf dieselben Epic-Kategorien", () => {
+    expect(bugStatusOf("---\nid: BUG-1\nstatus: done\n---\n# x\n")?.epic).toBe("done");
+    expect(bugStatusOf("---\nstatus: in-progress\n---\n")?.epic).toBe("wip");
+    expect(bugStatusOf("---\nstatus: in Arbeit\n---\n")?.epic).toBe("wip");
+    expect(bugStatusOf("---\nstatus: open\n---\n")?.epic).toBe("open");
+    expect(bugStatusOf("---\nstatus: wont-fix\n---\n")?.epic).toBe("open");
+    expect(bugStatusOf("# ohne Frontmatter\nstatus: done\n")).toBeNull();
+  });
+});
+
 describe("listTree mit Epic-Anreicherung", () => {
   it("markiert EPIC-*.md der Seite mit Kategorie und Klartext, andere Dateien nicht", async () => {
     const root = mkdtempSync(join(tmpdir(), "av-epic-tree-"));
@@ -60,5 +71,20 @@ describe("listTree mit Epic-Anreicherung", () => {
     expect(byName.get("README.md")?.epic).toBeNull();
     const top = (await listTree(root, "", { kind: "project", sessionId: null, root, branch: null, head: null, base: null }))!;
     expect(top.entries.find((e) => e.name === "EPIC-P96-ausserhalb.md")?.epic).toBe("done");
+  });
+
+  it("markiert bug-*.md aus Frontmatter-status mit denselben Punkten (BUG-0189)", async () => {
+    const root = mkdtempSync(join(tmpdir(), "av-bug-tree-"));
+    mkdirSync(join(root, "bugs"));
+    writeFileSync(join(root, "bugs", "bug-0189-offen.md"), "---\nid: BUG-0189\nstatus: open\n---\n# BUG-0189\n");
+    writeFileSync(join(root, "bugs", "bug-0190-laufend.md"), "---\nstatus: in-progress\n---\n# BUG-0190\n");
+    writeFileSync(join(root, "bugs", "bug-0191-fertig.md"), "---\nstatus: done\n---\n# BUG-0191\n");
+    writeFileSync(join(root, "bugs", "NOTIZ.md"), "---\nstatus: done\n---\n# keine Bug-Datei\n");
+    const listing = (await listTree(root, "bugs", { kind: "project", sessionId: null, root, branch: null, head: null, base: null }))!;
+    const byName = new Map(listing.entries.map((e) => [e.name, e]));
+    expect(byName.get("bug-0189-offen.md")?.epic).toBe("open");
+    expect(byName.get("bug-0190-laufend.md")?.epic).toBe("wip");
+    expect(byName.get("bug-0191-fertig.md")?.epic).toBe("done");
+    expect(byName.get("NOTIZ.md")?.epic).toBeNull();
   });
 });
