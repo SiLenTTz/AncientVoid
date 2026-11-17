@@ -34,7 +34,7 @@ approve or redirect, and the *running* agent continues.
 
 - **Your code stays home.** The hub runs on your machine, reachable only
   through your private network ([Tailscale](https://tailscale.com)). There is
-  no AncientVoid cloud, no account and no telemetry.
+  no AncientVoid cloud or account, and no telemetry.
 - **One app for every screen.** An installable PWA, so there is no app store,
   with layouts for phone, foldable, tablet and a four-tile desktop.
 - **Any agent, your subscriptions.** Claude Code, Codex, pi, opencode, Copilot
@@ -176,16 +176,10 @@ guide: [`docs/adapters.md`](docs/adapters.md) · contract test kit:
 
 ## How it works
 
-```mermaid
-flowchart TB
-  P["Phone · tablet · desktop<br/>installable PWA"]
-  H["AncientVoid hub on your PC<br/>event log · approvals · worktrees"]
-  A["Claude Code · Codex · pi<br/>opencode · Copilot · …"]
-  H2["Hub on another machine"]
-  P <-->|"your tailnet only"| H
-  H -->|adapters| A
-  H <-.->|fleet| H2
-```
+<picture>
+  <source media="(max-width: 700px)" srcset="apps/site/assets/architecture-02.webp">
+  <img src="apps/site/assets/architecture-01.webp" width="100%" alt="Architecture: phones, tablets and desktop browsers reach the AncientVoid hub only through your tailnet. The hub keeps an event log, approvals, git worktrees and push, and drives your agent CLIs through adapters. More hubs join as a fleet. Everything stays inside your machines and network; only the agents' own API calls go out to their model providers.">
+</picture>
 
 - **One hub per machine** runs your agent CLIs as supervised workers (tmux or
   child processes). It records every session as an append-only event log in

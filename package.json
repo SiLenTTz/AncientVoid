@@ -62,7 +62,8 @@
     "demo:seed": "node scripts/demo-seed.ts",
     "guide:shots": "node scripts/guide-shots.ts",
     "readme:hero": "node scripts/readme-hero.mjs",
-    "readme:demo": "node scripts/readme-demo.mjs"
+    "readme:demo": "node scripts/readme-demo.mjs",
+    "readme:diagram": "node scripts/readme-diagram.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
