@@ -233,7 +233,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0197](bug-0197-inventar-g19-s04-nach-ui-konsolidierung-rot.md) | nach PR #94 meldete das Inventar veraltete Leerzustands-Selektoren (`.empty`/`.empty-state` statt `ui-empty`) — Produkt war korrekt; 6 failed wurden 10 passed / 1 failed | done | S2 | pwa | — |
 | [BUG-0198](bug-0198-check-context-token-tabelle-falschalarm-auf-windows.md) | `check:context` meldet auf Windows (CRLF-Checkout) „Token-Tabelle veraltet“, obwohl nichts veraltet ist — Generator schreibt LF in ein CRLF-Dokument | done | S3 | repo | — |
 | [BUG-0199](bug-0199-sprach-fab-liegt-auf-einstellungen-ueber-einer-reihe.md) | der Sprach-FAB verdeckt auf langen Seiten (Einstellungen, y=3200) den Pinch-Zoom-Schalter — elementFromPoint trifft `nyx-fab`, der Schalter ist nicht erreichbar | done | S2 | pwa | — |
-| [BUG-0200](bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md) | in ausgeloesenen Fenstern (eigene Fenster) oeffnet das „Mehr“-Menue nicht — S10/S33/S65/S66 sind dort nicht mehr erreichbar | offen | S2 | pwa | — |
+| [BUG-0200](bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md) | Menüpunkte des „Mehr“-Menüs lagen im Kachelkopf hinter der Steuerung (Stapelkontext `--z-sticky` < `--z-dock`) — jetzt erbt der Kopf nur im geöffneten Zustand `--z-sheet`; Inventar 9 passed | done | S2 | pwa | — |
 
 Die nächste freie Nummer ist **0201** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
