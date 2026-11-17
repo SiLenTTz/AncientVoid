@@ -38,6 +38,7 @@ Regeln:
 | page:automationen | Automations: schedules and run history | `#/automationen` | automations |
 | page:aimetrics | Local AI server metrics (CPU/GPU, tokens/s) | `#/metriken` | ki-server-metriken |
 | page:statistics | Session, turn, gate, tool and team statistics from the rollup cache | `#/statistik` | statistik |
+| page:terminal | Allowlisted SSH/local shell in the PWA | `#/terminal` | terminal |
 
 ## Views (Hauptansichten)
 
@@ -91,6 +92,7 @@ Regeln:
 | feature:statistics | Session/turn/gate/tool/team statistics page with slices | statistik |
 | feature:stt | Speech-to-text dictation | voice-local |
 | feature:team | Team cards, DAG view, model choice | team |
+| feature:terminal | Allowlisted hub SSH/local terminal (xterm) | terminal |
 | feature:vault | Vault notes: editor, folders, popout | vault |
 | feature:windows | Popout windows and window targets | windows |
 | feature:workspace | Archive, approvals flow, budget, composer flows | workspace |

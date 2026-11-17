@@ -1,4 +1,5 @@
-import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+export type { TerminalTarget };
 import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
   id: string;
@@ -1375,6 +1376,18 @@ function createHubApi(P: (path: string) => string) {
   sttStreamTicket: () => api<SttStreamTicket>(P("/api/stt/stream-ticket"), { method: "POST", body: "{}" }),
   sttStreamUrl: (ticket: string) => {
     const path = P(`/api/stt/stream?ticket=${encodeURIComponent(ticket)}`);
+    const url = new URL(path, window.location.href);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.href;
+  },
+  /** ADR-0087: PWA-Terminal (Allowlist). */
+  terminals: () => api<TerminalList>(P("/api/terminals")),
+  terminalTicket: (id: string) =>
+    api<TerminalTicket>(P(`/api/terminals/${encodeURIComponent(id)}/ticket`), { method: "POST", body: "{}" }),
+  terminalStreamUrl: (id: string, ticket: string, cols: number, rows: number) => {
+    const path = P(
+      `/api/terminals/${encodeURIComponent(id)}/stream?ticket=${encodeURIComponent(ticket)}&cols=${cols}&rows=${rows}`,
+    );
     const url = new URL(path, window.location.href);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     return url.href;

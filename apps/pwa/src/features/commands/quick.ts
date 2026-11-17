@@ -52,6 +52,8 @@ const TOOLS: readonly { page: ListPage; label: string; hash?: string }[] = [
   { page: "settings", label: "Einstellungen" },
   { page: "status", label: "Provider-Status" },
   { page: "pc", label: "PC" },
+  { page: "aimetrics", label: "Metrik" },
+  { page: "terminal", label: "Terminal" },
 ];
 
 export const COMMANDS: readonly string[] = ["Zeig wartende Sessions", "Starte Codex in Projekt …: …", "Antworte dort: …", "Korrigiere den Text"];

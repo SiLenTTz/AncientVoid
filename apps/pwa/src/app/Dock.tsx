@@ -20,6 +20,7 @@ const MORE: readonly { page: Page; icon: TabIconName; label: string; title: stri
   { page: "settings", icon: "einstellungen", label: "Einstellungen", title: "Einstellungen" },
   { page: "aimetrics", icon: "bericht", label: "Metrik", title: "Metrik: Auslastung des lokalen KI-Servers (EPIC-P59)" },
   { page: "statistics", icon: "bericht", label: "Statistik", title: "Statistik: Session-, Zug- und Tool-Kennzahlen (EPIC-P56)" },
+  { page: "terminal", icon: "terminal", label: "Terminal", title: "Terminal: Shell auf erlaubten Hosts (ADR-0087)" },
 ];
 
 /**

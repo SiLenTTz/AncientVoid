@@ -443,6 +443,12 @@ async function main(): Promise<void> {
     // EPIC-P56 T56.3: Statistik-Rollup — hält die Fakten-Caches frisch und
     // liest sie für die Statistik-Seite (Journal bleibt Wahrheit, K7).
     statistics: new StatisticsService(db, sessions, team),
+    terminals: config.terminals.map((t) => ({
+      id: t.id,
+      label: t.label,
+      ...(t.ssh ? { ssh: t.ssh } : {}),
+      ...(t.local ? { local: true as const } : {}),
+    })),
   });
 
   const listen = config.server.host === "127.0.0.1" && process.env.ANCIENTVOID_EXPOSE === "1"

@@ -17,6 +17,7 @@ import { TeamsPane } from "../features/team/TeamsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
 import { AiMetricsPage } from "../features/aimetrics/AiMetricsPage.tsx";
 import { StatisticsPage } from "../features/statistics/StatisticsPage.tsx";
+import { TerminalPage } from "../features/terminal/TerminalPage.tsx";
 import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 import { DetachButton } from "../features/windows/DetachButton.tsx";
@@ -200,6 +201,7 @@ export function App({
       {shown === "automationen" && <AutomationsPane />}
       {shown === "aimetrics" && <AiMetricsPage />}
       {shown === "statistics" && <StatisticsPage />}
+      {shown === "terminal" && <TerminalPage />}
       {shown === "dashboard" &&
         (sessions === null ? (
           <div class="empty">lade…</div>

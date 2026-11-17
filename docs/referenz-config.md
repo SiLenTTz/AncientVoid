@@ -86,3 +86,4 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `aiMetrics.servers` | array<object> | [] |
 | `aiMetrics.mergePeers` | boolean | true |
 | `aiMetrics.probeKnown` | boolean | true |
+| `terminals` | array<object> | [] |
