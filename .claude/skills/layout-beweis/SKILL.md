@@ -69,3 +69,12 @@ sichtbaren Container bleiben und der Container in der Anheft-Schwelle:
   umbiegen.
 - Auf Windows: `execFileSync("npm", …)` braucht `shell` (`e2e/support/win-shell.ts`,
   BUG-0169) — sonst scheitert der Bau schon im `beforeAll`.
+
+## Messfalle: Zustand nur an Punkten erfassen, die wirklich angefahren werden
+
+Am 17.11.2026 gemeldet und falsch: „FAB war bei Scroll 3200 px versteckt“. Die Sonde fuhr
+300er-Schritte an (0, 300, …, 5700) und zeichnete den Zustand **nur bei `y === 3200`** auf —
+ein Punkt, der nie angefahren wurde. Ergebnis war `null`, als „versteckt“ gelesen. Regel:
+den Zustand **an jedem angefahrenen Punkt** zählen (`versteckt++`, `treffer += …`) und die
+Schiene mitzählen (`Punkte=20`), damit ein fehlender Punkt als fehlend sichtbar ist. Ein
+`null`/leerer Wert ist kein Befund, sondern ein Loch in der Messung.
