@@ -106,6 +106,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G71 | Benannte Geräte-Layouts mit Kachelgrößen und erreichbaren Fenstern; Browser-Fenster-Preset Handy | Einstellungen → Darstellungs- und Layout-Presets | P43.5 T43.5-4 | spec:appearance-presets.spec.ts |
 | G72 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 | G73 | Terminal: Shell auf Allowlist-Zielen (SSH-Alias oder Hub-Host), manuelle Befehle aus der PWA | Dock „Mehr“ → „Terminal“ | ADR-0087 | spec:terminal.spec.ts |
+| G74 | Töne: Master, Kategorien an/aus, Variante und Lautstärke mit Vorschau, Panel-Knopf stumm/laut | Einstellungen → Töne | EPIC-P65 | spec:sounds.spec.ts |
 
 ## Session
 

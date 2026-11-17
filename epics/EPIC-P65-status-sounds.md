@@ -109,22 +109,22 @@ auf die Töne-Einstellungen.
 
 ## 4. Aufgaben (Checkliste T65.m)
 
-- [ ] **T65.1** `shared/audio.ts` (Context, Unlock, Synthese-Katalog mit
+- [x] **T65.1** `shared/audio.ts` (Context, Unlock, Synthese-Katalog mit
   `SOUND_OPTIONS` — je Kategorie 3–4 Varianten —, Lautstärke, Rate-Limit) +
   Unit-Tests mit gemocktem AudioContext: Unlock-Reihenfolge, Rate-Limit,
   Master-Kategorie-Logik, Varianten-Registry vollständig (je Kategorie ≥ 3).
-- [ ] **T65.2** Anbindung an `take()` in `Notifications.tsx` (Kategorie-
+- [x] **T65.2** Anbindung an `take()` in `Notifications.tsx` (Kategorie-
   Mapping, gewählte Variante, kein Replay beim Laden, kein Sound bei
   Panel-offen-Vorbelegung);
   Unit-Tests gegen das Mapping. Messlatte: K2.
-- [ ] **T65.3** `SoundSettings.tsx` (Master; je Kategorie an/aus,
+- [x] **T65.3** `SoundSettings.tsx` (Master; je Kategorie an/aus,
   Varianten-Auswahl mit Vorschau, Lautstärke) + Persistenz + Verkabelung
   in `SettingsPage.tsx`.
-- [ ] **T65.4** Lautsprecher-Knopf im Benachrichtigungs-Panel (Master
+- [x] **T65.4** Lautsprecher-Knopf im Benachrichtigungs-Panel (Master
   stumm/laut, Icon-Zustand, `aria-pressed`, Persistenz wie Settings) und
   Vibration (`error`/`action`, best effort) hinter demselben Master.
   Messlatte: K10 (alles lokal, kein Netz).
-- [ ] **T65.5** E2E `sounds.spec.ts`: Settings-Interaktion inkl.
+- [x] **T65.5** E2E `sounds.spec.ts`: Settings-Interaktion inkl.
   Varianten-Wechsel, Panel-Knopf schaltet stumm/laut, Spy auf
   AudioContext (Playwright hört nicht — Assert der Aufrufe), Sound bleibt
   nach Reload aus, wenn ausgeschaltet; Eintrag `docs/funktionsinventar.md`.
@@ -181,3 +181,27 @@ UI-Abläufe mit Spec in `e2e/specs/` (`sounds.spec.ts`) und Eintrag in
 `docs/funktionsinventar.md`; Einstellungen erreichbar und in der Bedien-
 doku erwähnt. K2/K10 nachweislich unverändert bzw. erfüllt; kein TODO ohne
 Epic-Bezug.
+
+## 8. Retro (2026-11-17 — Implementierung; T65.6-Nutzerabnahme steht aus)
+
+| AC | Stand | Beleg |
+|---|---|---|
+| AC-P65-1 | ✅ | `audio.test.ts` (Unlock-Reihenfolge, Master/Kategorie-Gate, Rate-Limit 12→1, keine Ausnahmen bei kaputtem Speicher) + `sound-category.test.ts` (Mapping inkl. Pending) + `sounds.spec.ts` (vor Geste still, danach Fehler-Ton, kein Replay beim Reload) |
+| AC-P65-2 | ✅ | `sounds.spec.ts` „Section Töne“: info einschalten, Variante wählen, Vorschau ohne Vorinteraktion, alles reload-fest; Lautstärke via `volumeGain`-Unit-Test |
+| AC-P65-3 | ✅ | `audio.test.ts` „zwölf Meldungen einer Kategorie in zehn Sekunden → genau ein Sound“; E2E bestätigt zwei dicke Fehler → ein Ton |
+| AC-P65-4 | ⏳ | K10 erfüllt: der Spielerpfad ist rein lokal, kein Netz-Abruf (E2E läuft mit blockiertem Service Worker). K2: kein Messlauf — Audio Zeitplan läuft in WebAudio, kein neuer Render-Pfad; Bestätigung bei T65.6 |
+| AC-P65-5 | ⏳ | Unit: Vibration bei `error`/`action`, nicht bei `done`, kein Fehler ohne API (best effort). Echter Handy-Test (Bildschirm aus) bleibt T65.6 |
+| AC-P65-6 | ✅ | `docs/funktionsinventar.md` G74 (spec:sounds.spec.ts, Inventar-Gate grün); VoidWarden-Hinweis in der Töne-Sektion |
+| AC-P65-7 | ✅ | `sounds.spec.ts` „Master aus am Panel“: aria-pressed-Zustand, Stille danach, Persistenz über Reload |
+
+**Erkenntnisse**
+
+1. Die WebAudio-Autoplay-Policy macht den Unlock-Test erst interessant: vor
+   der ersten Geste wird nichts gespielt (dokumentiertes Verhalten statt
+   stiller Ausfall) — der Vorschau-Knopf ist die bewusste Geste.
+2. Der E2E-Spy wrapped `AudioContext` vor dem App-Bootstrap
+   (`addInitScript` + Reload); die App selbst bleibt unverändert.
+3. Nebenbei gefixt: die `.btn`-Selektoren der Panel-Köpfe in
+   `notifications.spec.ts`/`notifications-glow.spec.ts`/`shortcuts.spec.ts`
+   waren seit dem P63-Button-Refactor tot (Nightly-rot auf main); sie zielen
+   jetzt auf die ✕-Rolle bzw. `.ui-button`.
