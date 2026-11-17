@@ -2,14 +2,16 @@ import { useEffect, useMemo, useState } from "preact/hooks";
 import type { GitGraphReport } from "@ancientvoid/contracts";
 import { hostApi } from "../../shared/api.ts";
 import { openLayer } from "../../shared/layers.ts";
-import { GIT_LANE_COLORS, layoutGitGraph } from "./layout.ts";
+import { formatGitRefLabel, GIT_LANE_COLORS, layoutGitGraph } from "./layout.ts";
 
 const ROW_H = 44;
 const LANE_W = 14;
 const DOT_R = 5;
+const FILE_ROW_H = 22;
 
 /**
  * ADR-0071: farbige Branch-Linien, Merge-/Fork-Punkte; Datei-Klick → Projekt-Explorer.
+ * BUG-0190: durchgehende Spuren, lesbare Worktree-Labels, Farb-Legende.
  */
 export function GitGraphPane({
   target,
@@ -44,14 +46,14 @@ export function GitGraphPane({
   }, [api, target]);
 
   const { rows, laneCount } = useMemo(() => (report ? layoutGitGraph(report.commits) : { rows: [], laneCount: 1 }), [report]);
-  const branchColor = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const b of report?.branches ?? []) m.set(b.sha, b.colorIndex);
-    return m;
-  }, [report]);
+  const commitShas = useMemo(() => new Set(report?.commits.map((c) => c.sha) ?? []), [report]);
+  /** Nur Refs, deren Tip im geladenen Verlauf liegt — sonst wirken alle Worktrees „oben gestapelt“. */
+  const visibleBranches = useMemo(
+    () => (report?.branches ?? []).filter((b) => commitShas.has(b.sha)).slice(0, 24),
+    [report, commitShas],
+  );
 
   const openInExplorer = (path: string) => {
-    // Projekt-Target: ohne Session gibt es keinen Worktree-Explorer-Sprung.
     if (!sessionId) return;
     openLayer("files");
     window.dispatchEvent(
@@ -70,25 +72,40 @@ export function GitGraphPane({
           Verlauf gekappt: neueste {report.maxCommits} Commits — ältere fehlen sichtbar.
         </div>
       )}
-      {report?.branches && report.branches.length > 0 && (
+      {visibleBranches.length > 0 && (
         <div class="git-graph-branches" data-testid="git-graph-branches">
-          {report.branches.slice(0, 24).map((b) => (
-            <span class="git-graph-branch" key={b.name} style={{ "--lane": GIT_LANE_COLORS[b.colorIndex % GIT_LANE_COLORS.length] } as never}>
-              {b.name}
-            </span>
-          ))}
+          {visibleBranches.map((b) => {
+            const { label, title } = formatGitRefLabel(b.name);
+            return (
+              <span
+                class="git-graph-branch"
+                key={b.name}
+                title={title}
+                style={{ "--lane": GIT_LANE_COLORS[b.colorIndex % GIT_LANE_COLORS.length] } as never}
+              >
+                {label}
+              </span>
+            );
+          })}
         </div>
+      )}
+      {report && !report.error && (
+        <p class="git-graph-legend dim" data-testid="git-graph-legend">
+          Farben = Spurlinien (Lanes), nicht Hosts. Chips = Branch-/Tag-Tips im geladenen Verlauf.
+          Worktree-Sessions erscheinen als „Session …“ (Hover = voller Ref).
+        </p>
       )}
       {error && <div class="files-error">Git-Graph nicht ladbar: {error}</div>}
       {report?.error && <div class="files-error">{report.error}</div>}
       {!report && !error && <div class="empty">Lade Git-Graph …</div>}
       {report && !report.error && (
         <ul class="git-graph-list" role="list">
-          {rows.map((row, ri) => {
-            const colorIdx = branchColor.get(row.commit.sha) ?? row.lane % GIT_LANE_COLORS.length;
-            const color = GIT_LANE_COLORS[colorIdx % GIT_LANE_COLORS.length];
+          {rows.map((row) => {
+            const color = GIT_LANE_COLORS[row.lane % GIT_LANE_COLORS.length];
             const open = expanded === row.commit.sha;
-            const svgH = ROW_H;
+            const filesH = open ? Math.max(1, row.commit.files.length) * FILE_ROW_H + (row.commit.filesTruncated ? FILE_ROW_H : 0) + 12 : 0;
+            const svgH = ROW_H + filesH;
+            const dotY = ROW_H / 2;
             return (
               <li key={row.commit.sha} class={`git-graph-row${row.merge ? " merge" : ""}`} data-sha={row.commit.sha}>
                 <svg class="git-graph-rails" width={graphW} height={svgH} aria-hidden="true">
@@ -103,10 +120,19 @@ export function GitGraphPane({
                       stroke-width="2"
                     />
                   ))}
+                  {/* Spur des Commits von oben bis zum Punkt */}
+                  <line
+                    x1={8 + row.lane * LANE_W}
+                    y1={0}
+                    x2={8 + row.lane * LANE_W}
+                    y2={dotY}
+                    stroke={color}
+                    stroke-width="2"
+                  />
                   {row.edges.map((e, ei) => {
                     const x1 = 8 + e.fromLane * LANE_W;
                     const x2 = 8 + e.toLane * LANE_W;
-                    const y1 = svgH / 2;
+                    const y1 = dotY;
                     const y2 = svgH;
                     const c = GIT_LANE_COLORS[e.colorLane % GIT_LANE_COLORS.length];
                     if (x1 === x2) {
@@ -122,20 +148,9 @@ export function GitGraphPane({
                       />
                     );
                   })}
-                  {/* continuing vertical above for this lane */}
-                  {ri > 0 && (
-                    <line
-                      x1={8 + row.lane * LANE_W}
-                      y1={0}
-                      x2={8 + row.lane * LANE_W}
-                      y2={svgH / 2}
-                      stroke={color}
-                      stroke-width="2"
-                    />
-                  )}
                   <circle
                     cx={8 + row.lane * LANE_W}
-                    cy={svgH / 2}
+                    cy={dotY}
                     r={row.merge ? DOT_R + 1.5 : DOT_R}
                     fill={color}
                     stroke={row.merge ? "var(--fg)" : "transparent"}
@@ -148,9 +163,12 @@ export function GitGraphPane({
                     <span class="git-graph-subject">{row.commit.subject}</span>
                     {row.commit.refs.length > 0 && (
                       <span class="git-graph-refs">
-                        {row.commit.refs.map((r) => (
-                          <span class="git-graph-ref" key={r}>{r}</span>
-                        ))}
+                        {row.commit.refs.map((r) => {
+                          const { label, title } = formatGitRefLabel(r);
+                          return (
+                            <span class="git-graph-ref" key={r} title={title}>{label}</span>
+                          );
+                        })}
                       </span>
                     )}
                     <span class="dim git-graph-meta">{row.commit.author} · {new Date(row.commit.date).toLocaleString("de-DE")}</span>

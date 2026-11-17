@@ -207,3 +207,10 @@ Das Kontextfenster (131072) kommt aus der kuratierten Tabelle (`@ancientvoid/mod
 
 **Live belegt 2026-11-10** (Adapter-Lauf, gpubox erreichbar): maki und omp wählen das Modell beim Start und antworten
 auf „Antworte nur mit ANKUNFT“ mit „ANKUNFT“. Der Schlüssel ist dabei nie in Config, Log oder Commit gelandet.
+
+**Metrik-Endpunkt (EPIC-P59/ADR-0078, Stand 2026-11-17):** der laufende
+Halogen-Server meldet in `/health` zwar `/metrics`, antwortet dort aber mit
+404 — die Metrik muss beim Start auf evox2 (`halogen-starten.sh`) aktiviert
+werden. Der zugehörige Dienstneustart würde laufende Agentensitzungen über
+dieses Modell trennen und bleibt deshalb Nutzersache. Bis dahin steht die
+Quelle im Hub-Sampler als sichtbarer Fehlerzustand, nie als 0 (ADR-0023).
