@@ -60,7 +60,8 @@
     "docs:reference": "node scripts/gen-reference.mjs",
     "check:knip": "knip",
     "demo:seed": "node scripts/demo-seed.ts",
-    "guide:shots": "node scripts/guide-shots.ts"
+    "guide:shots": "node scripts/guide-shots.ts",
+    "readme:hero": "node scripts/readme-hero.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
