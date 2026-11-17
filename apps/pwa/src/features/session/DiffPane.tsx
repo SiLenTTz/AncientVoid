@@ -2,6 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type SessionDiffResult, type SessionDiffFile, type DiffCommit, type DiffHunk } from "../../shared/api.ts";
 import { isOneSided, mapHunkLines, pairHunkLines, type MappedDiffLine } from "./diff-lines.ts";
+import { wordDiff, wordMarksFor, type WordSeg } from "./word-diff.ts";
 import { Button, EmptyState } from "../../shared/ui/index.ts";
 
 /** EPIC-P36: Zeilen-Anker für Review-Notizen. DiffPane bleibt Renderer —
@@ -30,6 +31,33 @@ export interface ReviewHooks {
  * anchor (T2.2) and, once collapsed under K3, a tap-to-expand button that
  * fetches the full hunk via GET /api/sessions/:id/diff/hunk.
  */
+/**
+ * Segmente einer wortweise markierten Zeile: das `+`/`−` sitzt am geaenderten Segment,
+ * nicht an der ganzen Zeile. aria-label macht die Aenderungsart ohne Farbe lesbar.
+ */
+function Segs({ segs }: { segs: WordSeg[] }) {
+  return (
+    <>
+      {segs.map((seg, k) =>
+        seg.t === "eq" ? (
+          <span key={k}>{seg.s}</span>
+        ) : (
+          <span
+            key={k}
+            class={seg.t === "add" ? "wd-add" : "wd-del"}
+            aria-label={seg.t === "add" ? `hinzugefuegt: ${seg.s.trim()}` : `entfernt: ${seg.s.trim()}`}
+          >
+            <span class="wd-mark" aria-hidden="true">
+              {seg.t === "add" ? "+" : "−"}
+            </span>
+            {seg.s}
+          </span>
+        ),
+      )}
+    </>
+  );
+}
+
 function HunkCard({
   sessionId,
   path,
@@ -54,6 +82,9 @@ function HunkCard({
   const rows = useMemo(() => pairHunkLines(active.body), [active.body]);
   const oneSided = useMemo(() => isOneSided(rows), [rows]);
   const mapped = useMemo(() => mapHunkLines(active), [active]);
+  // Kleine Aenderungen (eine Zahl, ein Wort) werden wortweise markiert statt zwei ganze
+  // Zeilen rot/gruen — wo die Paartechnik nichts erklaert, bleibt die Zeilendarstellung.
+  const marks = useMemo(() => wordMarksFor(mapped), [mapped]);
 
   const onExpand = async () => {
     setLoading(true);
@@ -95,7 +126,7 @@ function HunkCard({
           return (
             <div
               key={i}
-              class={`${cls}${picked ? " review-picked" : ""}${clickable ? " review-pickable" : ""}`}
+              class={`${cls}${marks[i] ? " wd-line" : ""}${picked ? " review-picked" : ""}${clickable ? " review-pickable" : ""}`}
               onClick={
                 clickable
                   ? () => {
@@ -107,18 +138,26 @@ function HunkCard({
               }
             >
               {line.type === "add" ? "+" : line.type === "del" ? "-" : " "}
-              {line.text}
+              {marks[i] ? <Segs segs={marks[i]!} /> : line.text}
             </div>
           );
         })}
       </div>
       <div class="hunk-body-split mono">
-        {rows.map((row, i) => (
-          <div class="hunk-split-row" key={i}>
-            <span class={`hunk-split-cell ${row.left.type}`}>{row.left.text}</span>
-            <span class={`hunk-split-cell ${row.right.type}`}>{row.right.text}</span>
-          </div>
-        ))}
+        {rows.map((row, i) => {
+          // Spaltenansicht (ab Rechnerbreite) bekommt dieselbe Feinmarkierung.
+          const pair = row.left.type === "del" && row.right.type === "add" ? wordDiff(row.left.text, row.right.text) : null;
+          return (
+            <div class="hunk-split-row" key={i}>
+              <span class={`hunk-split-cell ${row.left.type}${pair ? " wd-line" : ""}`}>
+                {pair ? <Segs segs={pair.left} /> : row.left.text}
+              </span>
+              <span class={`hunk-split-cell ${row.right.type}${pair ? " wd-line" : ""}`}>
+                {pair ? <Segs segs={pair.right} /> : row.right.text}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -228,6 +267,9 @@ export function DiffPane({
         ))}
       </div>
       <div class="diff-main">
+        <div class="diff-legend" aria-hidden="true">
+          <span class="wd-mark">+</span> neu · <span class="wd-mark wd-mark-del">−</span> entfernt — hervorgehoben ist nur, was sich wirklich aendert
+        </div>
         {diff.truncated && (
           <div class="dim" style="margin: 8px 0">
             Große Hunks gekürzt — „ganzer Hunk“ antippen, um einen einzelnen vollständig zu laden.

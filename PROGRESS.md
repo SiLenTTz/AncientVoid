@@ -9,6 +9,18 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **Wortweise +/- Markierung im Aenderungs-Diff (Zweig
+  `feat/0202-wortdiff-markierungen`).** Auf Kais Wunsch: wenn sich nur eine Zahl oder ein
+  Wort aendert, malt ein Zeilen-Diff zwei komplett rote/gruene Zeilen. Neu werden gepaarte
+  Entfernungs-/Hinzuefuegungszeilen segmentiert (`word-diff.ts`, LCS ueber
+  Woerter/Zahlen/Leerlauf): nur das geaenderte Segment bekommt ein `+`/`−`, Kasten,
+  Durchstreichung bzw. Unterlinie — Farbe ist nie das einzige Signal. Der Zeilen-hintergrund
+  tritt zurueck (14 % -> 6 %, gemessen), damit das Segment zaehlt. Wo Wort-Diff nichts
+  erklaert (Zeile ersetzt, nichts gemeinsam, zu viele Segmente, zu lang) bleibt die
+  Zeilendarstellung stehen. Legende ueber dem Diff. Gilt in Zeilen- UND Spaltenansicht.
+  Rote-dann-gruen: `apps/pwa/test/features/session/word-diff.test.ts` (5) und
+  `e2e/specs/diff-markierungen.spec.ts` (Zahlenfall mit Segmenten, Zeilenersatz ohne
+  Segmente, Spaltenansicht, Tint-Messung).
 - **Drehen der installierten App: erledigt (BUG-0186 done).** Die Web-Ebene war frei
   (Manifest `any`, kein Manifest-Cache, Worker `ancientvoid-v6`), die Sperre saß in **Chromes
   Installations-Metadaten** — die beim Anlegen übernommene Ausrichtung (`portrait-primary`)

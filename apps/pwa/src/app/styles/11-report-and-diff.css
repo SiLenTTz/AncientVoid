@@ -126,6 +126,55 @@
   color: var(--fg);
 }
 
+/* Wortweise Markierung: bei kleinen Aenderungen (eine Zahl, ein Wort) wird nur das
+ * Segment hervorgehoben, nicht die ganze Zeile. Signale sind Zeichen + Durchstreichung
+ * bzw. Unterlinie UND Farbe — nicht die Farbe allein (Barrierefreiheit). */
+.wd-add,
+.wd-del {
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+.wd-add {
+  background: color-mix(in srgb, var(--ok) 24%, transparent);
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ok) 65%, transparent);
+}
+
+.wd-del {
+  background: color-mix(in srgb, var(--err) 20%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--err) 75%, transparent);
+}
+
+.wd-mark {
+  font-weight: 700;
+  color: var(--ok);
+  margin-right: 2px;
+}
+
+.wd-mark-del,
+.diff-line-del .wd-mark {
+  color: var(--err);
+}
+
+/* Traegt eine Zeile Segmente, tritt ihr Hintergrund zurueck — sonst kaempft die Flaeche
+ * mit genau dem Segment, das zaehlt. */
+.diff-line-add.wd-line,
+.hunk-split-cell.add.wd-line {
+  background: color-mix(in srgb, var(--ok) 6%, transparent);
+}
+
+.diff-line-del.wd-line,
+.hunk-split-cell.del.wd-line {
+  background: color-mix(in srgb, var(--err) 6%, transparent);
+}
+
+.diff-legend {
+  margin: 4px 0 10px;
+  color: var(--fg-dim);
+}
+
 .diff-line-hunk {
   color: var(--fg-dim);
   background: var(--bg-chip);
