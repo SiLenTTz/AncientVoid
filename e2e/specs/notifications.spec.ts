@@ -118,7 +118,7 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
     // zoom skaliert die gerenderte Größe — beide Kanten müssen im Viewport bleiben.
     expect(box.x).toBeGreaterThanOrEqual(-0.5);
     expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
-    const close = (await panel.locator(".notif-panel-head .btn").boundingBox())!;
+    const close = (await panel.locator(".notif-panel-head").getByRole("button", { name: "✕" }).boundingBox())!;
     expect(close.x).toBeGreaterThanOrEqual(-0.5);
     expect(close.x + close.width).toBeLessThanOrEqual(vw + 0.5);
   });
@@ -133,7 +133,7 @@ test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", ()
       const panel = app.locator(".notif-panel");
       await expect(panel).toBeVisible();
       const { vw, vh } = await app.evaluate(() => ({ vw: window.innerWidth, vh: window.innerHeight }));
-      for (const box of [(await panel.boundingBox())!, (await panel.locator(".notif-panel-head .btn").boundingBox())!]) {
+      for (const box of [(await panel.boundingBox())!, (await panel.locator(".notif-panel-head").getByRole("button", { name: "✕" }).boundingBox())!]) {
         expect(box.x).toBeGreaterThanOrEqual(-0.5);
         expect(box.y).toBeGreaterThanOrEqual(-0.5);
         expect(box.x + box.width).toBeLessThanOrEqual(vw + 0.5);
@@ -174,7 +174,7 @@ test.describe("Glocke am PC: Listenkopf wenn die Liste offen, Fenstereck wenn zu
     expect(box.x, `Panel links im Bild ${zoomNote}`).toBeGreaterThanOrEqual(-0.5);
     expect(box.y, `Panel oben im Bild ${zoomNote}`).toBeGreaterThanOrEqual(-0.5);
     expect(box.y + box.height, `Panel unten im Bild ${zoomNote}`).toBeLessThanOrEqual(vh + 0.5);
-    await panel.locator(".notif-panel-head .btn").click();
+    await panel.locator(".notif-panel-head").getByRole("button", { name: "✕" }).click();
     await expect(panel).toHaveCount(0);
   }
 
@@ -209,7 +209,7 @@ test.describe("Glocke am PC: Listenkopf wenn die Liste offen, Fenstereck wenn zu
     expect(box.y).toBeGreaterThanOrEqual(-0.5);
     expect(box.x + box.width).toBeLessThanOrEqual(vw2 + 0.5);
     expect(box.y + box.height).toBeLessThanOrEqual(vh + 0.5);
-    await panel.locator(".notif-panel-head .btn").click();
+    await panel.locator(".notif-panel-head").getByRole("button", { name: "✕" }).click();
     await expect(panel).toHaveCount(0);
   }
 
