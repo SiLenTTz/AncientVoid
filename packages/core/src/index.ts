@@ -28,6 +28,7 @@ export * from "./modules/connections/index.ts";
 export * from "./modules/commands/index.ts";
 export * from "./modules/media/index.ts";
 export * from "./modules/desktop/index.ts";
+export * from "./modules/statistics/index.ts";
 export * from "./modules/graph/index.ts";
 export * from "./modules/git-graph/index.ts";
 export * from "./modules/vault/index.ts";

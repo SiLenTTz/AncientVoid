@@ -132,6 +132,15 @@ prefill/decode, KV cache. The aggregation home is the statistics page.
 
 Spec: [ki-server-metriken.spec.ts](../../e2e/specs/ki-server-metriken.spec.ts)
 
+### page:statistics — Statistiken
+
+`#/statistik`. Consolidated session, turn/token, gate, tool and team numbers
+from the rollup cache (EPIC-P56): p50/p90/p95 with n, small-sample marks,
+end-reason distribution — sliced by period, project, host and harness.
+Describing, not ranking.
+
+Spec: [statistik.spec.ts](../../e2e/specs/statistik.spec.ts)
+
 ### page:terminal — Terminal
 
 `#/terminal`. Connect to allowlisted hosts (`terminals[]` in hub config):
@@ -325,6 +334,11 @@ App shell: dock, layout, frame — the parts every page shares. Spec: [layout.sp
 
 The status line shows only measured values; the unknown moves to the
 report. Spec: [zustandssprache.spec.ts](../../e2e/specs/zustandssprache.spec.ts)
+
+### feature:statistics
+
+Session, turn, gate, tool and team statistics with time/project/host/harness
+slices — see [page:statistics](#pagestatistics--statistiken). Spec: [statistik.spec.ts](../../e2e/specs/statistik.spec.ts)
 
 ### feature:stt
 

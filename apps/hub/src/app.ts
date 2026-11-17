@@ -7,6 +7,7 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
+import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import { discoverProjects, FleetStore } from "@ancientvoid/core";
 import type { HubMetrics, DiscoverySource } from "@ancientvoid/contracts";
 import { REDACT_LOG_KEYS, DEFAULT_HOST_ID } from "@ancientvoid/contracts";
@@ -97,6 +98,8 @@ export interface HubAppDeps {
   hostLabel?: string;
   /** EPIC-P6: invites and paired peers (default: in the token database). */
   fleet?: FleetStore;
+  /** EPIC-P56 T56.3: Statistik-Rollup der Statistik-Seite (ohne Angabe 501). */
+  statistics?: StatisticsService;
   /** Tests only: where the request log goes (default stdout). */
   logStream?: { write(message: string): void };
 }

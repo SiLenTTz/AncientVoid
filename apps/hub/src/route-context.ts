@@ -4,6 +4,7 @@ import type { FastifyRequest } from "fastify";
 import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
+import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@ancientvoid/contracts";
 import { TMUX_PREFIX } from "@ancientvoid/workers";
@@ -71,6 +72,8 @@ export interface RouteDeps {
   team?: HubTeam;
   /** EPIC-P59 (ADR-0078): Sampler für die Metrik-Seite; ohne Angabe leere Quelle-Liste. */
   aimetrics?: AiMetricsSampler;
+  /** EPIC-P56 T56.3: Statistik-Rollup für die Statistik-Seite; ohne Angabe ehrlich 501. */
+  statistics?: StatisticsService;
   /** EPIC-P59 Nachtrag: Peer-Liste für Merge in GET /api/aimetrics. */
   fleet?: FleetStore;
   /** Peer-Reports mergen (Default true, wenn aiMetrics gesetzt). */

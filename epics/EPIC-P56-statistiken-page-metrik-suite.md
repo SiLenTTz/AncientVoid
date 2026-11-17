@@ -65,10 +65,10 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 
 - **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als testbare Spezifikation.
   - [x] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
-  - [ ] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**.
-- **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung.
-- **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung.
-- **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export.
+  - [x] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**. (abgeschlossen 17.11.2026: Verträge `SessionStatistics`/`GateWaitStatistics`/`ToolStatistics`/`TeamTaskStatistics`, Ableitungen `deriveSessionFacts`/`deriveRecoveryIntervals`/`deriveGateWaitIntervals`/`deriveToolCallFacts`, 28 neue Tests)
+- [x] **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung. (abgeschlossen 17.11.2026: `StatisticsRollup` — Migration 36 mit Fakten-Caches, Nachführung über basis_last_seq/basis_updated_at, prune + deterministisches rebuild; Leseseite liefert nur Aggregate, Klein-n über `smallSample`. Zeitraum-/Projekt-/Host-Schnitte brauchen zusätzliche Cache-Dimensionen und folgen mit T56.3.)
+- **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung. *(17.11.2026 erledigt — `#/statistik`, `GET /api/statistics`, Migration 37; Details §8.)*
+- **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export. *(17.11.2026 erledigt — A/B-Zeitraumvergleich, Anomalien über Gruppen-p95, CSV-Download; Orchestrator-Vergleich mangels belegter Fakten offen.)*
 - **T56.5** P55-Anbindung (Compression-Kennzahlen je Plugin/Modell) und P31-Namen.
 - **T56.6** Abnahme mit Nutzer an echten Daten.
 
@@ -103,6 +103,77 @@ Neue additive Statistik-Lesemodelle und reine Aggregation; keine neue
 Persistenz, HTTP-Route oder PWA-Seite. Die vorhandene Rekonstruktion
 `deriveTurnMetrics` bleibt Quelle. T56.1b–T56.6 und alle vollständigen AC
 bleiben offen; P31/P55-Anbindungen bleiben gesperrt.
+
+T56.1b (17.11.2026): Session-/Gate-/Team-/Tool-Metriken nach belegten
+Quellen präzisiert und getestet — Verträge `SessionStatistics`,
+`GateWaitStatistics`, `ToolStatistics`, `TeamTaskStatistics` in
+`@ancientvoid/contracts` (additiv, keine Events, K5), Ableitungen
+`deriveSessionFacts`, `deriveRecoveryIntervals`, `deriveGateWaitIntervals`,
+`deriveToolCallFacts` und Aggregationen in `packages/core/src/modules/
+statistics/` (K7: Journal bzw. Team-Record bleiben Quelle). Belegte
+Session-Endgründe: `completed`/`error`/`interrupted`/`stopped` aus dem
+letzten terminalen Marker; `stalled`/`context_exhausted` bewusst unbekannt.
+`workerEndRate` ist keine Gate-Erfolgsquote (P40-Regel). Recovery nur bis
+zum nächsten erfolgreich beendeten Zug, sonst unbekannt. 28 neue Tests in
+`packages/core/test/modules/statistics/` (rot-dann-grün; Statistik-Suite
+insgesamt 38 grün). Offen bleiben T56.3 Page, T56.4 Vergleiche/CSV, T56.6
+Abnahme; T56.5 (P55/P31) bleibt gesperrt.
+
+T56.2 (17.11.2026): `StatisticsRollup` (core/modules/statistics/rollup.ts)
+mit Migration 36 (session_stat_facts, gate_wait_facts, tool_stat_facts,
+recovery_facts, team_stat_facts — reine Caches, K7: Journal und Team-Record
+bleiben Quelle, alles per rebuild() rekonstruierbar). Nachführung über
+basis_last_seq (Session) bzw. basis_updated_at (Team); prune entfernt
+weggefallene Quellen; deterministischer Neuaufbau belegt (Test vergleicht
+Cache-Leseseite gegen direkte Ableitung, AC-P56-2). Leseseite:
+sessionStatistics/gateWaitStatistics/toolStatistics/recoveryDistribution/
+teamTaskStatistics — HTTP/PWA (T56.3) lesen nur diese Aggregate.
+
+T56.3 (17.11.2026): Statistik-Seite `#/statistik` mit Les-API
+`GET /api/statistics` (Contract `StatisticsReport`, additive Verträge in
+`@ancientvoid/contracts`). Migration 37 ergänzt die Schnitt-Dimensionen
+project/host_id/harness/created_at an session_stat_facts (project/created_at
+an team_stat_facts); Zeilen ohne Dimensionen werden beim nächsten Lauf neu
+abgeleitet — kein SQL-Backfill, die Team-Quelle liegt außerhalb der DB.
+Rollup-Leseseite trägt den Filter (Zeitraum/Projekt/Host/Harness; Teams nur
+Projekt/Zeitraum — Host/Harness sind keine Team-Dimension) und
+turnStatistics als Join über den turn_metrics-Cache. Hub:
+`StatisticsService` (single-flight, inkrementell beim Abruf, REFRESH_MS 5 s)
+in main.ts verdrahtet; Route ohne Dienst ehrlich 501. PWA:
+features/statistics/StatisticsPage.tsx (Sessions/Züge+Tokens/Gates/Tools/
+Teams, Filterkarte, Klein-n-Kennzeichnung, beschreibender Hinweis — kein
+Ranking). Seite im Dock „Mehr", Guide-Inventar gepflegt. Belegt: Rollup-
+Schnitt-Tests (Filter je Dimension, turn-Join, Dimensions-Auffrischung,
+updatedAt), Contract-Test StatisticsReport, Hub-Routen-Tests (401/501/200/
+400, echte Dummy-Session), E2E statistik.spec.ts (Dock-Weg, Zahlen mit n
+und Klein-n, Zeitraum-/Projektschnitt, API-Contract/Leer/400). Der
+Orchestrator-Schnitt ist nicht belegt (P54: Orchestrator lebt auf Team/Loop,
+nicht auf der Session) und bleibt offen. BUG-0205 (vorbestehend, P63-Folge):
+Card-Baustein ohne region-Rolle — Statistik-Seite setzt role="region"
+explizit, Bug separat angelegt (#117). Offen: T56.4, T56.6 (Abnahme);
+T56.5 (P55/P31) bleibt gesperrt.
+
+T56.4 (17.11.2026): Anomalie-Flag (Contract `SessionAnomaly`, Rollup-
+Leseseite `sessionAnomalies`: Session über dem p95 ihrer Adapter-/Modell-
+Gruppe in Wallzeit oder Zugzahl; Klein-n-Gruppen melden keine, Gruppen-p95
+schließt die Session selbst ein — deterministisch; Tokens/Fehler je Session
+als Kriterien nicht belegt, bleibt offen) im Report sichtbar und CSV-
+exportierbar. A/B-Zeitraumvergleich clientseitig über die bestehende API
+(gleicher Projekt-/Host-/Harness-Schnitt, zweiter Bericht als B).
+CSV-Export clientseitig aus dem geladenen Report als Download — exakt die
+angezeigten Daten, kein Netz (AC-P56-5). Orchestrator-Vergleich (§3.5)
+bleibt offen: kein belegter Faktenbestand (Orchestrator lebt auf Team/Loop),
+nicht erfunden. Belegt: Rollup-Anomalie-Tests (p95-Gruppenlage, Klein-n,
+Zeitraum-Schnitt), Contract-Tests SessionAnomaly, E2E statistik.spec.ts
+(Klein-n-Karte ehrlich weg, Vergleich lädt B, CSV-Download mit Inhalt).
+Offen bleibt T56.6 (Abnahme mit Nutzer an echten Daten); T56.5 (P55/P31)
+bleibt gesperrt.
+`HubDatabase.exec` ergänzt (mehranweisungs-SQL). 4 neue Tests (Statistik-
+Suite inkl. db.test 45 grün), Tier A 2286 grün (ein Steer-Wait-Timing-Flake
+der BUG-0163-Familie im Parallellauf: isoliert 2× grün, Neustart sauber —
+benannt, nicht als Pass gezählt). Offen: T56.3 Page + Schnitte (brauchen
+zusätzlich Cache-Dimensionen Zeitraum/Projekt/Host), T56.4 Vergleiche/CSV,
+T56.6 Abnahme; T56.5 bleibt gesperrt.
 
 ## 9. Definition of Done
 

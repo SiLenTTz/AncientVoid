@@ -67,6 +67,7 @@ import { createHubApp } from "./app.ts";
 import { ForgeService } from "./modules/forge/forge-service.ts";
 import { createHubAutomationService } from "./modules/automations/automations-service.ts";
 import { createAiMetricsSampler, type AiMetricsSamplerServer } from "@ancientvoid/core";
+import { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
 
 // `dummy` used to be hardcoded here, always visible in every real hub's
@@ -439,6 +440,9 @@ async function main(): Promise<void> {
     automations,
     team,
     ...(aimetrics ? { aimetrics, aimetricsMergePeers: config.aiMetrics?.mergePeers !== false } : {}),
+    // EPIC-P56 T56.3: Statistik-Rollup — hält die Fakten-Caches frisch und
+    // liest sie für die Statistik-Seite (Journal bleibt Wahrheit, K7).
+    statistics: new StatisticsService(db, sessions, team),
     terminals: config.terminals.map((t) => ({
       id: t.id,
       label: t.label,
