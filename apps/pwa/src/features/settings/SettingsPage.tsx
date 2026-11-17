@@ -8,6 +8,7 @@ import { GeminiSettings } from "./GeminiSettings.tsx";
 import { PreviewSettings } from "./PreviewSettings.tsx";
 import { PushSettings } from "./PushSettings.tsx";
 import { SecuritySettings } from "./SecuritySettings.tsx";
+import { SoundSettings } from "./SoundSettings.tsx";
 
 /**
  * Die Einstellungen als eine Seite — dieselbe am Handy (Listenseite) und am Desktop (Werkzeugfläche).
@@ -25,6 +26,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
           <PresetSettings />
           <PreviewSettings />
           <PushSettings />
+          <SoundSettings />
         </div>
         <div class="settings-col">
           <DevicesSettings />

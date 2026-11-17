@@ -5,6 +5,8 @@ import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
 import { hasApprovalCandidates, urgencyOf } from "./urgency.ts";
+import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
+import { soundCategoryOf } from "./sound-category.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -88,6 +90,13 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   const [panelPos, setPanelPos] = useState<{ top: string; left: string; width: string } | undefined>(undefined);
   const { ref: panelRef } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => closeBtn.current });
   const openRef = useRef(false);
+  /** T65.4: Master-Schalter am Panel — persistiert wie die Tone-Einstellungen. */
+  const [soundMuted, setSoundMuted] = useState(() => !loadSoundSettings().master);
+  const toggleSoundMaster = () => {
+    const next = !soundMuted;
+    setSoundMuted(next);
+    saveSoundSettings({ ...loadSoundSettings(), master: !next });
+  };
   const closePanel = () => {
     openRef.current = false;
     setOpen(false);
@@ -127,17 +136,27 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
     if (known !== null) {
       // T8.6: "Zug fertig" goes to the bell only — with many sessions its
       // toasts covered the controls at the top for seconds (P8 Messlauf).
+      // EPIC-P65: der Sound dazu läuft trotzdem — pro neu ankommende Meldung
+      // (nie beim Laden), Kategorie-Mapping im getesteten Modul, Rate-Limit im Modul.
       for (const n of [...stamped].reverse()) {
-        if (n.kind === "session.turn_end") continue;
         const show = () => toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
         // Premortem P8-2: an approval decided meanwhile (e.g. a peer's
         // notification that arrived late) is no toast any more.
         if (APPROVAL_KINDS.has(n.kind))
           void hostApi(hostId)
             .approvals("pending")
-            .then((pending) => pending.some((a) => a.sessionId === n.sessionId) && show())
+            .then((pending) => {
+              const istPending = pending.some((a) => a.sessionId === n.sessionId);
+              if (istPending) show();
+              const cat = soundCategoryOf({ ...n, pending: istPending });
+              if (cat) void soundPlayer.playCategory(cat);
+            })
             .catch(show);
-        else show();
+        else {
+          if (n.kind !== "session.turn_end") show();
+          const cat = soundCategoryOf({ ...n, pending: false });
+          if (cat) void soundPlayer.playCategory(cat);
+        }
       }
     }
     if (stamped.length > 0) {
@@ -306,6 +325,16 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         >
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
+            <Button
+              icon
+              onClick={toggleSoundMaster}
+              aria-pressed={soundMuted}
+              aria-label="Töne stumm oder laut schalten"
+              title="Töne stumm/laut — mehr in den Tone-Einstellungen"
+              data-testid="notif-sound-toggle"
+            >
+              {soundMuted ? "🔇" : "🔊"}
+            </Button>
             <Button ref={closeBtn} onClick={closePanel}>
               ✕
             </Button>
