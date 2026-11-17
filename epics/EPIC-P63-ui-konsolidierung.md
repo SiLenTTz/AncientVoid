@@ -147,15 +147,15 @@ Reihenfolge ist verbindlich: Messung vor Änderung, CSS-only vor TSX, größtes
 Risiko zuletzt. Jede Aufgabe: Branch `feat/p63-t<n>-<slug>`, `npm run gate`,
 PR nach `main`, Self-Merge nach grüner CI, Checkbox hier im selben PR abhaken.
 
-- [ ] **T63.0** Ratchet-Tests `css-tokens.test.ts`, `ui-primitives.test.ts` mit Ist-Startwerten in `css-ratchet.json`; `tokens.test.ts` um unbekannte-Token-Prüfung erweitern (rot ohne Fix, BUG-0187). K2-Messlauf als Referenz. Messlatte: AC-P43-4, K2.
-- [ ] **T63.1** `00-tokens.css` mit drei Schichten und Leitern anlegen; bestehende Tokens aus `01-base.css` verschieben; `--border`, `--bg-hover`, `--bg-active`, `--fg-on-accent`, `--border-strong`, `--shadow-sheet`, `--space-6` einführen; Light-Pendant vollständig; `tokens.test.ts` prüft Kontrast aller semantischen Paare.
-- [ ] **T63.2** BUG-0187 fixen: Geister-Tokens in `11-report-and-diff`, `29-workplace`, `30-files` auf Semantik mappen; Light-/Dark-Screenshots der drei Flächen in `e2e/specs/themes.spec.ts`.
-- [ ] **T63.3** Hartkodierte Farben in `11`, `30`, `32`, `22`, `23`, `29`, `25`, `34` und Rest auf Tokens/`color-mix()`; Syntax-/Graph-Farben als Primitive mit Alias; Ratchet (b)/(c) auf 0.
-- [ ] **T63.4** `z-index`-Leiter, Breakpoint-Stufen, Schrift-/Abstandsskala durchziehen; `em`-Ketten auflösen; Ratchet (d)/(e)/(f) auf 0; `breiten.spec.ts` bei Skala 0,85/1/1,3 grün.
-- [ ] **T63.5** Doppelte Selektoren zusammenführen, Präfix `23-` auflösen, tote Regeln löschen; Test „ein Selektor, eine Datei“ und „jede Datei importiert“; Screenshot-Vergleich der betroffenen Ansichten.
-- [ ] **T63.6** 77 Klassen ohne Regel entscheiden (Regel oder `data-testid`); Test mit Allowlist leer.
-- [ ] **T63.7** Bausteine `Button`, `Chip`, `Card`, `EmptyState` in `shared/ui/` mit eigener CSS; `Field`/`Select`/`Switch`/`Segmented` umziehen; Unit-Tests je Baustein (Varianten, Tastatur, `aria`).
-- [ ] **T63.8** `Sheet` als Baustein; Overlays (`overlay-sheet`, `nyx-window`, `modal`, `more-backdrop`) darauf migrieren; `fokus.spec.ts` (Tab-Reihenfolge Dock → Inhalt → Composer, Fokusfalle, Esc).
+- [x] **T63.0** Ratchet-Tests `css-tokens.test.ts`, `ui-primitives.test.ts` mit Ist-Startwerten in `css-ratchet.json`; `tokens.test.ts` um unbekannte-Token-Prüfung erweitern (rot ohne Fix, BUG-0187). K2-Messlauf als Referenz. Messlatte: AC-P43-4, K2.
+- [x] **T63.1** `00-tokens.css` mit drei Schichten und Leitern anlegen; bestehende Tokens aus `01-base.css` verschieben; `--border`, `--bg-hover`, `--bg-active`, `--fg-on-accent`, `--border-strong`, `--shadow-sheet`, `--space-6` einführen; Light-Pendant vollständig; `tokens.test.ts` prüft Kontrast aller semantischen Paare.
+- [x] **T63.2** BUG-0187 fixen: Geister-Tokens in `11-report-and-diff`, `29-workplace`, `30-files` auf Semantik mappen; Light-/Dark-Screenshots der drei Flächen in `e2e/specs/themes.spec.ts`.
+- [x] **T63.3** Hartkodierte Farben in `11`, `30`, `32`, `22`, `23`, `29`, `25`, `34` und Rest auf Tokens/`color-mix()`; Syntax-/Graph-Farben als Primitive mit Alias; Ratchet (b)/(c) auf 0.
+- [x] **T63.4** `z-index`-Leiter, Breakpoint-Stufen, Schrift-/Abstandsskala durchziehen; `em`-Ketten auflösen; Ratchet (d)/(e)/(f) auf 0; `breiten.spec.ts` bei Skala 0,85/1/1,3 grün.
+- [x] **T63.5** Doppelte Selektoren zusammenführen, Präfix `23-` auflösen, tote Regeln löschen; Test „ein Selektor, eine Datei“ und „jede Datei importiert“; Screenshot-Vergleich der betroffenen Ansichten.
+- [x] **T63.6** 77 Klassen ohne Regel entscheiden (Regel oder `data-testid`); Test mit Allowlist leer.
+- [x] **T63.7** Bausteine `Button`, `Chip`, `Card`, `EmptyState` in `shared/ui/` mit eigener CSS; `Field`/`Select`/`Switch`/`Segmented` umziehen; Unit-Tests je Baustein (Varianten, Tastatur, `aria`).
+- [x] **T63.8** `Sheet` als Baustein; Overlays (`overlay-sheet`, `nyx-window`, `modal`, `more-backdrop`) darauf migrieren; `fokus.spec.ts` (Tab-Reihenfolge Dock → Inhalt → Composer, Fokusfalle, Esc).
 - [ ] **T63.9** Migration der rohen `btn`/`chip`/`card`/`empty`-Klassen ansichtsweise auf Bausteine (ein PR je Feature-Ordner, Ratchet `ui-primitives` auf 0); globaler `:focus-visible`-Ring; Inline-Styles auf Custom Properties.
 - [ ] **T63.10** `design-system.md` zum Vertrag umbauen (3.7), Token-Tabelle generiert, Rezept, Verbote mit Test-Verweis; Herkunft ausgelagert; `check:context` grün.
 - [ ] **T63.11** `SessionTail.tsx` zerlegen; K2-Messlauf vorher/nachher in `docs/` dokumentiert. Optional bei K2-Verschlechterung (Premortem 3).

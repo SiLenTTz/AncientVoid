@@ -12,7 +12,7 @@
     "card": 23,
     "empty": 64,
     "empty-state": 2,
-    "overlay-sheet": 4
+    "overlay-sheet": 0
   },
   "inlineStyleObjects": 27
 }

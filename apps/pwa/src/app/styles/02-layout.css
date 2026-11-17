@@ -25,7 +25,7 @@ html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 .tail-scroll::-webkit-scrollbar,
 .dashboard::-webkit-scrollbar,
-.overlay-sheet::-webkit-scrollbar,
+.ui-sheet::-webkit-scrollbar,
 .diff-code::-webkit-scrollbar,
 .enhance-preview-text::-webkit-scrollbar {
   width: 6px;
@@ -36,7 +36,7 @@ html::-webkit-scrollbar-track,
 body::-webkit-scrollbar-track,
 .tail-scroll::-webkit-scrollbar-track,
 .dashboard::-webkit-scrollbar-track,
-.overlay-sheet::-webkit-scrollbar-track,
+.ui-sheet::-webkit-scrollbar-track,
 .diff-code::-webkit-scrollbar-track,
 .enhance-preview-text::-webkit-scrollbar-track {
   background: transparent;
@@ -46,7 +46,7 @@ html::-webkit-scrollbar-thumb,
 body::-webkit-scrollbar-thumb,
 .tail-scroll::-webkit-scrollbar-thumb,
 .dashboard::-webkit-scrollbar-thumb,
-.overlay-sheet::-webkit-scrollbar-thumb,
+.ui-sheet::-webkit-scrollbar-thumb,
 .diff-code::-webkit-scrollbar-thumb,
 .enhance-preview-text::-webkit-scrollbar-thumb {
   background-color: color-mix(in srgb, var(--accent) 55%, transparent);

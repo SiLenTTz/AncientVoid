@@ -1,3 +1,4 @@
+import { Sheet } from "../../shared/ui/index.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField } from "../../shared/command-context.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
@@ -669,8 +670,7 @@ function SessionRow({
         </span>
       </div>
       {handoverOpen && (
-        <div class="overlay-backdrop" onClick={() => setHandoverOpen(false)}>
-          <div class="overlay-sheet" onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setHandoverOpen(false)} label="Session übergeben">
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Session übergeben</strong>
               <button class="btn" type="button" aria-label="Schließen" onClick={() => setHandoverOpen(false)}>
@@ -688,8 +688,7 @@ function SessionRow({
                 onOpen(created);
               }}
             />
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

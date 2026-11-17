@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import type { CustomModel, PiProviderBody } from "../../shared/api.ts";
+import { Sheet } from "../../shared/ui/index.ts";
 
 type Api = {
   customModels: () => Promise<{ items: CustomModel[] }>;
@@ -80,8 +81,7 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
   const exists = /schon/.test(error ?? "");
 
   return (
-    <div class="custom-model-dialog" data-testid="modal" role="dialog" aria-label="Eigenes Modell oder Endpunkt">
-      <div class="modal-card">
+    <Sheet open onClose={onClose} label="Eigenes Modell oder Endpunkt" variant="modal" testid="modal" class="custom-model-dialog">
         <h3>Eigenes Modell oder Endpunkt</h3>
         {canEndpoint && (
           <div class="row" role="tablist">
@@ -190,7 +190,6 @@ export function CustomModelDialog({ adapter, canEndpoint, api, onClose, onChange
             Schließen
           </button>
         </div>
-      </div>
-    </div>
+    </Sheet>
   );
 }

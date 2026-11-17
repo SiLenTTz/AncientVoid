@@ -189,25 +189,12 @@
   gap: 8px;
 }
 
+/* EPIC-P63 T63.8: Backdrop/Fokus/Esc über Sheet (variant=modal). */
 .fp-trace-dialog {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-sheet);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--backdrop);
-}
-.fp-trace-dialog .modal-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: min(760px, calc(94vw / var(--ui-zoom))); /* BUG-0122 */
-  max-height: calc(85vh / var(--ui-zoom));
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg-elev);
 }
 .fp-trace {
   margin: 0;

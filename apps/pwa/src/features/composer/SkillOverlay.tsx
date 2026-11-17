@@ -1,8 +1,8 @@
+import { Sheet } from "../../shared/ui/index.ts";
 import { useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type HarnessFeatures, type SkillOrAgent } from "../../shared/api.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
-import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 
 
 export interface SelectedSkill {
@@ -127,7 +127,6 @@ export function SkillPicker({
   };
 
   // EPIC-P51 T51.6: Esc schließt, Fokus rein/Tab-Falle/zurück auf den Auslöser.
-  const { ref: sheetRef } = useOverlayFocus<HTMLDivElement>(open);
   useEffect(() => {
     if (!open) return;
     return registerShortcut("skillpicker.close", (e) => {
@@ -151,8 +150,7 @@ export function SkillPicker({
       </button>
 
       {open && (
-        <div class="overlay-backdrop" onClick={() => setOpen(false)}>
-          <div class="overlay-sheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label="Skill oder Agent wählen" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setOpen(false)} label="Skill oder Agent wählen">
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Senden mit …</strong>
               <button class="btn" type="button" onClick={() => setOpen(false)}>
@@ -189,8 +187,7 @@ export function SkillPicker({
             <button type="button" class="btn" onClick={clear}>
               Ohne Skill/Agent senden
             </button>
-          </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

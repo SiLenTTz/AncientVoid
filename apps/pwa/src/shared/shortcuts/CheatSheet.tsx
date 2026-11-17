@@ -1,13 +1,13 @@
+import { Sheet } from "../ui/index.ts";
 import { useEffect, useState } from "preact/hooks";
-import { activeShortcutIds, CATALOG, shortcut, type ShortcutInfo } from "./registry.ts";
-import { useOverlayFocus } from "../overlay-focus.ts";
-import { registerShortcut } from "./registry.ts";
+import { activeShortcutIds, CATALOG, shortcut, type ShortcutInfo, registerShortcut } from "./registry.ts";
 
 /**
  * EPIC-P51 T51.7: `?` öffnet die Kürzel-Übersicht — vollständig aus der
  * Registry generiert (keine zweite Liste pflegen): überall gültige Kürzel,
  * die gerade offenen Overlays (Esc) und Eingabe-Interaktion mit Ort.
  * Hergezogen aus EPIC-P43 T43.6; ersetzt die TileWorkspace-Hinweiszeile.
+ * EPIC-P63 T63.8: Blatt über shared/ui/Sheet.
  */
 
 function Row({ info }: { info: ShortcutInfo }) {
@@ -25,7 +25,6 @@ function Row({ info }: { info: ShortcutInfo }) {
 export function CheatSheet() {
   const [open, setOpen] = useState(false);
   const [live, setLive] = useState<string[]>([]);
-  const { ref: sheetRef } = useOverlayFocus<HTMLDivElement>(open);
 
   useEffect(() => {
     const offToggle = registerShortcut("cheatsheet.toggle", (e) => {
@@ -54,34 +53,32 @@ export function CheatSheet() {
     .filter((s): s is ShortcutInfo => s?.scope === "overlay" && s.id !== "cheatsheet.close");
 
   return (
-    <div class="overlay-backdrop" onClick={() => setOpen(false)}>
-      <div class="overlay-sheet cheatsheet" ref={sheetRef} role="dialog" aria-modal="true" aria-label="Kürzel-Übersicht" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-        <div class="row" style="justify-content: space-between; align-items: center">
-          <strong>Tastatur-Kürzel</strong>
-          <button class="btn" type="button" aria-label="Kürzel-Übersicht schließen" onClick={() => setOpen(false)}>
-            ✕
-          </button>
-        </div>
-        {openOverlays.length > 0 && (
-          <>
-            <div class="cheatsheet-head dim">Gerade offen</div>
-            {openOverlays.map((s) => (
-              <Row key={s.id} info={s} />
-            ))}
-          </>
-        )}
-        <div class="cheatsheet-head dim">Überall</div>
-        {globalKm.map((s) => (
-          <Row key={s.id} info={s} />
-        ))}
-        <div class="cheatsheet-head dim">Eingabe-Interaktion</div>
-        {local.map((s) => (
-          <Row key={s.id} info={s} />
-        ))}
-        <div class="dim cheatsheet-note">
-          Belegungen von Browser und Fenstermanager stehen je Kürzel in <code>docs/tastatur-kollisionen.md</code> — z. B. wirkt Alt+1–4 im Firefox-Tab nicht (Tab-Wechsel) und Alt+Pos1 ruft dort die Startseite.
-        </div>
+    <Sheet open onClose={() => setOpen(false)} label="Kürzel-Übersicht" class="cheatsheet">
+      <div class="row" style="justify-content: space-between; align-items: center">
+        <strong>Tastatur-Kürzel</strong>
+        <button class="btn" type="button" aria-label="Kürzel-Übersicht schließen" onClick={() => setOpen(false)}>
+          ✕
+        </button>
       </div>
-    </div>
+      {openOverlays.length > 0 && (
+        <>
+          <div class="cheatsheet-head dim">Gerade offen</div>
+          {openOverlays.map((s) => (
+            <Row key={s.id} info={s} />
+          ))}
+        </>
+      )}
+      <div class="cheatsheet-head dim">Überall</div>
+      {globalKm.map((s) => (
+        <Row key={s.id} info={s} />
+      ))}
+      <div class="cheatsheet-head dim">Eingabe-Interaktion</div>
+      {local.map((s) => (
+        <Row key={s.id} info={s} />
+      ))}
+      <div class="dim cheatsheet-note">
+        Belegungen von Browser und Fenstermanager stehen je Kürzel in <code>docs/tastatur-kollisionen.md</code> — z. B. wirkt Alt+1–4 im Firefox-Tab nicht (Tab-Wechsel) und Alt+Pos1 ruft dort die Startseite.
+      </div>
+    </Sheet>
   );
 }

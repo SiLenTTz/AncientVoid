@@ -1,26 +1,11 @@
-/* ADR-0060: Dialog „Eigenes Modell oder Endpunkt“ am Modell-Dropdown. */
+/* ADR-0060: Dialog „Eigenes Modell oder Endpunkt“ am Modell-Dropdown.
+ * EPIC-P63 T63.8: Backdrop/Fokus/Esc über shared/ui/Sheet (variant=modal). */
 .custom-model-dialog {
-  position: fixed;
-  inset: 0;
-  background: var(--backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-sheet);
-  padding: 8px;
-}
-.custom-model-dialog .modal-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--bg-chip);
-  border-radius: 12px;
-  padding: 14px;
-  width: min(520px, 100%);
-  max-height: calc(100dvh / var(--ui-zoom) - 16px);
-  overflow-y: auto;
+  width: min(520px, calc(100vw / var(--ui-zoom) - 16px));
   display: grid;
   gap: 10px;
 }
-.custom-model-dialog .modal-card h3 {
+.custom-model-dialog h3 {
   margin: 0;
 }
 .custom-model-dialog .modal-actions {

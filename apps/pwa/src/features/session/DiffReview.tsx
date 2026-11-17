@@ -7,6 +7,7 @@ import {
   type SessionDiffResult,
   type SessionRecord,
 } from "../../shared/api.ts";
+import { Sheet } from "../../shared/ui/index.ts";
 import { DiffPane, type LinePick, type ReviewHooks } from "./DiffPane.tsx";
 import { mapHunkLines } from "./diff-lines.ts";
 import { addSource } from "../../shared/sources.ts";
@@ -345,32 +346,30 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
       </section>
 
       {sendOpen && (
-        <div class="review-send-dialog" data-testid="modal" role="dialog" aria-label="Sammelversand">
-          <div class="modal-card">
-            <h3>Sammelversand ({selectedNotes.length} Befunde)</h3>
-            <label class="review-recipient">
-              Empfänger
-              <select value={targetSessionId} onChange={(e) => setTargetSessionId((e.target as HTMLSelectElement).value)}>
-                <option value={session.id}>{session.title ?? session.id.slice(0, 8)} · {session.adapter} (diese Session)</option>
-                {sessions
-                  ?.filter((s) => s.id !== session.id)
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title ?? s.id.slice(0, 8)} · {s.adapter}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <pre class="review-prompt-preview mono">{sendPreview ?? "Vorschau lädt …"}</pre>
-            {sendError && <div class="review-warn">{sendError}</div>}
-            <div class="modal-actions">
-              <button onClick={() => setSendOpen(false)}>abbrechen</button>
-              <button class="review-send-btn" disabled={sendBusy || !sendPreview} onClick={() => void send()}>
-                {sendBusy ? "sendet …" : `an ${targetLabel?.title?.slice(0, 24) ?? targetSessionId.slice(0, 8)} senden`}
-              </button>
-            </div>
+        <Sheet open onClose={() => setSendOpen(false)} label="Sammelversand" variant="modal" testid="modal" class="review-send-dialog">
+          <h3>Sammelversand ({selectedNotes.length} Befunde)</h3>
+          <label class="review-recipient">
+            Empfänger
+            <select value={targetSessionId} onChange={(e) => setTargetSessionId((e.target as HTMLSelectElement).value)}>
+              <option value={session.id}>{session.title ?? session.id.slice(0, 8)} · {session.adapter} (diese Session)</option>
+              {sessions
+                ?.filter((s) => s.id !== session.id)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title ?? s.id.slice(0, 8)} · {s.adapter}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <pre class="review-prompt-preview mono">{sendPreview ?? "Vorschau lädt …"}</pre>
+          {sendError && <div class="review-warn">{sendError}</div>}
+          <div class="modal-actions">
+            <button onClick={() => setSendOpen(false)}>abbrechen</button>
+            <button class="review-send-btn" disabled={sendBusy || !sendPreview} onClick={() => void send()}>
+              {sendBusy ? "sendet …" : `an ${targetLabel?.title?.slice(0, 24) ?? targetSessionId.slice(0, 8)} senden`}
+            </button>
           </div>
-        </div>
+        </Sheet>
       )}
     </div>
   );

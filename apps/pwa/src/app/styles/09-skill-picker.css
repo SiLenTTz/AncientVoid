@@ -1,32 +1,7 @@
-/* T1.5-10 skill/agent picker + overlay */
+/* T1.5-10 skill/agent picker — Overlay-Rahmen seit EPIC-P63 T63.8: ui/sheet.css */
 .skill-chip {
   text-align: left;
   font-size: var(--text-sm);
-}
-
-.overlay-backdrop {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, black 55%, transparent);
-  display: flex;
-  align-items: flex-end;
-  z-index: var(--z-overlay);
-}
-
-.overlay-sheet {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
-  width: 100%;
-  max-width: 680px;
-  margin: 0 auto;
-  background: var(--bg);
-  border-top: 1px solid var(--fg-dim);
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: 14px;
-  display: grid;
-  gap: 10px;
-  max-height: calc(70vh / var(--ui-zoom)); /* BUG-0122 */
-  overflow-y: auto;
 }
 
 .skill-list {

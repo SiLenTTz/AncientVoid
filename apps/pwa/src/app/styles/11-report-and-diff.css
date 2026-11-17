@@ -514,22 +514,9 @@
   opacity: 0.5;
   cursor: default;
 }
+/* EPIC-P63 T63.8: Backdrop/Fokus/Esc über Sheet (variant=modal). */
 .review-send-dialog {
-  position: fixed;
-  inset: 0;
-  background: var(--backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-sheet);
-}
-.review-send-dialog .modal-card {
-  background: var(--bg-elev);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
   width: min(640px, calc(92vw / var(--ui-zoom))); /* BUG-0122 */
-  max-height: calc(85vh / var(--ui-zoom));
   display: flex;
   flex-direction: column;
   gap: 10px;

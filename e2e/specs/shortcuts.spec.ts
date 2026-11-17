@@ -24,11 +24,11 @@ test.describe("Esc schließt Overlays und gibt den Fokus zurück (EPIC-P51 T51.6
     const chip = app.locator("button.skill-chip").first();
     await expect(chip).toBeVisible();
     await chip.click();
-    await expect(app.locator(".overlay-sheet")).toBeVisible();
+    await expect(app.locator(".ui-sheet")).toBeVisible();
     // Fokus-Rein-Behauptung wartet zugleich, bis der Registry-Effekt gespült ist (preact).
-    await expect(app.locator(".overlay-sheet .btn").first()).toBeFocused();
+    await expect(app.locator(".ui-sheet .btn").first()).toBeFocused();
     await app.keyboard.press("Escape");
-    await expect(app.locator(".overlay-sheet")).toHaveCount(0);
+    await expect(app.locator(".ui-sheet")).toHaveCount(0);
     await expect(app.locator("button.skill-chip").first()).toBeFocused();
   });
 

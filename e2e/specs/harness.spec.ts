@@ -228,7 +228,7 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
 
     await card.locator(".row-menu-btn").click();
     await card.locator(".row-menu").getByRole("menuitem", { name: "Übergeben…" }).click();
-    const sheet = app.locator(".overlay-sheet");
+    const sheet = app.locator(".ui-sheet");
     await expect(sheet).toBeVisible();
     // Ohne Ziel startet nichts; der Übergabetext steht schon bereit.
     await expect(sheet.getByRole("button", { name: "Übergeben", exact: true })).toBeDisabled();

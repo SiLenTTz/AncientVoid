@@ -1,4 +1,5 @@
 import type { ComponentChildren } from "preact";
+import { Sheet } from "../../shared/ui/index.ts";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type ApprovalRequest, type SessionRecord } from "../../shared/api.ts";
@@ -136,20 +137,14 @@ export function NyxButton({ online, sessions, approvals, onChanged }: { online: 
   const [open, setOpen] = useState(false);
   const { summary, sentence, queue } = useNyx(online, sessions, approvals);
   const button = useRef<HTMLButtonElement>(null);
-  const sheet = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    // Tastatur und Screenreader: der Fokus geht ins Blatt und beim Schließen zurück auf Nyx (T43.9).
-    sheet.current?.focus();
-    // EPIC-P51 T51.5: Esc über die Shortcut-Registry.
+    // Fokus rein/zurück übernimmt Sheet (useOverlayFocus). Esc: Registry + Sheet.
     const off = registerShortcut("nyx.close", (e) => {
       e.preventDefault();
       setOpen(false);
     });
-    return () => {
-      off();
-      button.current?.focus();
-    };
+    return off;
   }, [open]);
   return (
     <>
@@ -160,28 +155,26 @@ export function NyxButton({ online, sessions, approvals, onChanged }: { online: 
       {/* Ins <body>: die Kopfzeile ist ein eigener Stapelkontext (sticky, z-index 10) — darin läge das Blatt unter dem Dock. */}
       {open &&
         createPortal(
-          <div class="overlay-backdrop nyx-backdrop" onClick={() => setOpen(false)}>
-            <div ref={sheet} class="overlay-sheet nyx-sheet" role="dialog" aria-modal="true" aria-label="Nyx" tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-              <NyxPanel
-                online={online}
-                sessions={sessions}
-                approvals={approvals}
-                onChanged={onChanged}
-                onOpen={(id, host) => {
-                  setOpen(false);
-                  openInApp(id, host);
-                }}
-                actions={
-                  <>
-                    <button type="button" class="btn" aria-label="Schließen" title="Schließen" onClick={() => setOpen(false)}>
-                      ✕
-                    </button>
-                    <DetachButton target={{ kind: "nyx" }} label="Nyx" onDetached={() => setOpen(false)} />
-                  </>
-                }
-              />
-            </div>
-          </div>,
+          <Sheet open onClose={() => setOpen(false)} label="Nyx" class="nyx-sheet">
+            <NyxPanel
+              online={online}
+              sessions={sessions}
+              approvals={approvals}
+              onChanged={onChanged}
+              onOpen={(id, host) => {
+                setOpen(false);
+                openInApp(id, host);
+              }}
+              actions={
+                <>
+                  <button type="button" class="btn" aria-label="Schließen" title="Schließen" onClick={() => setOpen(false)}>
+                    ✕
+                  </button>
+                  <DetachButton target={{ kind: "nyx" }} label="Nyx" onDetached={() => setOpen(false)} />
+                </>
+              }
+            />
+          </Sheet>,
           document.body,
         )}
     </>

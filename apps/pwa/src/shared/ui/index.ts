@@ -3,4 +3,5 @@ export { Button, type ButtonProps } from "./Button.tsx";
 export { Chip, ChipStatic, type ChipProps } from "./Chip.tsx";
 export { Card, type CardProps } from "./Card.tsx";
 export { EmptyState, type EmptyStateProps } from "./EmptyState.tsx";
+export { Sheet, type SheetProps } from "./Sheet.tsx";
 export { Field, Select, Switch, Segmented } from "./forms.tsx";

@@ -210,7 +210,7 @@ test.describe("Composer: Verbessern, Empfehlung, Skills (T3.9, T5.7–T5.10)", (
     await app.getByRole("button", { name: "Neue Session" }).click();
     await app.getByLabel("Adapter").selectOption("claude");
     await app.getByRole("button", { name: "+ Skill/Agent" }).click();
-    const sheet = app.locator(".overlay-sheet");
+    const sheet = app.locator(".ui-sheet");
     await expect(sheet.getByText("Senden mit …")).toBeVisible();
     await sheet.getByRole("button", { name: /neon/ }).click();
     await expect(app.getByRole("button", { name: "Skill: neon" })).toBeVisible();

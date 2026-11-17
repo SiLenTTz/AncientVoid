@@ -1,3 +1,4 @@
+import { Sheet } from "../../shared/ui/index.ts";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
@@ -125,8 +126,7 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
     };
   }, [attachment.id]);
   return (
-    <div class="overlay-backdrop" onClick={onClose}>
-      <div class="overlay-sheet" data-testid="attachment-viewer" onClick={(e) => e.stopPropagation()}>
+    <Sheet open onClose={onClose} label={attachment.name} testid="attachment-viewer">
         <div class="row" style="justify-content: space-between; align-items: center">
           <strong>{attachment.name}</strong>
           <button class="btn" type="button" onClick={onClose}>
@@ -144,7 +144,6 @@ function AttachmentViewer({ attachment, onClose }: { attachment: AttachmentRef; 
         ) : (
           <div class="dim">{text.extraction.error ?? "Kein Text ausgelesen."}</div>
         )}
-      </div>
-    </div>
+    </Sheet>
   );
 }

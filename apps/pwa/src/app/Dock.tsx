@@ -5,6 +5,7 @@
 // „Entdeckt“ ist seit EPIC-P47 ein Umschalt-State der Übersicht (kein eigener Menüpunkt mehr).
 // `active` hebt nie etwas hervor, solange eine Seite offen ist, die kein Dock-Ziel ist.
 import { useEffect, useRef, useState } from "preact/hooks";
+import { Sheet } from "../shared/ui/index.ts";
 import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { openLayer } from "../shared/layers.ts";
@@ -80,8 +81,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
         <TabIcon name="git" /><span class="lb">Git-Struktur</span>
       </button>
       {more && (
-        <div class="overlay-backdrop" onClick={() => setMore(false)}>
-          <div class="overlay-sheet more-sheet" role="dialog" aria-label="Mehr" onClick={(e) => e.stopPropagation()}>
+        <Sheet open onClose={() => setMore(false)} label="Mehr" class="more-sheet">
             {MORE.map((m) => (
               <button key={m.page} class={`more-item ${active === m.page ? "active" : ""}`} type="button" onClick={() => go(m.page)}>
                 <TabIcon name={m.icon} />
@@ -101,8 +101,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
               <TabIcon name="git" />
               <span>Git-Struktur</span>
             </button>
-          </div>
-        </div>
+        </Sheet>
       )}
     </nav>
   );
