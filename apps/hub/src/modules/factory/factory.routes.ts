@@ -1,3 +1,4 @@
+import { win32 } from "node:path";
 import { realpath } from "node:fs/promises";
 import type { FastifyInstance } from "fastify";
 import { LOOP_ARG, loopAdapterId } from "@ancientvoid/contracts";
@@ -68,7 +69,7 @@ export function registerFactoryRoutes(app: FastifyInstance, ctx: RouteContext): 
           actor,
           { workInProject: true },
         );
-        const label = (goal?.trim().split("\n")[0] || root.split("/").pop() || "Lauf");
+        const label = (goal?.trim().split("\n")[0] || win32.basename(root) || "Lauf");
         deps.sessions.setMeta(driver.id, { title: `Factory · ${label}`.slice(0, 120) });
         try {
           // 2. Beobachter — Verknüpfung in options.driver, damit sie im Loop-Snapshot überlebt (K7).

@@ -1,3 +1,4 @@
+import { win32 } from "node:path";
 import { SessionInterruption } from "./session-interruption.ts";
 import { SessionRecovery } from "./session-recovery.ts";
 import { SessionActivities } from "./session-activity.ts";
@@ -1008,7 +1009,7 @@ export class SessionManager {
       return false;
     }
     const { manifest } = gate.approval;
-    const summary = `Workspace-Manifest ${gate.approval.manifestHash.slice(0, 12)}… für ${session.record.project.split("/").pop()}: ${manifest.setup?.length ?? 0} Setup-Schritte, ${manifest.include?.length ?? 0} Dateien, ${manifest.services?.length ?? 0} Services`;
+    const summary = `Workspace-Manifest ${gate.approval.manifestHash.slice(0, 12)}… für ${win32.basename(session.record.project)}: ${manifest.setup?.length ?? 0} Setup-Schritte, ${manifest.include?.length ?? 0} Dateien, ${manifest.services?.length ?? 0} Services`;
     const request = approvalQueue.create(session.record.id, "write", "workspace.setup", summary, false, 24 * 60 * 60 * 1000);
     this.operationStore.create(request.id, session.record.id, "workspace.setup", { approval: gate.approval, startSpec }, session.record.inputRevision, actor ?? null);
     session.workspace = { phase: "approval_required", manifestHash: gate.approval.manifestHash, baseSha, pendingApprovalId: request.id };

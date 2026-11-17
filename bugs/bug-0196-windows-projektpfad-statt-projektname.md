@@ -32,6 +32,20 @@ Kopien (`Dashboard.tsx`, `discovery/groups.ts`) sind entfernt. Repo-relative
 Dateipfade (Suche, Galaxie, Routen) bleiben unverändert, denn der Hub liefert
 sie mit `/`.
 
+**Hub-Seite:** Eine zweite Aufnahme zeigte den Pfad weiter, nach einer
+Freigabe in der Benachrichtigung. Dieselbe Ursache saß in Core und Hub:
+`notifications.ts:15` (Benachrichtigungs- und Web-Push-Titel, also auch auf
+dem Sperrbildschirm des Handys), `approval-flow.ts:59` (Start-Freigabe),
+`session-manager.ts:1011` (Manifest-Freigabe), `commands/resolve.ts:15`
+(„Starte … in Projekt X“ fand unter Windows kein Projekt),
+`factory.routes.ts:71` (Lauf-Label) und `stt.routes.ts:51`
+(STT-Vokabular). Dort steht jetzt die Standardbibliothek: `win32.basename`
+trennt an `/` und `\` und ignoriert Endtrenner.
+
+Bewusst nicht Teil dieses Fixes sind Stellen mit Dateipfaden statt
+Projektnamen (`discovery/codex.ts:147`, `graph/scan.ts`,
+`adapter-claude-clip`). Sie sind eigene Prüffälle für Windows.
+
 ## Beleg
 
 - `apps/pwa/test/features/discovery/groups.test.ts`: „names Windows project
@@ -39,6 +53,13 @@ sie mit `/`.
   `C:\Users\demo\repos\website`), grün danach.
 - `apps/pwa/test/shared/project-name.test.ts`: POSIX, Windows, UNC, gemischte
   Trenner, abschließende Trenner, leere Eingabe.
+- `packages/core/test/modules/notifications/windows-project-name.test.ts`:
+  Titel „alpha · Session unterbrochen“. Rot vor dem Fix (voller Pfad im
+  Titel), grün danach.
+- Live: Die README-Demoaufnahme (`scripts/readme-demo.mjs`) prüft vor jedem
+  Bild den sichtbaren Text gegen Rechnername, Benutzer- und Home-Pfad. Sie
+  schlug zweimal an (Karten, dann Benachrichtigung) und läuft mit beiden Fixes
+  durch.
 - Kein E2E-Fall: Die E2E-Suite läuft auf Linux-Runnern mit POSIX-Pfaden und
   könnte den Windows-Fall dort nicht zeigen. Der Beleg liegt deshalb auf
   Unit-Ebene an der gemeinsamen Funktion.

@@ -1,3 +1,4 @@
+import { win32 } from "node:path";
 import type { Ack, AdapterContext, PendingOperation, PromptAttachment, SteerInput } from "@ancientvoid/contracts";
 import type { ApprovalService, OperationStore } from "../approvals/index.ts";
 import type { LiveSession } from "./session-state.ts";
@@ -56,7 +57,7 @@ export class ApprovalFlow {
     if (!gate) return { ok: false, detail: "Keine Freigabe-Warteschlange — Agenten dürfen hier nichts ändern." };
     const summary =
       kind === "session.create"
-        ? `${actor} möchte eine Session starten: ${String(payload.adapter)} in ${String(payload.project).split("/").pop()}${payload.prompt ? ` — "${String(payload.prompt).slice(0, 120)}"` : ""}`
+        ? `${actor} möchte eine Session starten: ${String(payload.adapter)} in ${win32.basename(String(payload.project))}${payload.prompt ? ` — "${String(payload.prompt).slice(0, 120)}"` : ""}`
         : kind === "steer.prompt"
           ? `${actor} möchte einen Prompt senden: "${String((payload.input as { text?: string })?.text ?? "").slice(0, 160)}"`
           : kind === "budget.increase"
