@@ -6,13 +6,13 @@
   "type": "module",
   "license": "AGPL-3.0-only",
   "author": "SiLenT_Tz (Jan Pfrommer)",
-  "homepage": "https://github.com/SiLenTTz/AncientVoid",
+  "homepage": "https://github.com/securesight-ai/AncientVoid",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SiLenTTz/AncientVoid.git"
+    "url": "git+https://github.com/securesight-ai/AncientVoid.git"
   },
   "bugs": {
-    "url": "https://github.com/SiLenTTz/AncientVoid/issues"
+    "url": "https://github.com/securesight-ai/AncientVoid/issues"
   },
   "engines": {
     "node": "^22.18.0 || ^24.0.0 || >=26.0.0"

@@ -86,7 +86,7 @@ Schwere wie das Produkt: `S1` Ausfall · `S2` Kernfunktion · `S3` Workaround ·
 gh issue create --title "BUG-NNNN: <Kurztitel>" --body-file bugs/bug-NNNN-slug.md --label bug
 ```
 
-Die Issue-URL (`https://github.com/SiLenTTz/AncientVoid/issues/<nr>`) nach
+Die Issue-URL (`https://github.com/securesight-ai/AncientVoid/issues/<nr>`) nach
 `forge:` ins Frontmatter und in die Indexzeile. Öffentliches Repo: vor dem
 Anlegen prüfen, dass der Body keine Secrets, Hostnamen oder Home-Pfade enthält. Schlägt das fehl: Datei bleibt gültig.
 

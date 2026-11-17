@@ -16,7 +16,7 @@ Please **do not** report vulnerabilities in public issues, merge requests or
 discussions, and do not publish exploit code before a fix is available.
 
 Instead, use GitHub's **private vulnerability reporting**:
-<https://github.com/SiLenTTz/AncientVoid/security/advisories/new>
+<https://github.com/securesight-ai/AncientVoid/security/advisories/new>
 (repository tab *Security* → *Report a vulnerability*). Only the maintainer
 can see the report. If you cannot use GitHub, e-mail
 <jan.pfrommer@securesight.ai> instead.
