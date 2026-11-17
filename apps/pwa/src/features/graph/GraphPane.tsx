@@ -6,6 +6,7 @@ import { GalaxyPanel } from "./GalaxyPanel.tsx";
 import { galaxyLayout, systemLabel } from "./galaxy-layout.ts";
 import { loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
 import { FLIGHT_MS, baseName, detailLevel, fitCircle, flightAt, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /** EPIC-P48 (ADR-0062 §3.4) + EPIC-P52: Repo-Graph als Galaxie auf einem Canvas.
  * Bereiche sind Sternsysteme, Dateien Sterne; je nach Zoom zeigt die Karte
@@ -802,16 +803,16 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
         )}
         {report && (
           <div class="graph-actions">
-            <button type="button" class="btn graph-fit" aria-label="Ganze Galaxie zeigen" onClick={fitAll}>
+            <Button aria-label="Ganze Galaxie zeigen" onClick={fitAll} class="graph-fit">
               Einpassen
-            </button>
-            <button type="button" class="btn graph-check" aria-label="Graph prüfen" onClick={runCheck} disabled={checking}>
+            </Button>
+            <Button aria-label="Graph prüfen" onClick={runCheck} disabled={checking} class="graph-check">
               {checking ? "Prüfe …" : "Prüfen"}
-            </button>
+            </Button>
             {!full && (
-              <button type="button" class="btn" aria-label="Vollbild" onClick={() => setFull(true)}>
+              <Button aria-label="Vollbild" onClick={() => setFull(true)}>
                 Vollbild
-              </button>
+              </Button>
             )}
             <input
               ref={searchRef}
@@ -863,9 +864,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       {/* Zoom an der ganzen Fläche: über einem Stern liegt dessen Klick-Knopf, nicht das Canvas. */}
       <div class="graph-wrap" ref={wrapRef} onWheel={onWheel}>
         {full && (
-          <button type="button" class="btn graph-float" aria-label="Vollbild verlassen" onClick={() => setFull(false)}>
+          <Button aria-label="Vollbild verlassen" onClick={() => setFull(false)} class="graph-float">
             ←
-          </button>
+          </Button>
         )}
         {!report && !loadErr && <div class="graph-state">Lade Graph …</div>}
         {report && report.nodes.length === 0 && <div class="graph-state">Keine Dateien im Ziel gefunden.</div>}

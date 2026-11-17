@@ -5,6 +5,7 @@ import { openPopout } from "../windows/windows.ts";
 import { getHubStatus } from "../shell/hub-status.ts";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { ADB_STATE_LABEL, EMU_STATE_LABEL, EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toDevicePoint } from "./device-model.ts";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 type Tab = "view" | "tests" | "logs" | "tree";
 
@@ -81,8 +82,8 @@ export function DevicePanel({ sessionId, label, hostId, onClose }: { sessionId: 
       <span class="dim" data-testid="device-context">
         {remote ? "andere Maschine" : "dieser Host"}{sessionId ? ` · Lease an „${label ?? sessionId.slice(0, 8)}“` : " · ohne Session (Lease/Tests brauchen eine fokussierte Session)"}
       </span>
-      <button type="button" class="chip" aria-label="Geräte in eigenes Fenster" title="In eigenes Fenster" onClick={() => void openPopout({ kind: "device" })}>⧉</button>
-      <button type="button" class="chip" onClick={onClose} aria-label="Geräte schließen">×</button>
+      <Chip aria-label="Geräte in eigenes Fenster" title="In eigenes Fenster" onClick={() => void openPopout({ kind: "device" })}>⧉</Chip>
+      <Chip onClick={onClose} aria-label="Geräte schließen">×</Chip>
     </div>
   );
   if (remote) return <aside class="browser-panel device-panel" data-testid="device-panel">{head}<div class="files-error" role="status">Die Testgeräte laufen auf dem Host der Session. Für Sessions anderer Maschinen sind sie nicht erreichbar.</div></aside>;
@@ -112,9 +113,7 @@ export function DevicePanel({ sessionId, label, hostId, onClose }: { sessionId: 
             {(status?.avds ?? []).map((a) => <option key={a.name} value={a.name} disabled={!a.allowed}>{a.name}{a.lcdWidth ? ` (${a.lcdWidth}×${a.lcdHeight})` : ""}{a.allowed ? "" : " — gesperrt"}</option>)}
           </select>
         </label>
-        <button
-          type="button"
-          class="btn"
+        <Button
           data-testid="device-start"
           disabled={busy || !online || (status?.avds.length ?? 0) === 0 || !status?.capabilities.ready}
           onClick={(e) => {
@@ -123,14 +122,14 @@ export function DevicePanel({ sessionId, label, hostId, onClose }: { sessionId: 
           }}
         >
           Emulator starten
-        </button>
+        </Button>
       </div>
       <ul class="device-list" data-testid="device-list">
         {(status?.devices ?? []).map((d) => (
           <li key={d.serial} class="device-row" data-testid="device-row" data-serial={d.serial}>
-            <button type="button" class={selected === d.serial ? "chip active" : "chip"} onClick={() => setSelected(d.serial)}>
+            <Chip  onClick={() => setSelected(d.serial)} active={selected === d.serial}>
               <span class="mono">{d.serial}</span>
-            </button>
+            </Chip>
             <span class={`run-${d.instance?.state ?? (d.state === "device" ? "ready" : "failed")}`} data-testid="device-state">
               {d.instance ? EMU_STATE_LABEL[d.instance.state] ?? d.instance.state : ADB_STATE_LABEL[d.state] ?? d.rawState}
             </span>
@@ -139,9 +138,9 @@ export function DevicePanel({ sessionId, label, hostId, onClose }: { sessionId: 
             {d.foreignEmulator && <span class="dim">fremder Emulator — wird nie von AV beendet</span>}
             {d.state === "unauthorized" && <span class="dim">USB-Debugging bestätigen</span>}
             {d.owned && (
-              <button type="button" class="chip" data-testid="device-stop" disabled={busy || !online} onClick={() => void startOrStop(() => hubApi.deviceStop(d.serial))}>
+              <Chip data-testid="device-stop" disabled={busy || !online} onClick={() => void startOrStop(() => hubApi.deviceStop(d.serial))}>
                 Beenden
-              </button>
+              </Chip>
             )}
           </li>
         ))}
@@ -152,29 +151,27 @@ export function DevicePanel({ sessionId, label, hostId, onClose }: { sessionId: 
           <div class="device-bar">
             <span class="mono dim" data-testid="device-selected">{selected}</span>
             {generation === null ? (
-              <button
-                type="button"
-                class="btn"
+              <Button
                 data-testid="device-lease"
                 disabled={busy || !online || !sessionId || !owned.some((d) => d.serial === selected && d.instance?.state === "ready")}
                 title={sessionId ? "Steuerungslease für dieses Gerät holen" : "Zuerst eine Session fokussieren"}
                 onClick={() => void run(async () => { const r = await hubApi.deviceLease(selected, sessionId); setGeneration(r.generation); void refresh(); })}
               >
                 Steuerung holen
-              </button>
+              </Button>
             ) : (
               <>
                 <span class="dim" data-testid="device-generation">Generation {generation}</span>
-                <button type="button" class="chip" disabled={busy || !online} onClick={() => void run(async () => { await hubApi.deviceRelease(selected, generation); setGeneration(null); void refresh(); })}>Freigeben</button>
+                <Chip disabled={busy || !online} onClick={() => void run(async () => { await hubApi.deviceRelease(selected, generation); setGeneration(null); void refresh(); })}>Freigeben</Chip>
               </>
             )}
             {lease && generation === null && <span class="files-stale" role="status">belegt von „{lease.owner}“</span>}
           </div>
           <div class="browser-tabs" role="tablist">
             {(["view", "tests", "logs", "tree"] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} class={tab === t ? "chip active" : "chip"} onClick={() => setTab(t)}>
+              <Chip key={t} role="tab" aria-selected={tab === t}  onClick={() => setTab(t)} active={tab === t}>
                 {t === "view" ? "Ansicht" : t === "tests" ? "Tests" : t === "logs" ? "Logs" : "Baum"}
-              </button>
+              </Chip>
             ))}
           </div>
           {tab === "view" && <DeviceView serial={selected} generation={generation} online={online} busy={busy} onError={setError} />}
@@ -236,9 +233,9 @@ function DeviceView({ serial, generation, online, busy, onError }: { serial: str
     <div>
       {generation === null && <div class="dim">Nur Ansicht — für Eingaben die Steuerung (Lease) holen. Jeder Tap wird an das angezeigte Bild gebunden.</div>}
       <div class="browser-tools">
-        <button type="button" class="chip" disabled={!online || generation === null} onClick={() => frame && act({ type: "swipe", x1: Math.round(frame.width / 2), y1: Math.round(frame.height * 0.7), x2: Math.round(frame.width / 2), y2: Math.round(frame.height * 0.3), durationMs: 300 }, frame.geometryVersion)} aria-label="Hochwischen">↑</button>
-        <button type="button" class="chip" disabled={!online || generation === null} onClick={() => frame && act({ type: "swipe", x1: Math.round(frame.width / 2), y1: Math.round(frame.height * 0.3), x2: Math.round(frame.width / 2), y2: Math.round(frame.height * 0.7), durationMs: 300 }, frame.geometryVersion)} aria-label="Runterwischen">↓</button>
-        {keys.map((k) => <button key={k} type="button" class="chip" disabled={!online || generation === null} onClick={() => frame && act({ type: "key", key: k }, frame.geometryVersion)}>{k}</button>)}
+        <Chip disabled={!online || generation === null} onClick={() => frame && act({ type: "swipe", x1: Math.round(frame.width / 2), y1: Math.round(frame.height * 0.7), x2: Math.round(frame.width / 2), y2: Math.round(frame.height * 0.3), durationMs: 300 }, frame.geometryVersion)} aria-label="Hochwischen">↑</Chip>
+        <Chip disabled={!online || generation === null} onClick={() => frame && act({ type: "swipe", x1: Math.round(frame.width / 2), y1: Math.round(frame.height * 0.3), x2: Math.round(frame.width / 2), y2: Math.round(frame.height * 0.7), durationMs: 300 }, frame.geometryVersion)} aria-label="Runterwischen">↓</Chip>
+        {keys.map((k) => <Chip key={k} disabled={!online || generation === null} onClick={() => frame && act({ type: "key", key: k }, frame.geometryVersion)}>{k}</Chip>)}
         <label class="dim"> Ausrichtung{" "}
           <select aria-label="Ausrichtung" disabled={!online || generation === null} onChange={(e) => frame && act({ type: "rotate", orientation: (e.target as HTMLSelectElement).value as "portrait" | "landscape" }, frame.geometryVersion)}>
             <option value="portrait">Hochformat</option>
@@ -248,17 +245,17 @@ function DeviceView({ serial, generation, online, busy, onError }: { serial: str
       </div>
       <form class="browser-type" onSubmit={(e) => { e.preventDefault(); if (typed && frame) { act({ type: "text", text: typed }, frame.geometryVersion); setTyped(""); } }}>
         <input aria-label="Text auf dem Gerät tippen" placeholder="ASCII-Text tippen (Leerzeichen erlaubt, % nicht)" value={typed} disabled={!online || busy || generation === null} maxLength={500} onInput={(e) => setTyped((e.target as HTMLInputElement).value)} />
-        <button type="submit" class="btn" disabled={!online || !typed || generation === null}>Tippen</button>
+        <Button type="submit" disabled={!online || !typed || generation === null}>Tippen</Button>
       </form>
       <form class="browser-url" onSubmit={(e) => { e.preventDefault(); if (url && frame) { act({ type: "openUrl", url }, frame.geometryVersion); setUrl(""); } }}>
         <input aria-label="URL im Emulator öffnen" placeholder="http://10.0.2.2:PORT/ (10.0.2.2 = Host-Loopback)" value={url} disabled={!online || generation === null} maxLength={2048} onInput={(e) => setUrl((e.target as HTMLInputElement).value)} />
-        <button type="submit" class="btn" disabled={!online || !url || generation === null}>Öffnen</button>
+        <Button type="submit" disabled={!online || !url || generation === null}>Öffnen</Button>
       </form>
       <details class="device-install">
         <summary class="dim">APK aus Session-Anhang installieren</summary>
         <form class="browser-type" onSubmit={(e) => { e.preventDefault(); if (apk && generation !== null) void hubApi.deviceInstall(serial, generation, apk.trim()).catch((err) => onError(err instanceof Error ? err.message : "Installation fehlgeschlagen")).finally(() => setApk("")); }}>
           <input aria-label="Anhang-ID (sha256)" placeholder="Anhang-ID (sha256) aus einem Session-Anhang" value={apk} disabled={!online || generation === null} maxLength={64} onInput={(e) => setApk((e.target as HTMLInputElement).value)} />
-          <button type="submit" class="btn" disabled={!online || !apk || generation === null}>Installieren</button>
+          <Button type="submit" disabled={!online || !apk || generation === null}>Installieren</Button>
         </form>
         <div class="dim">Nur referenzierte Artefakte mit Hash-Prüfung — keine URL-Downloads (EPIC-P42 §3.3).</div>
       </details>
@@ -273,7 +270,7 @@ function DeviceView({ serial, generation, online, busy, onError }: { serial: str
           draggable={false}
         />
       ) : (
-        <div class="empty" data-testid="device-noframe">Noch kein Bild — Gerät bereit? Standbild kommt alle 0,7 s.</div>
+        <div class="ui-empty" data-testid="device-noframe">Noch kein Bild — Gerät bereit? Standbild kommt alle 0,7 s.</div>
       )}
       {frame && <div class="dim" data-testid="device-frame-time">Stand {frame.at.toLocaleTimeString("de-DE")} · Seq {frame.seq} · Geometrie {frame.geometryVersion} · {frame.width}×{frame.height}px</div>}
     </div>
@@ -294,7 +291,7 @@ function Logs({ serial, online }: { serial: string; online: boolean }) {
   return (
     <div class="device-logs" data-testid="device-logs">
       <div class="file-tools">
-        <button type="button" class="btn" disabled={!online} onClick={() => void load()}>Logcat laden</button>
+        <Button disabled={!online} onClick={() => void load()}>Logcat laden</Button>
         <label class="dim"><input type="checkbox" checked={auto} onChange={(e) => setAuto((e.target as HTMLInputElement).checked)} /> alle 10 s</label>
         {meta && <span class="dim">{meta.at}{meta.truncated ? " · gekürzt" : ""}</span>}
       </div>
@@ -311,14 +308,12 @@ function Tree({ serial, online }: { serial: string; online: boolean }) {
   return (
     <div class="device-tree" data-testid="device-tree">
       <div class="file-tools">
-        <button
-          type="button"
-          class="btn"
+        <Button
           disabled={!online}
           onClick={() => hubApi.deviceTree(serial).then((t) => { setXml(t); setAt(new Date().toISOString()); setError(""); }).catch((e) => setError(e instanceof Error ? e.message : "Baum nicht lesbar"))}
         >
           Accessibility-Baum laden
-        </button>
+        </Button>
         {at && <span class="dim">{at}</span>}
       </div>
       {error && <div class="files-error" role="alert">{error}</div>}
@@ -351,16 +346,16 @@ function Tests({ serial, online }: { serial: string; online: boolean }) {
       <div class="dim file-note">Registrierte Schritte (openUrl, tap, swipe, text, key, rotate, expectText, wait) — kein freier Code. Der Lauf hält selbst die Lease und hält Image/API/Auflösung fest. 10.0.2.2 ist der Host aus Emulatorsicht.</div>
       <textarea class="browser-test-editor mono" aria-label="Geräte-Testfall (JSON)" rows={10} spellcheck={false} value={text} onInput={(e) => setText((e.target as HTMLTextAreaElement).value)} />
       {error && <div class="files-error" role="alert">{error}</div>}
-      <button type="button" class="btn" disabled={!online} data-testid="device-test-start" onClick={start}>Test starten</button>
+      <Button disabled={!online} data-testid="device-test-start" onClick={start}>Test starten</Button>
       <ul class="browser-runs">
         {runs.map((r) => (
           <li key={r.id} data-testid="device-run" data-state={r.state}>
             <strong>{r.name}</strong> · <span class={`run-${r.state}`}>{TEST_STATE_LABEL[r.state]}</span>
-            {r.state === "running" && <button type="button" class="chip" onClick={() => hubApi.deviceAbortTest(serial, r.id).then(load)}>Abbrechen</button>}
+            {r.state === "running" && <Chip onClick={() => hubApi.deviceAbortTest(serial, r.id).then(load)}>Abbrechen</Chip>}
             {r.note && <div class="dim">{r.note}</div>}
             <div class="dim">API {String(r.env.apiVersion ?? "?")} · {r.env.resolution ? `${(r.env.resolution as { width: number; height: number }).width}×${(r.env.resolution as { width: number; height: number }).height}` : "?"} · {String(r.env.avdName ?? "?")}</div>
             <ol class="dim">{r.steps.map((s) => <li key={s.index}>{s.ok ? "✓" : "✗"} {s.type}{s.detail ? ` — ${s.detail}` : ""}</li>)}</ol>
-            {r.artifact && <button type="button" class="chip" onClick={async () => setArtifact({ runId: r.id, url: await hubApi.browserBlobUrl(`/api/devices/tests/${r.id}/artifact?serial=${encodeURIComponent(serial)}`) })}>Screenshot</button>}
+            {r.artifact && <Chip onClick={async () => setArtifact({ runId: r.id, url: await hubApi.browserBlobUrl(`/api/devices/tests/${r.id}/artifact?serial=${encodeURIComponent(serial)}`) })}>Screenshot</Chip>}
             {artifact?.runId === r.id && <img class="file-media" src={artifact.url} alt={`Screenshot von ${r.name}`} />}
           </li>
         ))}

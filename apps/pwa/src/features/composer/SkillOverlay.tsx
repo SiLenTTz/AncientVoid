@@ -1,4 +1,4 @@
-import { Sheet } from "../../shared/ui/index.ts";
+import { Sheet, Button } from "../../shared/ui/index.ts";
 import { useEffect, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type HarnessFeatures, type SkillOrAgent } from "../../shared/api.ts";
@@ -145,17 +145,17 @@ export function SkillPicker({
 
   return (
     <div>
-      <button type="button" class="skill-chip btn" onClick={openOverlay}>
+      <Button onClick={openOverlay} class="skill-chip">
         {selection ? `${selection.kind === "agent" ? "Agent" : "Skill"}: ${selection.name}` : "+ Skill/Agent"}
-      </button>
+      </Button>
 
       {open && (
         <Sheet open onClose={() => setOpen(false)} label="Skill oder Agent wählen">
             <div class="row" style="justify-content: space-between; align-items: center">
               <strong>Senden mit …</strong>
-              <button class="btn" type="button" onClick={() => setOpen(false)}>
+              <Button onClick={() => setOpen(false)}>
                 ✕
-              </button>
+              </Button>
             </div>
             {error && <div style="color: var(--err)">{error}</div>}
             {!project && items === null ? (
@@ -184,9 +184,9 @@ export function SkillPicker({
                 ))}
               </div>
             )}
-            <button type="button" class="btn" onClick={clear}>
+            <Button onClick={clear}>
               Ohne Skill/Agent senden
-            </button>
+            </Button>
         </Sheet>
       )}
     </div>

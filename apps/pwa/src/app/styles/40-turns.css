@@ -356,19 +356,7 @@
   background: var(--err);
 }
 
-/* Kleinkram-Regel 2: ein leerer Reiter sagt in einem Satz, was fehlt, und bietet eine Aktion. */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
-  padding: var(--space-4) 0;
-  color: var(--fg-dim);
-}
-
-.empty-state p {
-  margin: 0;
-}
+/* Kleinkram-Regel 2: empty-state → ui-empty (EPIC-P63 T63.9), Stil in styles/ui/empty.css */
 
 /* EPIC-P43: Zug-Schritte passen in ihre Fläche (früher 45-readable-content.css). */
 .turn-step,

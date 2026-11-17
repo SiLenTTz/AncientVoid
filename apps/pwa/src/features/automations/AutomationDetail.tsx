@@ -5,6 +5,7 @@ import { sessionHash } from "../../app/route.ts";
 import { remoteHost } from "../../shared/api.ts";
 import { outcomeLabel, REASON_LABEL, scheduleText, STATE_LABEL } from "./automation-labels.ts";
 import { readAutomationSnapshot, writeAutomationSnapshot } from "./automation-cache.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 export function AutomationDetail({ info, offline, cacheKey, host }: { info: AutomationInfo; offline: boolean; cacheKey: string; host: string | null }) {
   const api = useApi();
@@ -59,8 +60,8 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
     <h4>Verlauf</h4>
     {error && <div class="files-error" role="alert">{error}</div>}
     {cachedAt && history && <p data-testid="automation-history-asof">Gespeicherter Verlauf vom <time dateTime={cachedAt}>{new Date(cachedAt).toLocaleString("de-DE")}</time> (höchstens 100 Einträge){offline ? "" : " — aktueller Abruf fehlgeschlagen"}.</p>}
-    {!history && !error && <div class="empty">lade…</div>}
-    {history?.length === 0 && !error && <div class="empty">Noch keine Läufe.</div>}
+    {!history && !error && <div class="ui-empty">lade…</div>}
+    {history?.length === 0 && !error && <div class="ui-empty">Noch keine Läufe.</div>}
     {!!history?.length && <ul class="team-tasks" data-testid="automation-history">{history.map(entry => <li key={entry.claimKey} class="team-task">
       <div class="team-task-head"><span class="team-pill">{STATE_LABEL[entry.state] ?? entry.state}</span><span>{entry.occurrenceUtc}</span></div>
       <div class="team-task-meta">
@@ -75,11 +76,11 @@ export function AutomationDetail({ info, offline, cacheKey, host }: { info: Auto
       {entry.state === "unknown" && !entry.sessionId && !entry.teamId && (resolving === entry.claimKey
         ? <form  onSubmit={e => { e.preventDefault(); void resolve(entry.claimKey); }}>
           <label>Notiz (warum aufgeben?)<input value={note} maxLength={300} required onInput={e => setNote(e.currentTarget.value)} /></label>
-          <button type="submit" class="btn" disabled={offline || !note.trim()}>Als aufgegeben abschließen</button>
-          <button type="button" class="btn" onClick={() => { setResolving(null); setNote(""); setResolveError(""); }}>Abbrechen</button>
+          <Button type="submit" disabled={offline || !note.trim()}>Als aufgegeben abschließen</Button>
+          <Button onClick={() => { setResolving(null); setNote(""); setResolveError(""); }}>Abbrechen</Button>
           {resolveError && <div class="files-error" role="alert">{resolveError}</div>}
         </form>
-        : <button type="button" class="btn" disabled={offline} onClick={() => { setResolving(entry.claimKey); setNote(""); setResolveError(""); }}>Aufgeben…</button>)}
+        : <Button disabled={offline} onClick={() => { setResolving(entry.claimKey); setNote(""); setResolveError(""); }}>Aufgeben…</Button>)}
     </li>)}</ul>}
   </div>;
 }

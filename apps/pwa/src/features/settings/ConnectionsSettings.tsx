@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type EndpointEntry, type EndpointKind, type VoidWardenConnection } from "../../shared/api.ts";
 import { ago } from "../../shared/status.ts";
 import { SettingsSection } from "./parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * Verbindungs-Registry (Optionen): VoidWarden-Instanzen und Modell-/Tool-
@@ -155,12 +156,12 @@ export function ConnectionsSettings() {
               </div>
               {c.endpoint && <div class="mono dim connection-url">{c.endpoint}</div>}
               <div class="row connection-actions">
-                <button class="btn" type="button" disabled={busy} onClick={() => editVoidWarden(c)}>
+                <Button disabled={busy} onClick={() => editVoidWarden(c)}>
                   Bearbeiten
-                </button>
-                <button class="btn danger" type="button" disabled={busy} aria-label={`${c.name} löschen`} onClick={() => void run(async () => (await hubApi.removeVoidWarden(c.id), setMessage({ ok: true, text: "Verbindung gelöscht, Token zurückgezogen." }), reload()))}>
+                </Button>
+                <Button disabled={busy} aria-label={`${c.name} löschen`} onClick={() => void run(async () => (await hubApi.removeVoidWarden(c.id), setMessage({ ok: true, text: "Verbindung gelöscht, Token zurückgezogen." }), reload()))} variant="danger">
                   Löschen
-                </button>
+                </Button>
               </div>
             </div>
           );
@@ -182,13 +183,13 @@ export function ConnectionsSettings() {
           </label>
         )}
         <div class="row" style="gap: 8px">
-          <button class="btn primary" type="button" disabled={busy || !vwName.trim()} onClick={() => void saveVoidWarden()}>
+          <Button disabled={busy || !vwName.trim()} onClick={() => void saveVoidWarden()} variant="primary">
             {vwEdit ? "Ändern" : "Verbindung anlegen"}
-          </button>
+          </Button>
           {vwEdit && (
-            <button class="btn" type="button" onClick={() => (setVwEdit(null), setVwName(""), setVwEndpoint(""), setVwRotate(false))}>
+            <Button onClick={() => (setVwEdit(null), setVwName(""), setVwEndpoint(""), setVwRotate(false))}>
               Abbrechen
-            </button>
+            </Button>
           )}
         </div>
 
@@ -197,9 +198,9 @@ export function ConnectionsSettings() {
             <div class="connection-token-title">Token für „{issued.name}“ — einmalig sichtbar</div>
             <div class="mono connection-token-value">{issued.token}</div>
             <div class="dim">Jetzt nach VoidWarden kopieren; der Hub zeigt es nie wieder.</div>
-            <button class="btn" type="button" onClick={() => copyToken(issued.token)}>
+            <Button onClick={() => copyToken(issued.token)}>
               Kopieren
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -222,15 +223,15 @@ export function ConnectionsSettings() {
                 {e.hasKey ? " · Schlüssel hinterlegt ✓" : ""}
               </div>
               <div class="row connection-actions">
-                <button class="btn" type="button" disabled={busy} onClick={() => void probe(e)}>
+                <Button disabled={busy} onClick={() => void probe(e)}>
                   Prüfen
-                </button>
-                <button class="btn" type="button" disabled={busy} onClick={() => editEndpoint(e)}>
+                </Button>
+                <Button disabled={busy} onClick={() => editEndpoint(e)}>
                   Bearbeiten
-                </button>
-                <button class="btn danger" type="button" disabled={busy} aria-label={`${e.name} löschen`} onClick={() => void run(async () => (await hubApi.removeEndpoint(e.id), setMessage({ ok: true, text: "Endpoint gelöscht." }), reload()))}>
+                </Button>
+                <Button disabled={busy} aria-label={`${e.name} löschen`} onClick={() => void run(async () => (await hubApi.removeEndpoint(e.id), setMessage({ ok: true, text: "Endpoint gelöscht." }), reload()))} variant="danger">
                   Löschen
-                </button>
+                </Button>
               </div>
             </div>
           );
@@ -269,13 +270,13 @@ export function ConnectionsSettings() {
           <input value={epModels} onInput={(e) => setEpModels((e.target as HTMLInputElement).value)} placeholder="halogen-qwen, halogen-vision" autocapitalize="off" autocorrect="off" spellcheck={false} />
         </label>
         <div class="row" style="gap: 8px">
-          <button class="btn primary" type="button" disabled={busy || !epName.trim() || !epUrl.trim()} onClick={() => void saveEndpoint()}>
+          <Button disabled={busy || !epName.trim() || !epUrl.trim()} onClick={() => void saveEndpoint()} variant="primary">
             {epEdit ? "Ändern" : "Endpoint anlegen"}
-          </button>
+          </Button>
           {epEdit && (
-            <button class="btn" type="button" onClick={() => (setEpEdit(null), setEpName(""), setEpKind("llm"), setEpUrl(""), setEpKey(""), setEpDropKey(false), setEpModels(""))}>
+            <Button onClick={() => (setEpEdit(null), setEpName(""), setEpKind("llm"), setEpUrl(""), setEpKey(""), setEpDropKey(false), setEpModels(""))}>
               Abbrechen
-            </button>
+            </Button>
           )}
         </div>
         <div class="dim settings-intro">Der Hub speichert vom Schlüssel nur einen Hash — „Prüfen“ fragt nur Erreichbarkeit ab, ohne Schlüssel zu senden.</div>

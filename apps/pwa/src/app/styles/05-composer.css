@@ -123,11 +123,7 @@
   padding: 4px 0;
 }
 
-.empty {
-  text-align: center;
-  color: var(--fg-dim);
-  padding: 40px 0;
-}
+/* .empty → ui-empty (EPIC-P63 T63.9); Stil in styles/ui/empty.css */
 
 /* T7.10: attachments */
 .attachment-chips {

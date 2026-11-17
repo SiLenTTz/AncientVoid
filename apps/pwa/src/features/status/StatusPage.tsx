@@ -3,6 +3,7 @@ import type { DeploymentIdentity } from "@ancientvoid/contracts";
 import { TOOL_GATE_LABEL, featureChips } from "./harness-features.ts";
 import { hubApi, type AdapterInfo, type AdapterUsage, type HarnessInventoryEntry } from "../../shared/api.ts";
 import { formatWindow } from "../overview/Dashboard.tsx";
+import { Card, EmptyState } from "../../shared/ui/index.ts";
 
 /**
  * Real user feedback (2026-09-19): the Dashboard used to open with 7-8
@@ -14,7 +15,7 @@ import { formatWindow } from "../overview/Dashboard.tsx";
  * per provider (capabilities, version) instead of one repetitive line.
  */
 export function StatusPage({ adapters, usage }: { adapters: AdapterInfo[]; usage: Record<string, AdapterUsage> }) {
-  if (adapters.length === 0) return <div class="empty">lädt …</div>;
+  if (adapters.length === 0) return <EmptyState text="lädt …" />;
   return (
     <div class="status-page">
       <DeploymentCard />
@@ -35,11 +36,11 @@ function DeploymentCard() {
   }, []);
   if (!deployment) return null;
   const short = (sha: string | null) => sha?.slice(0, 8) ?? "unbekannt";
-  return <section class="card" aria-label="Ausgelieferter Stand">
+  return <Card aria-label="Ausgelieferter Stand">
     <strong>Ausgelieferter Stand</strong>
     <p>Hub: <code>{short(deployment.runtimeSha)}</code> · PWA: <code>{short(deployment.pwaSha)}</code> · Checkout: <code>{short(deployment.checkoutSha)}</code></p>
     <p>{deployment.consistent === true ? "Hub und Oberfläche sind auf demselben Stand." : deployment.consistent === false ? "Build oder Neustart ausstehend — Stände weichen ab." : "Build-Zuordnung noch unbekannt."}</p>
-  </section>;
+  </Card>;
 }
 
 const SUPPORT_LABEL: Record<HarnessInventoryEntry["discovery"], string> = {
@@ -61,7 +62,7 @@ function InventoryCard() {
       .catch((err) => setError(err instanceof Error ? err.message : "Inventar nicht erreichbar"));
   }, []);
   return (
-    <div class="card">
+    <Card>
       <div class="provider-card-head">
         <strong>Harness-Inventar</strong>
       </div>
@@ -91,30 +92,30 @@ function InventoryCard() {
           </table>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
 function ProviderCard({ adapter, usage }: { adapter: AdapterInfo; usage?: AdapterUsage }) {
   const caps = adapter.capabilities;
   return (
-    <div class="card provider-card">
+    <Card class="provider-card">
       <div class="provider-card-head">
         <strong>{adapter.id}</strong>
         <span class="dim">v{adapter.version}</span>
       </div>
       <div class="provider-card-chips">
         {featureChips(caps.features).map((label) => (
-          <span key={label} class="chip subtle">
+          <span key={label}  class="ui-chip subtle">
             {label}
           </span>
         ))}
-        {caps.reasoning && <span class="chip subtle">Reasoning</span>}
-        {caps.cost && <span class="chip subtle">Kosten</span>}
+        {caps.reasoning && <span  class="ui-chip subtle">Reasoning</span>}
+        {caps.cost && <span  class="ui-chip subtle">Kosten</span>}
       </div>
       <div class={caps.features.toolGate === "bypass" ? "tool-gate warn" : "tool-gate dim"}>{TOOL_GATE_LABEL[caps.features.toolGate]}</div>
       <div class="dim">{quotaLine(usage)}</div>
-    </div>
+    </Card>
   );
 }
 

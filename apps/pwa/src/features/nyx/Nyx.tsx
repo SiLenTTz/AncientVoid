@@ -1,5 +1,5 @@
 import type { ComponentChildren } from "preact";
-import { Sheet } from "../../shared/ui/index.ts";
+import { Sheet, Button } from "../../shared/ui/index.ts";
 import { createPortal } from "preact/compat";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, remoteHost, type ApprovalRequest, type SessionRecord } from "../../shared/api.ts";
@@ -82,9 +82,9 @@ function NyxItem({ req, session, onDone, onOpen }: { req: ApprovalRequest; sessi
       ) : (
         <div class="nyx-item-elsewhere">
           <span>{req.reasonRequired ? "Braucht eine Begründung." : "Braucht deinen Passkey."}</span>
-          <button type="button" class="btn" onClick={open}>
+          <Button onClick={open}>
             In der Session entscheiden
-          </button>
+          </Button>
         </div>
       )}
       {error && <div class="reply-error">{error}</div>}
@@ -167,9 +167,9 @@ export function NyxButton({ online, sessions, approvals, onChanged }: { online: 
               }}
               actions={
                 <>
-                  <button type="button" class="btn" aria-label="Schließen" title="Schließen" onClick={() => setOpen(false)}>
+                  <Button aria-label="Schließen" title="Schließen" onClick={() => setOpen(false)}>
                     ✕
-                  </button>
+                  </Button>
                   <DetachButton target={{ kind: "nyx" }} label="Nyx" onDetached={() => setOpen(false)} />
                 </>
               }

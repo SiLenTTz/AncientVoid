@@ -156,7 +156,7 @@ PR nach `main`, Self-Merge nach grüner CI, Checkbox hier im selben PR abhaken.
 - [x] **T63.6** 77 Klassen ohne Regel entscheiden (Regel oder `data-testid`); Test mit Allowlist leer.
 - [x] **T63.7** Bausteine `Button`, `Chip`, `Card`, `EmptyState` in `shared/ui/` mit eigener CSS; `Field`/`Select`/`Switch`/`Segmented` umziehen; Unit-Tests je Baustein (Varianten, Tastatur, `aria`).
 - [x] **T63.8** `Sheet` als Baustein; Overlays (`overlay-sheet`, `nyx-window`, `modal`, `more-backdrop`) darauf migrieren; `fokus.spec.ts` (Tab-Reihenfolge Dock → Inhalt → Composer, Fokusfalle, Esc).
-- [ ] **T63.9** Migration der rohen `btn`/`chip`/`card`/`empty`-Klassen ansichtsweise auf Bausteine (ein PR je Feature-Ordner, Ratchet `ui-primitives` auf 0); globaler `:focus-visible`-Ring; Inline-Styles auf Custom Properties.
+- [x] **T63.9** Migration der rohen `btn`/`chip`/`card`/`empty`-Klassen ansichtsweise auf Bausteine (ein PR je Feature-Ordner, Ratchet `ui-primitives` auf 0); globaler `:focus-visible`-Ring; Inline-Styles auf Custom Properties.
 - [ ] **T63.10** `design-system.md` zum Vertrag umbauen (3.7), Token-Tabelle generiert, Rezept, Verbote mit Test-Verweis; Herkunft ausgelagert; `check:context` grün.
 - [ ] **T63.11** `SessionTail.tsx` zerlegen; K2-Messlauf vorher/nachher in `docs/` dokumentiert. Optional bei K2-Verschlechterung (Premortem 3).
 - [ ] **T63.12** Abnahme auf Handy (adb), Tablet-Projekt, PC, Popout-Fenster in beiden Themen; Retro (Skill `retro`), Allowlist-Wachstum bewertet.

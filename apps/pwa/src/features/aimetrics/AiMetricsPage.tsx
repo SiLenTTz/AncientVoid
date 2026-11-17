@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { AiMetricsReport, AiMetricsSourceReport } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
+import { Card, EmptyState } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P59 (ADR-0078): Metrik-Seite — Auslastung des lokalen KI-Servers.
@@ -55,8 +56,8 @@ export function AiMetricsPage() {
       if (timer) clearTimeout(timer);
     };
   }, []);
-  if (!report) return <div class="empty">{stale ? "keine Daten — der Hub meldet nicht" : "lädt …"}</div>;
-  if (report.sources.length === 0) return <div class="empty">Keine Quellen konfiguriert — der Hub beprobt nur Konfiguriertes (aiMetrics).</div>;
+  if (!report) return <EmptyState text={stale ? "keine Daten — der Hub meldet nicht" : "lädt …"} />;
+  if (report.sources.length === 0) return <EmptyState text="Keine Quellen konfiguriert — der Hub beprobt nur Konfiguriertes (aiMetrics)." />;
   return (
     <div class="status-page">
       {stale && <p  role="status">Keine frischen Daten — letzte bekannte Werte.</p>}
@@ -69,7 +70,7 @@ export function AiMetricsPage() {
 
 function SourceCard({ source }: { source: AiMetricsSourceReport }) {
   return (
-    <section class="card" aria-label={`Metrik-Quelle ${source.label}`}>
+    <Card aria-label={`Metrik-Quelle ${source.label}`}>
       <strong>{source.label}</strong>
       {source.url && <> · <code>{source.url}</code></>}
       {!source.status.ok && <p  role="status">Probe fehlgeschlagen: {source.status.error}</p>}
@@ -89,6 +90,6 @@ function SourceCard({ source }: { source: AiMetricsSourceReport }) {
           ))}
         </tbody>
       </table>
-    </section>
+    </Card>
   );
 }

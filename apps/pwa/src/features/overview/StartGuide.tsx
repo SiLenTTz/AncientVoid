@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { hubApi, type SessionRecord } from "../../shared/api.ts";
 import { armFirstRun, dismissFirstSignal, FIRST_APPROVAL_EVENT, firstSignalPending } from "../../shared/first-run.ts";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P57 T57.9 (AC-P57-7): der Leerzustand eines frischen Hubs ist die Onboarding-Fläche — eine kurze Anweisung,
@@ -32,7 +33,7 @@ export function StartGuide({ probeAvailable, onOpen }: { probeAvailable: boolean
   };
 
   return (
-    <section class="card" aria-label="Erste Schritte">
+    <Card aria-label="Erste Schritte">
       <h2 style="margin: 0">Noch keine Sessions</h2>
       <p style="margin: 0">
         {probeAvailable
@@ -40,9 +41,9 @@ export function StartGuide({ probeAvailable, onOpen }: { probeAvailable: boolean
           : "Lege über „＋“ deine erste Session an: Projekt und Provider wählen, Auftrag eingeben, starten."}
       </p>
       {probeAvailable && (
-        <button type="button" class={busy ? "btn primary busy" : "btn primary"} aria-busy={busy} disabled={busy} onClick={() => void startProbe()}>
+        <Button  aria-busy={busy} disabled={busy} onClick={() => void startProbe()} variant="primary" class={busy ? "busy" : undefined}>
           Probe-Session (dummy)
-        </button>
+        </Button>
       )}
       {error && (
         <div class="reply-error" role="alert">
@@ -52,7 +53,7 @@ export function StartGuide({ probeAvailable, onOpen }: { probeAvailable: boolean
       <p class="dim" style="margin: 0">
         Ganze Anleitung bis zur ersten Freigabe vom Handy: <code>docs/tutorial-erste-schritte.md</code> im Repo.
       </p>
-    </section>
+    </Card>
   );
 }
 
@@ -66,7 +67,7 @@ export function FirstSuccessSignal() {
   }, []);
   if (!shown) return null;
   return (
-    <div class="card" role="status">
+    <Card role="status">
       <span>Freigabe entschieden — Agent läuft weiter.</span>{" "}
       <button
         type="button"
@@ -78,6 +79,6 @@ export function FirstSuccessSignal() {
       >
         Schließen
       </button>
-    </div>
+    </Card>
   );
 }

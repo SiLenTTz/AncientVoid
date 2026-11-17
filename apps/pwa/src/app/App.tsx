@@ -19,6 +19,7 @@ import { publishHubStatus } from "../features/shell/hub-status.ts";
 import { getLastSession } from "../features/shell/last-session.ts";
 import { DetachButton } from "../features/windows/DetachButton.tsx";
 import { NyxButton } from "../features/nyx/Nyx.tsx";
+import { Button } from "../shared/ui/index.ts";
 
 export function App({
   onOpen,
@@ -162,9 +163,9 @@ export function App({
       {error && (
         <div class="card" data-testid="load-error" role="alert" style="color: var(--err)">
           {error}{" "}
-          <button class="btn" type="button" onClick={() => setRetry((n) => n + 1)}>
+          <Button onClick={() => setRetry((n) => n + 1)}>
             Erneut versuchen
-          </button>
+          </Button>
         </div>
       )}
 

@@ -3,6 +3,7 @@ import { hubApi, type FleetPeer } from "../../shared/api.ts";
 import { InviteQr, QrScanner } from "./InviteQr.tsx";
 import { pairLink, parsePairLink } from "./pair-link.ts";
 import { SettingRow, SettingsSection } from "../settings/parts.tsx";
+import { Button } from "../../shared/ui/index.ts";
 
 /**
  * T6.2 / ADR-0017: pair this hub with others. On the other hub, create a
@@ -94,18 +95,18 @@ export function FleetSettings() {
               </span>
               {confirmRemove === p.hostId ? (
                 <span class="row setting-control" style="gap: 6px">
-                  <button class="btn danger" type="button" onClick={() => void removePeer(p.hostId)}>
+                  <Button onClick={() => void removePeer(p.hostId)} variant="danger">
                     Wirklich entfernen
-                  </button>
-                  <button class="btn" type="button" onClick={() => setConfirmRemove(null)}>
+                  </Button>
+                  <Button onClick={() => setConfirmRemove(null)}>
                     Abbrechen
-                  </button>
+                  </Button>
                 </span>
               ) : (
                 <span class="setting-control">
-                  <button class="btn" type="button" onClick={() => setConfirmRemove(p.hostId)}>
+                  <Button onClick={() => setConfirmRemove(p.hostId)}>
                     Entfernen
-                  </button>
+                  </Button>
                 </span>
               )}
             </div>
@@ -113,9 +114,9 @@ export function FleetSettings() {
         </div>
       )}
 
-      <button class="btn" type="button" onClick={() => { setMessage(null); setScanning((v) => !v); }}>
+      <Button onClick={() => { setMessage(null); setScanning((v) => !v); }}>
         {scanning ? "Kamera schließen" : "QR-Code scannen"}
-      </button>
+      </Button>
       {scanning && <QrScanner onResult={onScan} onClose={() => setScanning(false)} />}
       <label>
         Host hinzufügen — Adresse
@@ -125,15 +126,15 @@ export function FleetSettings() {
         Einladungscode vom anderen Hub
         <input value={code} onInput={(e) => setCode((e.target as HTMLInputElement).value)} placeholder="ABCD-EFGH-JKLM" autocapitalize="characters" autocorrect="off" spellcheck={false} />
       </label>
-      <button class={busy ? "btn primary busy" : "btn primary"} type="button" disabled={busy || !url.trim() || !code.trim()} onClick={() => void addPeer()}>
+      <Button disabled={busy || !url.trim() || !code.trim()} onClick={() => void addPeer()} variant="primary" class={busy ? "busy" : undefined}>
         {busy ? "lädt…" : "Host verbinden"}
-      </button>
+      </Button>
       {message && <div class={message.ok ? "fleet-message ok" : "fleet-message reply-error"}>{message.text}</div>}
 
       <SettingRow label="Diesen Hub von einem anderen aus verbinden">
-        <button class="btn" type="button" onClick={() => void createInvite()}>
+        <Button onClick={() => void createInvite()}>
           Einladungscode erzeugen
-        </button>
+        </Button>
       </SettingRow>
       {invite && (
         <div class="fleet-invite">

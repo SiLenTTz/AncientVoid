@@ -8,6 +8,7 @@ import { applySuggestion, commandsForScope, slashNotice, slashSuggestions, type 
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
 import { SourceChips, SourcePreviewNote } from "./SourceChips.tsx";
 import type { AttachmentRecord } from "../../shared/api.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
@@ -294,17 +295,16 @@ export function Composer({
       {suggestions.length > 0 && (
         <div class="composer-notice" role="listbox" aria-label="Commands">
           {suggestions.map((c, i) => (
-            <button
+            <Button
               key={c.name}
-              type="button"
-              class={i === slashIndex ? "btn primary" : "btn"}
+              
               role="option"
               aria-selected={i === slashIndex}
               style="margin: 2px 4px 2px 0"
               onClick={() => onChange(applySuggestion(value, c))}
-            >
+             variant="primary" class={i === slashIndex ? undefined : undefined}>
               {c.name} — {c.description}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -327,12 +327,12 @@ export function Composer({
             <div class="enhance-preview-text">{preview.enhanced}</div>
           </div>
           <div class="row" style="gap: 8px">
-            <button class="btn" type="button" onClick={keepOriginal}>
+            <Button onClick={keepOriginal}>
               Original senden
-            </button>
-            <button class="btn primary" type="button" onClick={acceptEnhanced}>
+            </Button>
+            <Button onClick={acceptEnhanced} variant="primary">
               Verbessertes übernehmen
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -348,27 +348,23 @@ export function Composer({
           <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{recommendNote}</div>
           {recommendError && <div class="composer-notice err">{recommendError}</div>}
           <div class="row">
-            <button class="btn" type="button" disabled={recommendBusy} onClick={() => setRecommendation(null)}>
+            <Button disabled={recommendBusy} onClick={() => setRecommendation(null)}>
               Verwerfen
-            </button>
-            <button
-              class={recommendBusy ? "btn busy" : "btn"}
-              type="button"
+            </Button>
+            <Button
               aria-busy={recommendBusy}
               disabled={recommendBusy}
               onClick={() => void applyRecommendation(false)}
-            >
+             class={recommendBusy ? "busy" : undefined}>
               {recommendBusy ? "lädt…" : "Nutzen"}
-            </button>
-            <button
-              class={recommendBusy ? "btn primary busy" : "btn primary"}
-              type="button"
+            </Button>
+            <Button
               aria-busy={recommendBusy}
               disabled={recommendBusy}
               onClick={() => void applyRecommendation(true)}
-            >
+             variant="primary" class={recommendBusy ? "busy" : undefined}>
               {recommendBusy ? "lädt…" : "Speichern"}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -385,28 +381,24 @@ export function Composer({
             <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
           </span>
         )}
-        <button
-          class="btn icon-btn composer-expand"
-          type="button"
+        <Button
           aria-pressed={expanded}
           aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}
           title={expanded ? "Eingabe wieder verkleinern" : "Eingabe groß machen"}
           disabled={disabled}
           onClick={() => setExpanded((v) => !v)}
-        >
+         icon class="composer-expand">
           {expanded ? "⤡" : "⤢"}
-        </button>
-        <button
-          class={enhancing ? "btn icon-btn composer-more busy" : "btn icon-btn composer-more"}
-          type="button"
+        </Button>
+        <Button
           aria-busy={enhancing}
           aria-label={enhancing ? "lädt…" : "Verbessern"}
           onClick={enhance}
           disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
           title={enhanceSupported ? "Prompt verbessern (kostet echtes Kontingent)" : "Für diesen Adapter nicht verfügbar"}
-        >
+         icon class={enhancing ? "icon-btn composer-more busy" : "icon-btn composer-more"}>
           {enhancing ? "…" : <WandGlyph />}
-        </button>
+        </Button>
         {extraActions}
       </div>
     </div>

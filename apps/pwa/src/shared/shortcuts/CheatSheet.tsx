@@ -1,4 +1,4 @@
-import { Sheet } from "../ui/index.ts";
+import { Sheet, Button } from "../ui/index.ts";
 import { useEffect, useState } from "preact/hooks";
 import { activeShortcutIds, CATALOG, shortcut, type ShortcutInfo, registerShortcut } from "./registry.ts";
 
@@ -56,9 +56,9 @@ export function CheatSheet() {
     <Sheet open onClose={() => setOpen(false)} label="Kürzel-Übersicht" class="cheatsheet">
       <div class="row" style="justify-content: space-between; align-items: center">
         <strong>Tastatur-Kürzel</strong>
-        <button class="btn" type="button" aria-label="Kürzel-Übersicht schließen" onClick={() => setOpen(false)}>
+        <Button aria-label="Kürzel-Übersicht schließen" onClick={() => setOpen(false)}>
           ✕
-        </button>
+        </Button>
       </div>
       {openOverlays.length > 0 && (
         <>

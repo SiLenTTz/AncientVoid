@@ -6,6 +6,7 @@ import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import type { CodeTarget } from "../../app/route.ts";
 import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, resizeTile, setLayout, swapWith, tileCount, tileFractions, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
 import { ariaCombo, comboLabel, registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
 
 /** Tiles below this height start with the controls folded (P18 premortem 3). */
 const COMPACT_TILE_PX = 800;
@@ -125,36 +126,35 @@ export function TileWorkspace({
           {listCollapsed ? "☰ Liste ausklappen" : "⟨ Liste einklappen"}
         </button>
         {LAYOUTS.map((layout) => (
-          <button
+          <Button
             key={layout}
-            type="button"
-            class={`tile-layout-btn${layout === ws.layout ? " active" : ""}`}
+            
             aria-pressed={layout === ws.layout}
             aria-label={LAYOUT_LABELS[layout]}
             aria-keyshortcuts={ariaCombo("workspace.layout")}
             title={`${LAYOUT_LABELS[layout]} (${comboLabel("workspace.layout")} wechselt)`}
             onClick={() => onChange(setLayout(ws, layout))}
-          >
+           class={`tile-layout-btn${layout === ws.layout ? " active" : ""}`}>
             <LayoutGlyph layout={layout} />
-          </button>
+          </Button>
         ))}
         {/* Dieselben Aktionen wie die Tastenkürzel, damit sie auch per Tipp gehen (Tablet, Touch). */}
         <div class="tile-actions" role="group" aria-label="Kachel-Aktionen">
-          <button type="button" class="chip" title={`Fokus auf die vorige Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
+          <Chip title={`Fokus auf die vorige Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + count - 1) % count))}>
             ‹ Fokus
-          </button>
-          <button type="button" class="chip" title={`Fokus auf die nächste Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
+          </Chip>
+          <Chip title={`Fokus auf die nächste Kachel (${comboLabel("workspace.tile-1")}–4 wählt direkt)`} data-shortcut="workspace.tile-1" disabled={count < 2} onClick={() => onChange(focusTile(ws, (ws.focus + 1) % count))}>
             Fokus ›
-          </button>
-          <button type="button" class="chip" title={`Kachel mit der nächsten tauschen (${comboLabel("workspace.tile-swap-1")}–4)`} data-shortcut="workspace.tile-swap-1" disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
+          </Chip>
+          <Chip title={`Kachel mit der nächsten tauschen (${comboLabel("workspace.tile-swap-1")}–4)`} data-shortcut="workspace.tile-swap-1" disabled={count < 2} onClick={() => onChange(swapWith(ws, (ws.focus + 1) % count))}>
             ⇄ Tauschen
-          </button>
-          <button type="button" class="chip" title={`Nächstes Layout (${comboLabel("workspace.layout")})`} data-shortcut="workspace.layout" onClick={() => onChange(cycleLayout(ws, 1))}>
+          </Chip>
+          <Chip title={`Nächstes Layout (${comboLabel("workspace.layout")})`} data-shortcut="workspace.layout" onClick={() => onChange(cycleLayout(ws, 1))}>
             ⟳ Layout
-          </button>
-          <button type="button" class="chip" title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} data-shortcut="workspace.tile-close" onClick={() => onChange(closeTile(ws, ws.focus))}>
+          </Chip>
+          <Chip title={`Fokussierte Kachel leeren (${comboLabel("workspace.tile-close")})`} data-shortcut="workspace.tile-close" onClick={() => onChange(closeTile(ws, ws.focus))}>
             ✕ Leeren
-          </button>
+          </Chip>
           {/* EPIC-P51 T51.7: detaillierte Kürzelzeile durch ?-Übersicht ersetzt (aus T43.6 hierher gezogen). */}
           <span class="tile-keys dim">Tastatur: ? zeigt alle Kürzel · Strg-Klick: neue Kachel</span>
         </div>
@@ -320,22 +320,22 @@ function Tile({
         </div>
       )}
       {!tileRef ? (
-        <div class="empty tile-empty">
+        <div class="ui-empty tile-empty">
           Kachel {index + 1} ist frei — Session links wählen
           {index > 0 && <div class="dim">Strg-Klick in der Liste öffnet in einer neuen Kachel</div>}
         </div>
       ) : missing ? (
         // P18 premortem 4: a remembered session that is gone says so.
-        <div class="empty tile-empty" data-testid="tile-missing">
+        <div class="ui-empty tile-empty" data-testid="tile-missing">
           Diese Session gibt es nicht mehr oder sie ist nicht erreichbar.
-          <button type="button" class="btn" onClick={onClose}>
+          <Button onClick={onClose}>
             Kachel leeren
-          </button>
+          </Button>
         </div>
       ) : session ? (
         <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact, head: { start: headStart, end: headEnd } }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
       ) : (
-        <div class="empty tile-empty dim">lädt…</div>
+        <EmptyState class="tile-empty dim" text="lädt…" />
       )}
     </section>
   );

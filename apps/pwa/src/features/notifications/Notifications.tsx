@@ -3,6 +3,7 @@ import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
 import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -261,12 +262,12 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         <div class={`notif-panel${corner ? " corner" : ""}`} role="dialog" aria-label="Benachrichtigungen" ref={panelRef} tabIndex={-1}>
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
-            <button class="btn" type="button" ref={closeBtn} onClick={closePanel}>
+            <Button ref={closeBtn} onClick={closePanel}>
               ✕
-            </button>
+            </Button>
           </div>
           {items.length === 0 ? (
-            <div class="empty">noch keine Meldungen</div>
+            <div class="ui-empty">noch keine Meldungen</div>
           ) : (
             <>
               {errors.length > 0 && (

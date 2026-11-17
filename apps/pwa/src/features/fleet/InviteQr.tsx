@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "preact/hooks";
+import { Button } from "../../shared/ui/index.ts";
 
 /** AI-P6-2: the invite as a QR code (black on white — scanners need contrast). */
 export function InviteQr({ text }: { text: string }) {
@@ -86,9 +87,9 @@ export function QrScanner({ onResult, onClose }: { onResult: (text: string) => v
   return (
     <div class="fleet-scanner">
       {error ? <div class="reply-error">{error}</div> : <video ref={video} class="fleet-scanner-video" muted playsInline />}
-      <button class="btn" type="button" onClick={onClose}>
+      <Button onClick={onClose}>
         Scannen abbrechen
-      </button>
+      </Button>
     </div>
   );
 }

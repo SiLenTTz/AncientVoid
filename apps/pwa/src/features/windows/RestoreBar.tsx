@@ -3,6 +3,7 @@ import type { SessionRecord } from "../../shared/api.ts";
 import { isDetached, type TileRef, type Workspace } from "../workspace/tiles.ts";
 import { targetKey, windowFor, type WindowTarget } from "./protocol.ts";
 import { useOpenWindows } from "./windows.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 /** Wie lange nach dem Start des Hauptfensters offene Fenster Zeit haben, sich auf `ping` zu melden. */
 const SETTLE_MS = 3500;
@@ -43,9 +44,9 @@ export function RestoreBar({
         {missing.length} Fenster {missing.length === 1 ? "ist" : "sind"} nicht mehr offen
       </span>
       {missing.map((ref) => (
-        <button key={targetKey(targetOf(ref))} type="button" class="btn" onClick={() => onOpen(ref)}>
+        <Button key={targetKey(targetOf(ref))} onClick={() => onOpen(ref)}>
           ⧉ {label(ref)} öffnen
-        </button>
+        </Button>
       ))}
       <button type="button" class="link-btn" onClick={() => onDiscard(missing)}>
         Verwerfen

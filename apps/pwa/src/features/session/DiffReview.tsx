@@ -7,7 +7,7 @@ import {
   type SessionDiffResult,
   type SessionRecord,
 } from "../../shared/api.ts";
-import { Sheet } from "../../shared/ui/index.ts";
+import { Sheet, Button } from "../../shared/ui/index.ts";
 import { DiffPane, type LinePick, type ReviewHooks } from "./DiffPane.tsx";
 import { mapHunkLines } from "./diff-lines.ts";
 import { addSource } from "../../shared/sources.ts";
@@ -224,9 +224,9 @@ export function DiffReview({ diff, session }: { diff: SessionDiffResult | null; 
   return (
     <div data-testid="diff-review">
       <div class="diff-review-toolbar">
-        <button class={pickEnabled ? "review-pick-btn active" : "review-pick-btn"} onClick={() => { setPickEnabled(!pickEnabled); setPicked(null); }}>
+        <Button  onClick={() => { setPickEnabled(!pickEnabled); setPicked(null); }} class={pickEnabled ? "review-pick-btn active" : "review-pick-btn"}>
           {pickEnabled ? "Anker wählen (Zeile antippen)" : "Notiz an Zeilen"}
-        </button>
+        </Button>
         {picked && (
           <span class="review-picked-info mono">
             {picked.path} · {sideLabel(picked.side)} {picked.start === picked.end ? `Zeile ${picked.start}` : `Zeilen ${picked.start}–${picked.end}`}

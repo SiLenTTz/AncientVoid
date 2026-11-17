@@ -1,5 +1,5 @@
 {
-  "comment": "EPIC-P63 Ratchet (T63.0), Ist-Stand 2026-11-17 nach T63.1-Token-Umzug. Werte dürfen nur sinken: erst senken (Test rot), dann aufräumen (grün). Geprüft in css-tokens.test.ts / ui-primitives.test.ts / app/tokens.test.ts.",
+  "comment": "EPIC-P63 Ratchet nach T63.9 Baustein-Migration. Werte dürfen nur sinken.",
   "unknownVarTokens": 0,
   "colorLiteralsOutsideTokens": 0,
   "varFallbacks": 0,
@@ -7,12 +7,12 @@
   "fontSizeOffScale": 0,
   "mediaOffLadder": 0,
   "rawUiClasses": {
-    "btn": 241,
-    "chip": 67,
-    "card": 23,
-    "empty": 64,
-    "empty-state": 2,
+    "btn": 0,
+    "chip": 0,
+    "card": 0,
+    "empty": 0,
+    "empty-state": 0,
     "overlay-sheet": 0
   },
-  "inlineStyleObjects": 27
+  "inlineStyleObjects": 24
 }

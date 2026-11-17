@@ -7,6 +7,7 @@ import { StatusDot } from "../../shared/StatusDot.tsx";
 import type { DisplayInput } from "../../shared/display-state.ts";
 import { ago } from "../../shared/status.ts";
 import { readTeamSnapshot, teamCacheKey, writeTeamSnapshot } from "./team-cache.ts";
+import { Button, Card } from "../../shared/ui/index.ts";
 
 /**
  * EPIC-P40/EPIC-P60 (ADR-0064, ADR-0077): Agenten-Teams in der P43-Sprache —
@@ -131,19 +132,19 @@ function TeamDetail({ team, onAnswer, onCancel, busy, offline }: { team: Team; o
       {openGates.length > 0 && (
         <div class="team-gates">
           {openGates.map((gate) => (
-            <div class="card team-gate" data-testid="team-gate" key={gate.id}>
+            <Card data-testid="team-gate" key={gate.id} class="team-gate">
               <p>{gate.question}</p>
               <div class="team-gate-actions">
                 {gate.options.map((opt) => (
-                  <button type="button" class="btn" disabled={busy || offline} key={opt.label} onClick={() => onAnswer(gate.id, opt.label)}>
+                  <Button disabled={busy || offline} key={opt.label} onClick={() => onAnswer(gate.id, opt.label)}>
                     {opt.label}
-                  </button>
+                  </Button>
                 ))}
-                <button type="button" class="btn team-cancel" disabled={busy || offline} onClick={onCancel}>
+                <Button disabled={busy || offline} onClick={onCancel} class="team-cancel">
                   Team stoppen
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -209,7 +210,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
 
   /** Schrittfolge nach dem „Neue Session"-Muster (T60.5): Ziel → Projekt → Rahmen → Start. */
   return (
-    <form class="card form-grid team-new" data-testid="team-new" onSubmit={(e) => { e.preventDefault(); void start(); }}>
+    <form class="ui-card form-grid team-new" data-testid="team-new" onSubmit={(e) => { e.preventDefault(); void start(); }}>
       <h3>Neues Team</h3>
       <label>Titel <input value={title} onInput={(e) => setTitle((e.target as HTMLInputElement).value)} /></label>
       <label>Ziel <textarea rows={3} value={goal} onInput={(e) => setGoal((e.target as HTMLTextAreaElement).value)} /></label>
@@ -232,7 +233,7 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
       </div>
       <label>Erlaubte Modelle <input value={modelsText} placeholder="leer = Standardmodell je Adapter; mehrere per Komma" onInput={(e) => setModelsText((e.target as HTMLInputElement).value)} /></label>
       {error && <div class="files-error" role="alert">{error}</div>}
-      <button type="submit" class="btn primary" disabled={busy || offline}>Team starten</button>
+      <Button type="submit" disabled={busy || offline} variant="primary">Team starten</Button>
     </form>
   );
 }
@@ -372,7 +373,7 @@ function TeamsHostPane() {
       <div class="teams-list">
         <div class="teams-list-head">
           <h3>Teams</h3>
-          <button type="button" class="btn" disabled={offline || busy} onClick={() => setShowNew((v) => !v)}>{showNew ? "Abbrechen" : "Neues Team"}</button>
+          <Button disabled={offline || busy} onClick={() => setShowNew((v) => !v)}>{showNew ? "Abbrechen" : "Neues Team"}</Button>
         </div>
         {at && !offline && <p class="dim">Stand: {ago(at)}</p>}
         {offline && (
@@ -394,13 +395,13 @@ function TeamsHostPane() {
           />
         )}
         {teams === null ? (
-          <div class="empty">{offline ? "Kein gespeicherter Stand vorhanden." : "lade…"}</div>
+          <div class="ui-empty">{offline ? "Kein gespeicherter Stand vorhanden." : "lade…"}</div>
         ) : teams.length === 0 ? (
-          <section class="card" data-testid="teams-empty">
+          <Card data-testid="teams-empty">
             <h3>Noch keine Teams</h3>
             <p class="dim">Ein Team ist ein großer Auftrag, den der Hub auf mehrere Agenten-Sessions verteilt.</p>
-            <button type="button" class="btn primary" disabled={offline} onClick={() => setShowNew(true)}>Neues Team anlegen</button>
-          </section>
+            <Button disabled={offline} onClick={() => setShowNew(true)} variant="primary">Neues Team anlegen</Button>
+          </Card>
         ) : (
           <ul >
             {/* Stabile Keys je Team-ID: Poll-Aktualisierung ohne Flackern (K2). */}

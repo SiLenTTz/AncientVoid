@@ -1,6 +1,7 @@
 import type { SessionInterruptionReason } from "@ancientvoid/contracts";
 import { useState } from "preact/hooks";
 import type { NormalizedEvent } from "../../shared/ws.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const REASONS: Record<SessionInterruptionReason, string> = {
   worker_exit: "Agent-Prozess unerwartet beendet",
@@ -74,12 +75,12 @@ export function InterruptedBanner({ events, since, nativeResume, onResume, onArc
     {!failed && !nativeResume && <p>Dieser Adapter setzt ohne natives Resume fort — Weitermachen sendet eine Fortsetzungsnachricht.</p>}
     {isLimit && autoResumeOnLimit && <p class="dim" role="status">Macht automatisch weiter, sobald das Limit frei ist{resumesAt ? <> — spätestens ab <time dateTime={resumesAt}>{new Date(resumesAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</time></> : ""}.</p>}
     <div class="row">
-      {!failed && <button class="btn" disabled={busy} onClick={() => void act(onResume)}>Weitermachen</button>}
-      {isLimit && onAutoResumeLimit && !autoResumeOnLimit && <button class="btn" disabled={busy} onClick={() => void act(() => onAutoResumeLimit(true))}>Nach Limit automatisch weitermachen</button>}
-      {isLimit && onAutoResumeLimit && autoResumeOnLimit && <button class="btn" disabled={busy} onClick={() => void act(() => onAutoResumeLimit(false))}>Automatik aus</button>}
-      {onStop && <button class="btn" disabled={busy} onClick={() => void act(onStop)}>Abbrechen</button>}
-      {onHandover && <button class="btn" disabled={busy} onClick={onHandover}>An andere Session übergeben…</button>}
-      <button class="btn" disabled={busy} onClick={() => void act(onArchive)}>Archivieren</button>
+      {!failed && <Button disabled={busy} onClick={() => void act(onResume)}>Weitermachen</Button>}
+      {isLimit && onAutoResumeLimit && !autoResumeOnLimit && <Button disabled={busy} onClick={() => void act(() => onAutoResumeLimit(true))}>Nach Limit automatisch weitermachen</Button>}
+      {isLimit && onAutoResumeLimit && autoResumeOnLimit && <Button disabled={busy} onClick={() => void act(() => onAutoResumeLimit(false))}>Automatik aus</Button>}
+      {onStop && <Button disabled={busy} onClick={() => void act(onStop)}>Abbrechen</Button>}
+      {onHandover && <Button disabled={busy} onClick={onHandover}>An andere Session übergeben…</Button>}
+      <Button disabled={busy} onClick={() => void act(onArchive)}>Archivieren</Button>
     </div>
     {error && <p role="alert">{error}</p>}
   </section>;

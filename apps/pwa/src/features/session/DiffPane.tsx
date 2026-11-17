@@ -2,6 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type SessionDiffResult, type SessionDiffFile, type DiffCommit, type DiffHunk } from "../../shared/api.ts";
 import { isOneSided, mapHunkLines, pairHunkLines, type MappedDiffLine } from "./diff-lines.ts";
+import { Button, EmptyState } from "../../shared/ui/index.ts";
 
 /** EPIC-P36: Zeilen-Anker für Review-Notizen. DiffPane bleibt Renderer —
  * Auswahlzustand und Notizlogik liegen in DiffReview.tsx. */
@@ -81,9 +82,9 @@ function HunkCard({
         </span>
         <span class="hunk-fn">{active.functionContext ?? "—"}</span>
         {active.collapsed && (
-          <button class={loading ? "hunk-expand-btn busy" : "hunk-expand-btn"} aria-busy={loading} onClick={onExpand} disabled={loading}>
+          <Button  aria-busy={loading} onClick={onExpand} disabled={loading} class={loading ? "hunk-expand-btn busy" : "hunk-expand-btn"}>
             {loading ? "lädt…" : "ganzer Hunk"}
-          </button>
+          </Button>
         )}
       </div>
       <div class="hunk-body-unified mono">
@@ -148,8 +149,8 @@ export function DiffPane({
   /** EPIC-P36: optionale Review-Hooks — ohne sie rendert DiffPane wie vorher. */
   review?: ReviewHooks;
 }) {
-  if (diff === null) return <div class="empty">lädt …</div>;
-  if (diff.error) return <div class="empty">{diff.error}</div>;
+  if (diff === null) return <EmptyState text="lädt …" />;
+  if (diff.error) return <EmptyState text={diff.error} />;
   // AC-P2-1: ein Abschnitt pro Commit (ältester zuerst), danach der
   // uncommittete Rest. `diff.files` trägt seit der Umstellung nur noch
   // den uncommitteten Teil — die Sprungliste links ist die Union aus

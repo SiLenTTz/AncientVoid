@@ -5,6 +5,7 @@ import { GitGraphPane } from "./GitGraphPane.tsx";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { gitTargetQuery, loadGitState, saveGitState, type GitState, type GitTarget } from "./git-model.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const targetKey = (t: GitTarget): string => (t.kind === "session" ? `s:${t.id}` : `p:${t.path}`);
 
@@ -90,7 +91,7 @@ export function GitLayer({ wide, focusedSessionId }: { wide: boolean; focusedSes
             <option key={targetKey(o)} value={targetKey(o)}>{o.label}</option>
           ))}
         </select>
-        <button type="button" class="btn" aria-label="Git-Struktur schließen" onClick={() => update({ open: false })}>✕</button>
+        <Button aria-label="Git-Struktur schließen" onClick={() => update({ open: false })}>✕</Button>
       </header>
       {target ? (
         <div class="git-body">
@@ -98,7 +99,7 @@ export function GitLayer({ wide, focusedSessionId }: { wide: boolean; focusedSes
         </div>
       ) : (
         <div class="git-picker" data-testid="git-picker">
-          {options.length === 0 && <div class="empty">Kein Projekt gefunden und keine Session fokussiert — eine Quelle erscheint, sobald eine Session läuft.</div>}
+          {options.length === 0 && <div class="ui-empty">Kein Projekt gefunden und keine Session fokussiert — eine Quelle erscheint, sobald eine Session läuft.</div>}
           {options.map((o) => (
             <button
               key={targetKey(o)}

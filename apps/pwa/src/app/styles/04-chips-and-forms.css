@@ -342,6 +342,22 @@ button.badge-stale {
   min-width: 0;
 }
 
+/* EPIC-P63 T63.9: statische CreateSession-Styles statt style={{…}} */
+.form-warnings {
+  margin: 2px 0;
+  padding-left: 18px;
+  font-size: var(--text-xs);
+}
+
+.form-inline-row {
+  display: flex;
+  gap: 6px;
+}
+
+.form-inline-grow {
+  flex: 1;
+}
+
 .offline-note {
   display: block;
   margin: 6px 0;

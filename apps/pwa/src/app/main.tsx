@@ -36,6 +36,7 @@ import { detachTile, forgetDetached, openInNewTile, openSession, parseWorkspace,
 import { NyxFab } from "../features/stt/NyxFab.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
+import { Button } from "../shared/ui/index.ts";
 
 // T1.6-2: applied before the first render so a stored "light" preference
 // never flashes dark first — index.html's data-theme="dark" was previously
@@ -113,14 +114,12 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
             spellcheck={false}
             style="flex: 1"
           />
-          <button
-            type="button"
-            class="btn"
+          <Button
             onClick={() => setReveal((v) => !v)}
             title={reveal ? "Token verbergen" : "Token anzeigen"}
           >
             {reveal ? "🙈" : "👁"}
-          </button>
+          </Button>
         </div>
       </label>
       {error && (
@@ -128,9 +127,9 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
           {error}
         </div>
       )}
-      <button class={checking ? "btn primary busy" : "btn primary"} aria-busy={checking} onClick={submit} disabled={checking}>
+      <Button  aria-busy={checking} onClick={submit} disabled={checking} variant="primary" class={checking ? "busy" : undefined}>
         {checking ? "lädt…" : "Verbinden"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -425,16 +424,14 @@ function Main() {
         <div class="popout-notice" role="alert">
           {popoutNotice}{" "}
           {retryPopout && (
-            <button
-              type="button"
-              class="btn"
+            <Button
               onClick={() => {
                 setPopoutNotice("");
                 retryPopout();
               }}
             >
               Fenster öffnen
-            </button>
+            </Button>
           )}{" "}
           <button type="button" class="link-btn" onClick={() => setPopoutNotice("")}>
             Schließen

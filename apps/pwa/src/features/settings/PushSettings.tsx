@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type PushState } from "../../shared/api.ts";
 import { SettingRow, SettingsSection, Switch } from "./parts.tsx";
 import { pushSupport, readPrefs, subscribeThisDevice, unsubscribeThisDevice, writePrefs } from "../../shared/push.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 const minutes = (v: string) => {
@@ -67,20 +68,20 @@ export function PushSettings() {
           {support === "ok" && (
             <div class="row" style="gap: 8px; flex-wrap: wrap; justify-content: flex-start">
               {mine.length === 0 ? (
-                <button class="btn primary" type="button" onClick={() => void run(() => subscribeThisDevice(state.publicKey!), "Dieses Gerät bekommt jetzt Push.")}>
+                <Button onClick={() => void run(() => subscribeThisDevice(state.publicKey!), "Dieses Gerät bekommt jetzt Push.")} variant="primary">
                   Auf diesem Gerät einschalten
-                </button>
+                </Button>
               ) : (
                 <>
-                  <button class="btn" type="button" onClick={() => void run(async () => {
+                  <Button onClick={() => void run(async () => {
                     const r = await hubApi.pushTest();
                     if (r.sent === 0) throw new Error(r.errors[0] ?? "Nicht zugestellt.");
                   }, "Test gesendet — kommt er an?")}>
                     Test senden
-                  </button>
-                  <button class="btn" type="button" onClick={() => void run(unsubscribeThisDevice, "Push auf diesem Gerät aus.")}>
+                  </Button>
+                  <Button onClick={() => void run(unsubscribeThisDevice, "Push auf diesem Gerät aus.")}>
                     Auf diesem Gerät aus
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -101,9 +102,9 @@ export function PushSettings() {
             </span>
           </SettingRow>
           {mine.length > 0 && support === "ok" && (
-            <button class="btn" type="button" onClick={() => void run(() => subscribeThisDevice(state.publicKey!), "Einstellungen übernommen.")}>
+            <Button onClick={() => void run(() => subscribeThisDevice(state.publicKey!), "Einstellungen übernommen.")}>
               Einstellungen für dieses Gerät übernehmen
-            </button>
+            </Button>
           )}
           {state.subscriptions.length > 0 && (
             <div class="push-devices">

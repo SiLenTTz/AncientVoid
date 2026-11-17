@@ -3,6 +3,7 @@ import type { LoopInfo } from "@ancientvoid/contracts";
 import type { hubApi } from "../../shared/api.ts";
 import type { LoopView } from "./loop-view.ts";
 import { loopBadge } from "./loop-view.ts";
+import { Button } from "../../shared/ui/index.ts";
 
 const GATE_STATE: Record<string, string> = { running: "läuft", passed: "bestanden", pass: "bestanden", failed: "fehlgeschlagen", fail: "fehlgeschlagen" };
 
@@ -145,12 +146,12 @@ export function LoopPanel({
             </div>
           )}
           <div class="loop-controls">
-            <button class="btn" type="button" disabled={busy} onClick={() => void command({ command: "resume" })}>
+            <Button disabled={busy} onClick={() => void command({ command: "resume" })}>
               Fortsetzen
-            </button>
-            <button class="btn" type="button" disabled={busy} onClick={() => void command({ command: "end_run" }, "Lauf beenden? Treiber und Beobachter werden gestoppt.")}>
+            </Button>
+            <Button disabled={busy} onClick={() => void command({ command: "end_run" }, "Lauf beenden? Treiber und Beobachter werden gestoppt.")}>
               Lauf beenden
-            </button>
+            </Button>
             <label>
               Betriebsart
               <select aria-label="Betriebsart der Factory" value={modus} onChange={(e) => setModus((e.target as HTMLSelectElement).value as "a" | "b")}>
@@ -165,9 +166,7 @@ export function LoopPanel({
                 <option value="zai">Z.ai</option>
               </select>
             </label>
-            <button
-              class="btn"
-              type="button"
+            <Button
               disabled={busy}
               onClick={() =>
                 void command(
@@ -177,7 +176,7 @@ export function LoopPanel({
               }
             >
               Betriebsart setzen
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -233,9 +232,9 @@ export function LoopPanel({
       {caps && caps.controls.length > 0 && (
         <div class="loop-controls">
           {caps.controls.includes("pause") && caps.controls.includes("resume") && (
-            <button class="btn" type="button" disabled={disabled} onClick={() => void send({ kind: view.paused ? "resume" : "park" })}>
+            <Button disabled={disabled} onClick={() => void send({ kind: view.paused ? "resume" : "park" })}>
               {view.paused ? "Weiter" : "Pausieren"}
-            </button>
+            </Button>
           )}
           {caps.controls.includes("setMode") && caps.modes.length > 0 && (
             <label>
