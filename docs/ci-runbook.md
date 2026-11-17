@@ -63,14 +63,16 @@ nicht still skippen.
 
 ### Parallelitaet der Test-Tiers
 
-Tier A (`test:fast`, PR-Gate) laeuft mit **8 Forks** parallel; Tier B (`test:slow`) bleibt
+Tier A (`test:fast`, PR-Gate) laeuft parallel mit **max. 16 Forks, hoechstens Kerne minus
+zwei**; Tier B (`test:slow`) bleibt
 seriell (`maxWorkers: 1`), weil dort die zeit- und portbasierten Dateien stehen
 (`scripts/slow-tests.json`). Stufe ohne Code-Aenderung verstellbar: `VITEST_WORKERS=4`.
 
-Gemessen auf einem Windows-Desk mit 20 Kernen (2026-11-17): Tier A **36 s parallel** gegen
-246 s seriell; Ausgangslage vor dem Attrappen-Fix (BUG-0179) waren 451 s. Drei zeitkritische
-Dateien (`handover`, `steer-wait-timeout`, `turn-state`) gelten als Flake-Kandidaten der
-Parallelstufe und sind als Issue gemeldet.
+Gemessen auf einem Windows-Desk mit 20 Kernen (2026-11-17): Tier A **23 s** (16 Forks, automatisch skaliert)
+gegen 36 s (8 Forks), 246 s (seriell) und 451 s (Ausgangslage mit kaputtem Attrappen-Spawn).
+Ein Hosted-Runner mit 4 Kernen faehrt dabei 2 Forks, nicht 16 — der Lauf laeuft nicht gegen
+den Runner-Arbeitsspeicher. Drei zeitkritische Dateien (`handover`, `steer-wait-timeout`,
+`turn-state`) wechseln ihre Rot/Gruen-Zugehoerigkeit zwischen Laeufen: gemeldet als Issue #85.
 
 ## 2. Einen Lauf lesen
 
