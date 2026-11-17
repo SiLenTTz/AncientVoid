@@ -65,7 +65,7 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 
 - **T56.1** Metrik-Contract (Feldliste, Berechnungsregeln exakt nach §3) als testbare Spezifikation.
   - [x] **T56.1a** Datenquellen/Feldliste und ehrliche Verteilungen für vorhandene Zugmetriken; p50/p90/p95, n/missing, Klein-n, Token-Herkunft und Replay-Gegenprobe. **K5/K7**.
-  - [ ] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**.
+  - [x] **T56.1b** Übrige Session-/Gate-/Team-/Tool-Metriken nach den belegten Quellen präzisieren und testen; fehlende terminale/korrelierte Fakten ausdrücklich kennzeichnen. **K5/K7**. (abgeschlossen 17.11.2026: Verträge `SessionStatistics`/`GateWaitStatistics`/`ToolStatistics`/`TeamTaskStatistics`, Ableitungen `deriveSessionFacts`/`deriveRecoveryIntervals`/`deriveGateWaitIntervals`/`deriveToolCallFacts`, 28 neue Tests)
 - **T56.2** Rollup-Job inkl. Nachführbarkeit und Klein-n-Kennzeichnung.
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung.
 - **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export.
@@ -103,6 +103,21 @@ Neue additive Statistik-Lesemodelle und reine Aggregation; keine neue
 Persistenz, HTTP-Route oder PWA-Seite. Die vorhandene Rekonstruktion
 `deriveTurnMetrics` bleibt Quelle. T56.1b–T56.6 und alle vollständigen AC
 bleiben offen; P31/P55-Anbindungen bleiben gesperrt.
+
+T56.1b (17.11.2026): Session-/Gate-/Team-/Tool-Metriken nach belegten
+Quellen präzisiert und getestet — Verträge `SessionStatistics`,
+`GateWaitStatistics`, `ToolStatistics`, `TeamTaskStatistics` in
+`@ancientvoid/contracts` (additiv, keine Events, K5), Ableitungen
+`deriveSessionFacts`, `deriveRecoveryIntervals`, `deriveGateWaitIntervals`,
+`deriveToolCallFacts` und Aggregationen in `packages/core/src/modules/
+statistics/` (K7: Journal bzw. Team-Record bleiben Quelle). Belegte
+Session-Endgründe: `completed`/`error`/`interrupted`/`stopped` aus dem
+letzten terminalen Marker; `stalled`/`context_exhausted` bewusst unbekannt.
+`workerEndRate` ist keine Gate-Erfolgsquote (P40-Regel). Recovery nur bis
+zum nächsten erfolgreich beendeten Zug, sonst unbekannt. 28 neue Tests in
+`packages/core/test/modules/statistics/` (rot-dann-grün; Statistik-Suite
+insgesamt 38 grün). Offen bleiben T56.2 Rollup, T56.3 Page, T56.4
+Vergleiche/CSV, T56.6 Abnahme; T56.5 (P55/P31) bleibt gesperrt.
 
 ## 9. Definition of Done
 
