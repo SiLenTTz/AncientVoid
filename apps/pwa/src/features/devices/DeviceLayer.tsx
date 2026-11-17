@@ -5,6 +5,7 @@ import { openPopout } from "../windows/windows.ts";
 import { getHubStatus } from "../shell/hub-status.ts";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { ADB_STATE_LABEL, EMU_STATE_LABEL, EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toDevicePoint } from "./device-model.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 type Tab = "view" | "tests" | "logs" | "tree";
 
@@ -23,7 +24,7 @@ export function DeviceLayer({ focusedSessionId }: { focusedSessionId: string | n
       {open && (
         <DevicePanel
           sessionId={focusedSessionId}
-          label={session ? (session.title ?? session.project.split("/").pop() ?? session.id.slice(0, 8)) : null}
+          label={session ? (session.title ?? projectName(session.project) ?? session.id.slice(0, 8)) : null}
           hostId={session?.hostId ?? null}
           onClose={() => setOpen(false)}
         />

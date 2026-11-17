@@ -1,4 +1,5 @@
 import type { DiscoveredSession } from "../../shared/api.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /**
  * BUG-0035-Nachfolge: sessions grouped by project, collapsible in the UI —
@@ -22,10 +23,6 @@ export interface ProjectGroup {
   total: number;
   newestAt: string;
   temporary: boolean;
-}
-
-function projectName(project: string): string {
-  return project.split("/").filter(Boolean).pop() ?? project;
 }
 
 const newestFirst = (a: DiscoveredSession, b: DiscoveredSession) => b.observedAt.localeCompare(a.observedAt);

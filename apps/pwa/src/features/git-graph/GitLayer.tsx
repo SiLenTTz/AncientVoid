@@ -5,6 +5,7 @@ import { GitGraphPane } from "./GitGraphPane.tsx";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { gitTargetQuery, loadGitState, saveGitState, type GitState, type GitTarget } from "./git-model.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 const targetKey = (t: GitTarget): string => (t.kind === "session" ? `s:${t.id}` : `p:${t.path}`);
 
@@ -53,7 +54,7 @@ export function GitLayer({ wide, focusedSessionId }: { wide: boolean; focusedSes
   }, [state.open]);
 
   const session = focusedSessionId ? getHubStatus().sessions.find((s) => s.id === focusedSessionId) : undefined;
-  const sessionName = session ? (session.title ?? session.project.split("/").pop() ?? session.id.slice(0, 8)) : null;
+  const sessionName = session ? (session.title ?? projectName(session.project) ?? session.id.slice(0, 8)) : null;
   const focused: GitTarget | null = session && sessionName
     ? {
         kind: "session",
@@ -107,7 +108,7 @@ export function GitLayer({ wide, focusedSessionId }: { wide: boolean; focusedSes
               title={o.kind === "project" ? o.path : o.id}
               onClick={() => update({ target: o })}
             >
-              {o.kind === "project" ? o.path.split("/").pop() : sessionName}
+              {o.kind === "project" ? projectName(o.path) : sessionName}
             </button>
           ))}
         </div>

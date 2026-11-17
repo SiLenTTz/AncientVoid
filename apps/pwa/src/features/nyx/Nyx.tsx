@@ -9,6 +9,7 @@ import { decidableOnCard } from "../overview/queue.ts";
 import { DetachButton } from "../windows/DetachButton.tsx";
 import { openPopout } from "../windows/windows.ts";
 import { NYX_SPRITE, nyxSentence, nyxSummary, type NyxState, type NyxSummary } from "./nyx-state.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /**
  * Sprite-Atlas: Kopie aus VoidWarden (`web/public/nyx/nyx-atlas.{png,json}`, Commit 46430cf vom 2026-11-06,
@@ -49,7 +50,7 @@ export function NyxSprite({ state, size = 32 }: { state: NyxState; size?: number
 type OpenSession = (sessionId: string, hostId: string | null) => void;
 const openInApp: OpenSession = (sessionId, hostId) => (location.hash = sessionHash(sessionId, hostId));
 
-const sessionName = (s: SessionRecord | undefined, req: ApprovalRequest) => s?.title ?? s?.project.split("/").pop() ?? req.sessionId.slice(0, 8);
+const sessionName = (s: SessionRecord | undefined, req: ApprovalRequest) => s?.title ?? (s ? projectName(s.project) : undefined) ?? req.sessionId.slice(0, 8);
 
 /** Eine wartende Anfrage im Blatt: Frage mit Optionen, entscheidbare Freigabe — oder der Weg in die Session. */
 function NyxItem({ req, session, onDone, onOpen }: { req: ApprovalRequest; session: SessionRecord | undefined; onDone: () => void; onOpen: OpenSession }) {

@@ -7,6 +7,7 @@ import { openPopout } from "../windows/windows.ts";
 import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import { canDetach } from "../windows/DetachButton.tsx";
 import { rootKey, rootTarget, saveFilesState, type FilesRoot, type FilesState } from "./files-model.ts";
+import { projectTail } from "../../shared/project-name.ts";
 
 export interface FocusedSession {
   id: string;
@@ -261,7 +262,7 @@ export function FilesSidebar({
       )}
       {identity && (
         <div class="files-identity dim" title={identity.root} data-tip={identity.root} data-testid="files-identity">
-          {identity.kind === "session" ? "Worktree der Session" : "Projektordner"} · {identity.root.split("/").slice(-2).join("/")}
+          {identity.kind === "session" ? "Worktree der Session" : "Projektordner"} · {projectTail(identity.root, 2)}
           {identity.branch ? ` · ${identity.branch}` : ""}
         </div>
       )}

@@ -6,6 +6,7 @@ import type { TileRef } from "../workspace/tiles.ts";
 import { useHubStatus } from "./hub-status.ts";
 import { useOpenWindows } from "../windows/windows.ts";
 import { clockText, countSessions, fleetSummary } from "./status-summary.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /**
  * EPIC-P23 T23.2 (desktop only): the one bar for what holds for the whole hub — connection, fleet,
@@ -24,7 +25,7 @@ export function StatusBar({ focused, onOpenApprovals }: { focused: TileRef | nul
   const fleet = fleetSummary(hub.hosts);
   const session = focused ? hub.sessions.find((s) => s.id === focused.sessionId && remoteHost(s.hostId) === (focused.hostId ?? null)) : undefined;
   // Voller Fokus-Text für den Tooltip — die Leiste selbst behält die Ellipsis aus Platzgründen.
-  const focusName = session?.title ?? session?.project.split("/").filter(Boolean).pop();
+  const focusName = session?.title ?? (session ? projectName(session.project) : undefined);
   const focusText = session
     ? `${focusName ?? ""} · ${session.adapter}${session.model ? ` · ${session.model}` : ""} · ${displayLabel({ status: session.status, question: hub.questionSessions.includes(session.id) })}`
     : "";

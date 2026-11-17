@@ -59,6 +59,7 @@ import { DiffReview } from "./DiffReview.tsx";
 import { ForgePanel } from "../forge/ForgePanel.tsx";
 import { ReportPane } from "./ReportPane.tsx";
 import { SessionApprovals } from "./SessionApprovals.tsx";
+import { projectName } from "../../shared/project-name.ts";
 
 /** BUG-0053: below this window height (landscape) the dock is compacted and the controls start folded. */
 const SHORT_VIEWPORT_PX = 520;
@@ -980,10 +981,10 @@ export function SessionTail({
               </button>
             </form>
           ) : (
-            <div class="session-top-title">{title ?? session.project.split("/").pop()}</div>
+            <div class="session-top-title">{title ?? projectName(session.project)}</div>
           )}
           <div class="dim session-top-meta">
-            {session.project.split("/").pop()} · {loopView ? <LoopBadge adapter={session.adapter} view={loopView} /> : session.adapter} · {loopView ? "" : `${shownModel} · `}
+            {projectName(session.project)} · {loopView ? <LoopBadge adapter={session.adapter} view={loopView} /> : session.adapter} · {loopView ? "" : `${shownModel} · `}
             {session.hostId ? (hostNames.get(session.hostId) ?? (session.hostId === "local" ? "dieser Rechner" : session.hostId.slice(0, 8))) : "dieser Rechner"} ·{" "}
             <LiveStatus sessionId={session.id} status={status} />
             {session.controlMode !== "mirror" && <>{" · "}<WorkplaceBadge session={record} /></>}

@@ -5,6 +5,7 @@ import { FilesSidebar, type FocusedSession } from "./FilesSidebar.tsx";
 import { onLayerOpen } from "../../shared/layers.ts";
 import { loadFilesState, rootKey, saveFilesState, type FilesState } from "./files-model.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /**
  * EPIC-P46 T46.4: Einstieg der rechten Sidebar. Desktop: dritte Spalte (Strg+Umschalt+E), Touch: Drawer;
@@ -67,7 +68,7 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
       const detail = (e as CustomEvent<{ sessionId: string; path: string; hostId?: string | null; sha?: string }>).detail;
       if (!detail?.sessionId || !detail.path) return;
       const session = getHubStatus().sessions.find((s) => s.id === detail.sessionId);
-      const label = session?.title ?? session?.project.split("/").pop() ?? detail.sessionId.slice(0, 8);
+      const label = session?.title ?? (session ? projectName(session.project) : undefined) ?? detail.sessionId.slice(0, 8);
       const host = detail.hostId ?? remoteHost(session?.hostId) ?? null;
       setState((s) => {
         const root = {
@@ -109,7 +110,7 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
 
   const session = focusedSessionId ? getHubStatus().sessions.find((s) => s.id === focusedSessionId) : undefined;
   const focused: FocusedSession | null = session
-    ? { id: session.id, label: session.title ?? session.project.split("/").pop() ?? session.id.slice(0, 8), hostId: session.hostId ?? null }
+    ? { id: session.id, label: session.title ?? projectName(session.project) ?? session.id.slice(0, 8), hostId: session.hostId ?? null }
     : null;
 
   // Erste Nutzung: die fokussierte Session als Quelle vorschlagen — danach nie heimlich wechseln.

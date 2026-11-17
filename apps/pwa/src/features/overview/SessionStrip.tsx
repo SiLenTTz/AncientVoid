@@ -5,6 +5,7 @@ import { TabIcon } from "../../shared/TabIcon.tsx";
 import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
 import { pageHash, sessionHash } from "../../app/route.ts";
 import { SECTION_ORDER, sectionOf } from "./queue.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 /** Reihenfolge der Warteschlange (T43.3): wer dran ist zuerst, innerhalb der Gruppe zuletzt bewegt zuerst. */
 function stripOrder(sessions: readonly SessionRecord[]): SessionRecord[] {
@@ -40,7 +41,7 @@ export function SessionStrip({ currentId }: { currentId: string }) {
   return (
     <nav class="session-strip" aria-label="Sessions">
       {stripOrder(sessions).map((s) => {
-        const name = s.title ?? s.project.split("/").pop() ?? s.project;
+        const name = s.title ?? projectName(s.project) ?? s.project;
         const here = s.id === currentId;
         return (
           <button

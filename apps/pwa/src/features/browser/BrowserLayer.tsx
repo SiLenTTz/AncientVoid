@@ -7,6 +7,7 @@ import { onLayerOpen } from "../../shared/layers.ts";
 import { EXAMPLE_TEST, TEST_STATE_LABEL, parseTestCase, toViewportPoint } from "./browser-model.ts";
 import { addSource } from "../../shared/sources.ts";
 import { browserHash } from "../../app/route.ts";
+import { projectName } from "../../shared/project-name.ts";
 
 type Tab = "view" | "tests" | "log";
 
@@ -22,7 +23,7 @@ export function BrowserLayer({ focusedSessionId }: { focusedSessionId: string | 
   const session = focusedSessionId ? getHubStatus().sessions.find((s) => s.id === focusedSessionId) : undefined;
   return (
     <>
-      {open && <BrowserPanel sessionId={focusedSessionId} label={session ? (session.title ?? session.project.split("/").pop() ?? session.id.slice(0, 8)) : null} hostId={session?.hostId ?? null} onClose={() => setOpen(false)} />}
+      {open && <BrowserPanel sessionId={focusedSessionId} label={session ? (session.title ?? projectName(session.project) ?? session.id.slice(0, 8)) : null} hostId={session?.hostId ?? null} onClose={() => setOpen(false)} />}
     </>
   );
 }
