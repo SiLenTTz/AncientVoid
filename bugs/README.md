@@ -237,7 +237,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0201](bug-0201-nyx-fab-am-pc-liegt-ueber-dem-verlauf.md) | am PC lag der Nyx-FAB in der Viewport-Mitte und deckte eine Verlaufszeile ab — PC-Default sitzt jetzt unten links in der freien Liste | done | S3 | pwa | — |
 | [BUG-0202](bug-0202-cursor-interaction-query-fehlt-im-chat.md) | Cursor `interaction_query`/`tool_call` nur als `cursor.unhandled` im Verlauf — Plan-/Auswahlfrage fehlt im Chat | open | S2 | adapters | [#116](https://github.com/securesight-ai/AncientVoid/issues/116) |
 | [BUG-0203](bug-0203-wurzel-commit-im-bereich-laesst-den-ganzen-aenderungs-diff-fallen.md) | ein Eltern-loser Commit im Bereich liess den gesamten Aenderungsdiff ausfallen (`sha^` existiert nicht) — diffet jetzt gegen den leeren Baum | done | S2 | hub | — |
-| [BUG-0204](bug-0204-ubergrosser-aenderungs-diff-faellt-wegen-maxbuffer-komplett-raus.md) | ein Commit-Diff ueber der maxBuffer-Grenze loescht den gesamten Aenderungs-View (live gemessen: `stdout maxBuffer length exceeded`) — Begrenzung pro Commit fehlt | offen | S2 | hub | — |
+| [BUG-0204](bug-0204-ubergrosser-aenderungs-diff-faellt-wegen-maxbuffer-komplett-raus.md) | ein Commit-Diff ueber der Groessenkante loeschte den gesamten Aenderungs-View (live: `stdout maxBuffer length exceeded`) — jetzt Teilbefund pro Commit, uebrige Commits bleiben lesbar | done | S2 | hub | — |
 Die nächste freie Nummer ist **0205** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,

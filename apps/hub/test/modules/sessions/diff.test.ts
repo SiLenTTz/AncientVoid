@@ -20,6 +20,47 @@ async function initRepo(): Promise<{ dir: string; cleanup: () => Promise<void> }
 }
 
 describe("getSessionDiff — real git repo, no mocking", () => {
+  it("weist einen zu grossen Commit-Diff teilweise aus, statt den ganzen Diff zu",
+     // verlieren (BUG-0204: ein Commit ueber der Groessenkante loeste bisher alles aus).
+  async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const base = (await execFileAsync("git", ["-C", dir, "rev-parse", "HEAD"])).stdout.trim();
+      const NL = String.fromCharCode(10);
+      await writeFile(join(dir, "klein.txt"), "eins" + NL + "zwei" + NL + "drei" + NL);
+      await execFileAsync("git", ["-C", dir, "add", "klein.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "kleine Aenderung"]);
+      const riesig = Array.from({ length: 6000 }, (_, i) => `zeile ${i}`).join(NL) + NL;
+      await writeFile(join(dir, "riesig.txt"), riesig);
+      await execFileAsync("git", ["-C", dir, "add", "riesig.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "riesige Aenderung"]);
+
+      const result = await getSessionDiff(dir, base);
+      expect(result.error).toBeUndefined();
+      expect((result.commits ?? []).map((c) => c.subject)).toEqual(["kleine Aenderung", "riesige Aenderung"]);
+
+      const kleine = (result.commits ?? [])[0]!;
+      expect(kleine.files[0]!.hunks.length).toBeGreaterThan(0);
+
+      const grosse = (result.commits ?? [])[1]!;
+      expect(grosse.files).toEqual([]);
+      expect(grosse.oversize).toEqual({ files: 1, changedLines: 6000 });
+
+      // Der Teilbefund darf den Rest nicht betreffen: zweiter kleiner Commit danach.
+      await writeFile(join(dir, "klein2.txt"), "weiter" + NL);
+      await execFileAsync("git", ["-C", dir, "add", "klein2.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "danach wieder klein"]);
+      const nochmal = await getSessionDiff(dir, base);
+      expect((nochmal.commits ?? []).map((c) => c.subject)).toEqual([
+        "kleine Aenderung",
+        "riesige Aenderung",
+        "danach wieder klein",
+      ]);
+      expect(nochmal.commits![2]!.files[0]!.hunks[0]!.body).toContain("+weiter");
+    } finally {
+      await cleanup();
+    }
+  });
   it("diffet einen Wurzel-Commit im Bereich gegen den leeren Baum, statt den ganzen Diff",
      // zu verlieren (BUG-0202: `sha^` gibt es nur, wenn der Commit Eltern hat — der
      // erste Commit eines Zweiges hat keine).

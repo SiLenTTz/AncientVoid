@@ -1,7 +1,7 @@
 import { useMemo, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { type SessionDiffResult, type SessionDiffFile, type DiffCommit, type DiffHunk } from "../../shared/api.ts";
-import { isOneSided, mapHunkLines, pairHunkLines, type MappedDiffLine } from "./diff-lines.ts";
+import { isOneSided, mapHunkLines, oversizeNote, pairHunkLines, type MappedDiffLine } from "./diff-lines.ts";
 import { wordDiff, wordMarksFor, type WordSeg } from "./word-diff.ts";
 import { Button, EmptyState } from "../../shared/ui/index.ts";
 
@@ -137,7 +137,7 @@ function HunkCard({
                   : undefined
               }
             >
-              {line.type === "add" ? "+" : line.type === "del" ? "-" : " "}
+              <span class="wd-gutter">{line.type === "add" ? "+" : line.type === "del" ? "-" : " "}</span>
               {marks[i] ? <Segs segs={marks[i]!} /> : line.text}
             </div>
           );
@@ -174,6 +174,7 @@ function CommitHeading({ commit }: { commit: DiffCommit }) {
       <span class="dim diff-commit-meta">
         {commit.author} · {new Date(commit.date).toLocaleString("de-DE")}
       </span>
+      {commit.oversize && <div class="diff-oversize">{oversizeNote(commit.oversize)}</div>}
     </div>
   );
 }
@@ -268,7 +269,13 @@ export function DiffPane({
       </div>
       <div class="diff-main">
         <div class="diff-legend" aria-hidden="true">
-          <span class="wd-mark">+</span> neu · <span class="wd-mark wd-mark-del">−</span> entfernt — hervorgehoben ist nur, was sich wirklich aendert
+          <span class="wd-add">
+            <span class="wd-mark">+</span>neu
+          </span>
+          <span class="wd-del">
+            <span class="wd-mark">−</span>entfernt
+          </span>
+          <span class="diff-legend-hint">markiert ist nur, was sich wirklich ändert</span>
         </div>
         {diff.truncated && (
           <div class="dim" style="margin: 8px 0">

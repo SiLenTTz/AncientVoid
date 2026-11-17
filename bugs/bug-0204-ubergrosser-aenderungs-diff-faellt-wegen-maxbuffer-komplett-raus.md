@@ -1,11 +1,11 @@
 ---
 id: BUG-0204
 slug: ubergrosser-aenderungs-diff-faellt-wegen-maxbuffer-komplett-raus
-status: offen
+status: done
 severity: S2
 area: hub
 instance: pc
-commit: ""
+commit: "fix/0204-grosser-diff-teilausweis"
 forge: ""
 epic: ""
 ---
@@ -42,22 +42,36 @@ Erwartet: große Diffs werden **teilbar** dargestellt — pro Commit begrenzt, m
 Hinweis („mehr als N Dateien/Bytes — „ganzer Hunk“ zum Nachladen“), die übrigen Commits
 bleiben lesbar. Ist: ein einziger überlimitscher Commit löscht den ganzen View.
 
-## Nächster Arbeitsschritt (nicht Teil dieses Berichts)
+## Behoben
 
-1. `maxBuffer` pro Commit-Diff deckeln **und** den Einzelfehler abfangen: betroffener Commit
-   bekommt `files: []` plus einen echten Befund-Text statt eines Gesamtfehlers.
-2. Obergrenze für die Zahl der Commits im View existiert schon (`MAX_COMMITS`, 200) — die
-   Größenobergrenze pro Commit fehlt.
-3. Test in `apps/hub/test/modules/sessions/diff.test.ts` mit einem Commit, dessen Patch das
-   Limit überschreitet (rot-dann-grün).
+`commitFiles` in `apps/hub/src/modules/sessions/diff.ts` zaehlt zuerst die geaenderten Zeilen
+aus dem Numstat und laedt den Patch erst, wenn `COMMIT_DIFF_MAX_LINES` (4 000) nicht
+ueberschritten ist. Darueber: `oversize: { files, changedLines }` als Teilbefund, die
+uebrigen Commits bleiben vollstaendig. Scheitert schon die Dateiliste (z. B. maxBuffer),
+steht `oversize: { files: null, changedLines: null }` da — nie wieder ein Gesamtausfall.
+Die Oberflaeche zeigt den Befund unter dem Commit-Kopf (`diff-oversize`, Warnton):
+„1 Datei, 4.500 geänderte Zeilen — Patch bewusst nicht geladen (zu groß für diese Ansicht)“.
 
-## Betriebsnotiz zu dieser Session
+## Rot-dann-gruen
 
-Die Basis `3aef99e5` (lokales `main`, unrelated history) macht den Session-Diff von
-`18830ec6-…` von Haus aus astronomisch. Solange der Live-Zweig lokal gepflegt wird, ist das
-erwartbar; auf dem Handy sichtbar wird der Reiter für diese Session erst nach 1. oder nachdem
-die Session-Basis auf einen Vorfahren der GitHub-Linie gesetzt wird.
+- Hub (`apps/hub/test/modules/sessions/diff.test.ts`, echtes Git-Repo): neue Fallgruppe mit
+  kleinem + 6 000-Zeilen-Commit + anschliessendem kleinem Commit. Vorher
+  `expected [ { path: 'riesig.txt', …(4) } ] to deeply equal []` — **1 failed | 14 passed**;
+  nachher **15 passed**.
+- PWA-Helfer `oversizeNote` (`diff-lines.test.ts`): 2 neue Faelle (Zaehlen, und „ohne Zahlen
+  ehrlich“). `npx vitest run apps/pwa/test/features/session` **79 passed** (12 Dateien).
+- E2E (`e2e/specs/diff-markierungen.spec.ts`, zweiter Fall): `.diff-oversize` mit
+  „1 Datei, 4.500 geaenderte Zeilen“, wahrend der kleine Commit daneben vollstaendig
+  lesbar bleibt — **2 passed** (8,7 s).
 
+## Gleichzeitig geschliffen (Sichtbarkeit)
+
+- Segmente als Chips mit Inset-Ring (kein Versatz in der Monospace-Spalte), Mint/Rosé als
+  Textfarbe am Segment, Durchstreichung nur 1 px in Rosé-Tönung, `+`/`−` in der
+  Vorzeichen-Spalte mitfaerbigt (Zeichen selbst unveraendert).
+- Legende als echte Erklaerung mit Chips `+ neu` / `− entfernt` plus Satz „markiert ist nur,
+  was sich wirklich aendert“; die Erklaerung selbst wird nicht durchgestrichen.
+- Screenshot-Review: Segmente, Fallback (Zeile ersetzt) und Teilbefund jeweils angesehen.
 ## Nummer
 
 Vorherige: BUG-0203 (Wurzel-Commit im Bereich). Nächste freie Nummer: **0205**.

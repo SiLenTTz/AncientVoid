@@ -9,6 +9,17 @@ export function diffLineClass(line: string): string {
   return "diff-line-ctx";
 }
 
+/** Text für einen Commit über der Größenkante (BUG-0204): Zahl und Befund statt Ballast —
+ * und nie so formuliert, als wäre die Session schuld. */
+export function oversizeNote(oversize: { files: number | null; changedLines: number | null } | undefined): string {
+  if (!oversize) return "";
+  if (oversize.files === null || oversize.changedLines === null) {
+    return "Diff zu groß zum Aufzählen — im Terminal ansehen: git show <sha>";
+  }
+  const dateien = oversize.files === 1 ? "1 Datei" : `${oversize.files.toLocaleString("de-DE")} Dateien`;
+  return `${dateien}, ${oversize.changedLines.toLocaleString("de-DE")} geänderte Zeilen — Patch bewusst nicht geladen (zu groß für diese Ansicht)`;
+}
+
 /** EPIC-P36: eine Unified-Zeile mit ihren echten Seiten-Nummern — Basis
  * für Review-Anker (Zeile im Diff antippen → old/new-Nummer + Text). */
 export interface MappedDiffLine {
