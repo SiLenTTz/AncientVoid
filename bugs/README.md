@@ -236,11 +236,13 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0200](bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md) | Menüpunkte des „Mehr“-Menüs lagen im Kachelkopf hinter der Steuerung (Stapelkontext `--z-sticky` < `--z-dock`) — jetzt erbt der Kopf nur im geöffneten Zustand `--z-sheet`; Inventar 9 passed | done | S2 | pwa | — |
 | [BUG-0201](bug-0201-nyx-fab-am-pc-liegt-ueber-dem-verlauf.md) | am PC lag der Nyx-FAB in der Viewport-Mitte und deckte eine Verlaufszeile ab — PC-Default sitzt jetzt unten links in der freien Liste | done | S3 | pwa | — |
 | [BUG-0202](bug-0202-cursor-interaction-query-fehlt-im-chat.md) | Cursor `interaction_query`/`tool_call` nur als `cursor.unhandled` im Verlauf — Plan-/Auswahlfrage fehlt im Chat | open | S2 | adapters | [#116](https://github.com/securesight-ai/AncientVoid/issues/116) |
+| [BUG-0203](bug-0203-wurzel-commit-im-bereich-laesst-den-ganzen-aenderungs-diff-fallen.md) | ein Eltern-loser Commit im Bereich liess den gesamten Aenderungsdiff ausfallen (`sha^` existiert nicht) — diffet jetzt gegen den leeren Baum | done | S2 | hub | — |
 
-Die nächste freie Nummer ist **0203** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+Die nächste freie Nummer ist **0204** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
 aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage;
 0189–0191 sind Dateibaum-Bugfarben und Git-Historie-Lesbarkeit/Blob-Sprung;
-0192 Slash-Commands; 0202 ist Cursor `interaction_query` unsichtbar im Chat).
+0192 Slash-Commands; 0202 ist Cursor `interaction_query` unsichtbar im Chat; 0203 der Eltern-loser Commit im Aenderungsdiff).
+
