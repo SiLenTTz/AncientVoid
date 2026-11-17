@@ -1,0 +1,16 @@
+/* EPIC-P56 T56.3: Statistik-Seite — Filterkarte und Verteilungs-Spalten.
+ * Verteilungen zeigen p50/p90/p95 + n + Klein-n; die small-Zeile dimmt. */
+.stat-filters {
+  display: grid;
+  gap: 8px;
+}
+
+.stat-dist {
+  display: inline-block;
+}
+
+.stat-dist small {
+  display: block;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
