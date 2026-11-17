@@ -42,19 +42,18 @@ approve or redirect, and the *running* agent continues.
 
 ## See it
 
-<p align="center">
-  <img src="docs/assets/readme-start-412.webp" width="260" alt="The session queue on a phone, with the sessions that need you first">
-  <img src="docs/assets/readme-freigabe-412.webp" width="260" alt="Approving a shell command from the phone in the middle of a turn">
-</p>
-<p align="center">
-  <img src="docs/assets/readme-desktop-1280.webp" width="100%" alt="Desktop workspace: session list on the left, a session tile on the right">
-</p>
+<picture>
+  <source media="(max-width: 700px)" srcset="apps/site/assets/showcase-02.jpg">
+  <img src="apps/site/assets/showcase-01.jpg" width="100%" alt="AncientVoid on a desktop browser and two phones: the session queue, and a shell command waiting for approval on both the phone and the desktop">
+</picture>
 
-The images show the queue on the phone, a shell command approved mid-turn and
-the desktop workspace. They come from a demo hub with synthetic sessions
-([reproducible](scripts/readme-screenshots.mjs)). **The UI is German today.**
-An English UI is in progress ([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md));
-the [user guide](docs/guide/README.md) is already in English.
+One hub, every screen: the queue on your phone, a shell command waiting for
+your approval, and the same session on the desktop. The images come from a
+demo hub with synthetic sessions ([reproducible](scripts/readme-hero.mjs)).
+**The UI is German today.** An English UI is in progress
+([P61](epics/EPIC-P61-mehrsprachigkeit-englisch.md)); the
+[user guide](docs/guide/README.md), with every page at full size, is already
+in English.
 
 ## Quick start
 
