@@ -16,8 +16,8 @@
 .files-detach { background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0 4px; }
 .files-detach:hover { color: var(--accent); }
 .files-identity { padding: 0 8px 4px; font-size: var(--text-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.files-tabs { display: flex; gap: 4px; padding: 0 6px 6px; overflow-x: auto; align-items: center; }
-.files-tab { display: inline-flex; align-items: center; }
+.files-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 6px 6px; overflow-x: hidden; align-items: center; }
+.files-tab { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; }
 .files-tab-close,
 /* EPIC-P48: Datei-Tab in eigenes Fenster (T46.8-Rest) — gleiche Fläche wie ×. */
 .files-tab-popout { display: inline-grid; place-items: center; min-width: var(--icon-target); min-height: var(--icon-target); background: none; border: 0; color: var(--fg-dim); cursor: pointer; padding: 0; font-size: var(--icon-glyph); line-height: 1; }
@@ -47,13 +47,13 @@
 .files-git.git-deleted, .files-git.git-conflict { color: var(--err); }
 .files-error, .files-stale { margin: 6px; padding: 6px 8px; border-left: 3px solid var(--err); font-size: var(--text-sm); }
 .files-stale { border-color: var(--warn); }
-.file-viewer-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 4px 6px; }
+.file-viewer-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; align-items: center; padding: 4px 6px; border-bottom: 1px solid var(--bg-chip); }
 .file-viewer-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .file-viewer-modes { margin-left: auto; display: inline-flex; gap: 4px; }
 .file-pager { display: flex; gap: 6px; align-items: center; padding: 4px 6px; flex-wrap: wrap; }
 .file-pager-jump { width: 9em; }
 .file-wrap { padding: 0 6px; }
-.file-text, .file-hex { margin: 0; padding: 6px; font-size: var(--text-xs); line-height: 1.4; overflow: auto; white-space: pre; tab-size: 4; }
+.file-text, .file-hex { margin: 0; padding: 6px; font-size: var(--text-code); line-height: 1.4; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; overflow-x: hidden; min-width: 0; tab-size: 4; }
 .file-text.wrap { white-space: pre-wrap; word-break: break-word; }
 .file-media { max-width: 100%; max-height: 70vh; display: block; margin: 6px auto; }
 .file-pdf { width: 100%; height: 70vh; border: 0; background: var(--content-paper); }
@@ -62,11 +62,11 @@
 .file-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 6px; }
 .file-find { flex: 1 1 140px; min-width: 100px; }
 .file-find-note, .file-note { padding: 2px 8px; font-size: var(--text-sm); }
-.file-code { margin: 0; padding: 4px 0; font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.4; overflow: auto; tab-size: 4; }
+.file-code { margin: 0; padding: 4px 0; font-family: var(--font-mono); font-size: var(--text-code); line-height: 1.4; overflow: auto; tab-size: 4; }
 .file-line { display: flex; white-space: pre; }
 .file-code.wrap .file-line { white-space: pre-wrap; word-break: break-word; }
 .file-ln { flex: 0 0 4.2em; text-align: right; padding: 0 8px 0 0; background: none; border: 0; color: var(--fg-dim); cursor: pointer; font: inherit; user-select: none; position: sticky; left: 0; }
-.file-lt { flex: 1 1 auto; padding-right: 8px; }
+.file-lt { flex: 1 1 auto; min-width: 0; padding-right: 8px; }
 .file-line.sel, .file-line.focus { background: var(--bg-chip); }
 .file-line.has-diag .file-ln { color: var(--err); font-weight: 600; }
 .file-col-mark { background: var(--warn); color: var(--warn-ink); }
@@ -86,7 +86,7 @@
 .feedback-panel ul { list-style: none; margin: 4px 0; padding: 0; }
 .feedback-panel li { display: flex; gap: 6px; align-items: center; padding: 2px 0; }
 .md-view, .json-view, .nb-view, .archive-view, .office-view, .file-table-wrap { padding: 6px 10px; overflow: auto; max-height: 100%; }
-.md-view pre, .nb-src, .nb-out { margin: 4px 0; padding: 6px; overflow: auto; background: var(--bg-chip); font-size: var(--text-sm); white-space: pre-wrap; }
+.md-view pre, .nb-src, .nb-out { margin: 4px 0; padding: 6px; overflow: auto; background: var(--bg-chip); font-size: var(--text-code); white-space: pre-wrap; }
 .md-view blockquote { margin: 4px 0; padding-left: 10px; border-left: 3px solid var(--bg-chip); color: var(--fg-dim); }
 .file-table { border-collapse: collapse; font-size: var(--text-sm); }
 .file-table th, .file-table td { border: 1px solid var(--bg-chip); padding: 2px 6px; text-align: left; vertical-align: top; }
@@ -112,3 +112,13 @@
 .browser-log li, .browser-runs > li { padding: 3px 0; border-bottom: 1px solid var(--bg-chip); font-size: var(--text-sm); word-break: break-word; }
 .log-blocked, .run-failed { color: var(--err); } .run-passed { color: var(--ok); } .run-unknown, .run-aborted { color: var(--warn); }
 .browser-test-editor { width: 100%; font-size: var(--text-xs); }
+
+/* EPIC-P43/P50: umgebrochene Codeflächen bleiben in ihrer Spalte (früher 45-readable-content.css). */
+.tail-scroll .file-code.wrap,
+.tail-scroll .file-text,
+.tail-scroll .file-hex,
+.files-body .file-code.wrap,
+.files-body .file-text,
+.files-body .file-hex {
+  overflow-x: hidden;
+}

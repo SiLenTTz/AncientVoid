@@ -14,6 +14,8 @@
 }
 
 .overlay-sheet {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
   width: 100%;
   max-width: 680px;
   margin: 0 auto;

@@ -138,4 +138,26 @@ describe("EPIC-P63 css-tokens-Ratchet (AC-P63-1)", () => {
     expect(tokens).toContain("--space-6:");
     expect(tokens).toContain("Breakpoint-Leiter");
   });
+
+  it("jeder Klassen-Selektor außerhalb von @media existiert in genau einer Datei (AC-P63-3)", () => {
+    const bySelector = new Map<string, string[]>();
+    for (const f of FILES) {
+      const css = stripComments(cssOf(f)).replace(/@media[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
+      for (const m of css.matchAll(/([^{}]+)\{/g)) {
+        for (const part of m[1]!.split(",")) {
+          const cls = part.trim().match(/^\.([A-Za-z0-9_-]+)$/);
+          if (cls) bySelector.set(cls[1]!, [...(bySelector.get(cls[1]!) ?? []), f]);
+        }
+      }
+    }
+    // Mediengebundene Schichten (50-short-viewport, BUG-0181) dürfen denselben
+    // Selektor innerhalb eines @media-Kontexts überschreiben — oben entfernt.
+    const dups = [...bySelector.entries()].filter(([, fs]) => new Set(fs).size > 1);
+    expect(dups.map(([c, fs]) => `${c}: ${fs.join(", ")}`)).toEqual([]);
+  });
+
+  it("Datei-Präfixe sind eindeutig (T63.5: doppeltes 23- aufgelöst)", () => {
+    const prefixes = FILES.filter((f) => f !== "index.css").map((f) => f.split("-")[0]);
+    expect(new Set(prefixes).size, "Nummern-Präfixe doppelt").toBe(prefixes.length);
+  });
 });

@@ -1,7 +1,4 @@
 /* ADR-0015: notifications — bell, toasts top right, panel */
-.topbar {
-  padding-right: 44px; /* bell */
-}
 /* The phone's session header has no room for a second round button: the title would shrink to "a…".
  * Settings stay one tap away there (back to the overview, dock). */
 @media (max-width: 639px) {

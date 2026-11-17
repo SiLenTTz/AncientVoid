@@ -88,7 +88,15 @@
 }
 
 .diff-code {
-  font-size: var(--text-sm);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+  font-family: var(--font-mono);
+  /* Codegröße folgt dem P43.5-Preset-Eingang --code-scale. */
+  font-size: var(--text-code);
   line-height: 1.6;
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -232,28 +240,35 @@
 }
 
 .hunk-body-unified {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
   font-size: var(--text-sm);
   line-height: 1.6;
-  white-space: pre;
-  overflow-x: auto;
 }
 
 /* Mobile-portrait default: unified. Landscape phones and up: side-by-side. */
 .hunk-body-split {
+  font-family: var(--font-mono);
   display: none;
 }
 
 .hunk-split-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .hunk-split-cell {
+  font-family: var(--font-mono);
   padding: 0 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
   font-size: var(--text-sm);
   line-height: 1.6;
-  white-space: pre;
-  overflow-x: auto;
   border-right: 1px solid var(--bg-chip);
 }
 
@@ -315,6 +330,7 @@
 
 /* EPIC-P20 T20.1: a hunk that exists on one side only (new/deleted file) uses the whole width, unified. */
 .hunk-card.one-sided .hunk-body-split {
+  font-family: var(--font-mono);
   display: none;
 }
 .hunk-card.one-sided .hunk-body-unified {

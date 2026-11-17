@@ -92,6 +92,8 @@
 }
 
 .event {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 7px 10px;
   border-left: 3px solid var(--fg-dim);
   margin: 6px 0;
@@ -101,6 +103,7 @@
 }
 
 .event-detail {
+  font-family: var(--font-mono);
   margin: 6px 0 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -145,6 +148,19 @@
 }
 
 /* BUG-0067: agent Markdown in chat rows. */
+.markdown {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.markdown .md-code {
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
 .event .summary.markdown {
   white-space: normal;
   overflow-wrap: anywhere;
@@ -341,6 +357,11 @@ button.badge-stale {
   min-width: 4ch;
   text-align: center;
 }
-.settings-hint {
-  font-size: var(--text-xs);
+/* EPIC-P43: Tabellen im Chat füllen die Fläche, brechen um (früher 45-readable-content.css). */
+.markdown table {
+  width: 100%;
+  table-layout: fixed;
+}
+.markdown .md-table {
+  overflow-x: hidden;
 }

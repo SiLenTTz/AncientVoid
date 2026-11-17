@@ -64,6 +64,7 @@
 }
 
 .search-result-snippet {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--fg-dim);
   white-space: pre-wrap;
@@ -139,15 +140,6 @@
   max-height: calc(85vh / var(--ui-zoom)); /* BUG-0122 */
   display: grid;
   grid-template-rows: auto 1fr;
-}
-
-.file-viewer-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--bg-chip);
 }
 
 .file-viewer-body {

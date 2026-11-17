@@ -95,6 +95,9 @@
 }
 
 .enhance-preview-text {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  overflow-wrap: anywhere;
   font-size: var(--text-sm);
   white-space: pre-wrap;
   max-height: 120px;

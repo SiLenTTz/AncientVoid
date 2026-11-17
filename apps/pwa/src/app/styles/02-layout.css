@@ -2,14 +2,23 @@
  * real scroll surface in the app (main page scroll, the session tail,
  * bottom sheets, the diff view) instead of the platform default. */
 html,
-body,
-.tail-scroll,
-.dashboard,
-.overlay-sheet,
-.diff-code,
-.enhance-preview-text {
+body {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+}
+/* EPIC-P43/P50: Inhalte passen in ihre Fläche (früher 45-readable-content.css,
+ * T63.5 in die Fachdateien zusammengeführt). */
+.tail-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  overflow-x: hidden;
+}
+/* Zahlen, die sich ändern oder untereinander stehen, springen nicht in der Breite. */
+.num {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
 }
 
 html::-webkit-scrollbar,
@@ -122,6 +131,8 @@ a {
   background: var(--bg);
   z-index: var(--z-sticky);
   border-bottom: 1px solid var(--bg-chip);
+  /* Platz für die Benachrichtigungsglocke (früher 14-notifications.css). */
+  padding-right: 44px;
 }
 
 .topbar h1 {
@@ -172,6 +183,9 @@ a {
 }
 
 .card {
+  /* Globaler Schutz gegen Viewport-Sprengung (früher 01-base). */
+  min-width: 0;
+  max-width: 100%;
   background: var(--bg-elev);
   border: 1px solid var(--bg-chip);
   border-radius: var(--radius);
@@ -183,6 +197,8 @@ a {
   display: block;
   width: 100%;
   text-align: left;
+  /* P43.5-Preset-Eingang --preset-border (früher 48-presets.css). */
+  border-width: var(--preset-border);
 }
 
 .session-open {
@@ -282,10 +298,6 @@ a {
 .split .dock-stack {
   position: sticky;
   max-width: none;
-}
-
-.split-placeholder {
-  margin-top: 30vh;
 }
 
 /* EPIC-P18: the session column holds up to four tiles. */

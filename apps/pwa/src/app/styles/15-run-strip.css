@@ -34,6 +34,8 @@
 }
 
 .run-meta {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
@@ -54,6 +56,8 @@
   color: var(--err);
 }
 .turn-stats {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
   font-size: var(--text-xs);
   margin: 2px 0 6px;
   text-align: right;

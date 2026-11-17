@@ -55,9 +55,11 @@
 
 /* T5.1 inventory table and T5.3 discovery rows */
 .table-scroll {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 .inventory-table {
+  table-layout: fixed;
+  overflow-wrap: anywhere;
   width: 100%;
   border-collapse: collapse;
   font-size: var(--text-sm);

@@ -2,6 +2,8 @@
  * Eine Arbeit ist eine Zeile; aufgeklappt eine Liste von Schritten; ein Schritt zeigt Ein- und
  * Ausgabe. Der laufende Schritt schimmert, beim Zugende rastet das Zeichen ein. */
 .turn-work {
+  min-width: 0;
+  overflow-wrap: anywhere;
   margin: var(--space-1) 0 var(--space-2);
   border-left: 2px solid var(--bg-chip);
 }
@@ -75,6 +77,8 @@
 }
 
 .turn-steps {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: grid;
   gap: 2px;
   margin: 0 0 var(--space-1);
@@ -133,7 +137,9 @@
 }
 
 .turn-step-verb {
-  flex: none;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--fg-dim);
 }
 
@@ -161,6 +167,8 @@
 }
 
 .turn-step-io {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: grid;
   gap: var(--space-2);
   padding: var(--space-1) var(--space-2) var(--space-2) var(--space-5);
@@ -360,4 +368,58 @@
 
 .empty-state p {
   margin: 0;
+}
+
+/* EPIC-P43: Zug-Schritte passen in ihre Fläche (früher 45-readable-content.css). */
+.turn-step,
+.turn-step-part {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.turn-note-toggle {
+  width: 100%;
+  min-width: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.pinned-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  min-height: var(--target);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elev);
+  color: var(--fg);
+  border: 0;
+  border-bottom: 1px solid var(--bg-chip);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.pinned-prompt-label {
+  flex: none;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+.pinned-prompt-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-load-warning {
+  overflow-wrap: anywhere;
+  color: var(--warn);
+  font-size: var(--text-sm);
 }

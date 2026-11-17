@@ -91,6 +91,9 @@
 }
 
 .code-lines {
+  font-family: var(--font-mono);
+  min-width: 0;
+  overflow-x: hidden;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -202,10 +205,20 @@
 }
 
 .action-output {
+  font-family: var(--font-mono);
   margin: 0;
   padding: 8px 10px;
   max-height: 40vh;
   overflow: auto;
   font-size: var(--text-xs);
   white-space: pre-wrap;
+}
+
+/* EPIC-P43: Zeilen min-width-gesichert (früher 45-readable-content.css). */
+.code-lines li {
+  min-width: 0;
+}
+.code-lines code {
+  min-width: 0;
+  flex: 1;
 }

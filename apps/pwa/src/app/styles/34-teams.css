@@ -14,7 +14,6 @@
 .team-row.active { border-color: var(--fg); box-shadow: inset 3px 0 0 var(--fg); }
 .team-row-title { font-weight: 600; overflow-wrap: anywhere; }
 .team-row-meta { font-size: var(--text-sm); opacity: 0.8; }
-.session-title { overflow-wrap: anywhere; }
 
 .team-detail { flex: 1; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .team-detail-head { display: flex; align-items: center; gap: 8px; }

@@ -107,7 +107,7 @@
 }
 
 /* EPIC-P23 T23.2: einheitliche Statusleiste, nur Desktop. */
-.status-bar { display: none; }
+.status-bar { font-family: var(--font-code); font-variant-numeric: tabular-nums; display: none; }
 
 @media (min-width: 1280px) {
   .status-bar {

@@ -67,27 +67,12 @@ select:not([multiple]) {
   color: var(--fg-faint);
 }
 
-/* Zahlen, die sich ändern oder untereinander stehen, springen nicht in der Breite. */
-.num,
-.run-meta,
-.turn-stats,
-.status-bar {
-  font-family: var(--font-code);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Global fallback for grid/flex children that would otherwise blow out the
- * viewport on phones (long ids, urls, preformatted agent output). */
-#app,
-.card {
+/* Global fallback für Grid/Flex-Kinder, die sonst den Viewport sprengen
+ * (lange IDs, URLs, vorformatierter Agenten-Output). Klassenschutz (.card)
+ * liegt bei dessen Regel in 02-layout.css. */
+#app {
   min-width: 0;
   max-width: 100%;
-}
-
-.question-text,
-.enhance-preview-text,
-.mono {
-  overflow-wrap: anywhere;
 }
 
 /* T8.5: keyboard focus is always visible (mouse/touch clicks stay quiet). */
@@ -100,18 +85,8 @@ select:not([multiple]) {
 pre,
 code,
 kbd,
-samp,
-.mono,
-.event-detail,
-.command-before,
-.command-after,
-.search-result-snippet,
-.action-output,
-.markdown .md-code,
-.code-lines,
-.hunk-body-unified,
-.hunk-body-split,
-.hunk-split-cell,
-.tool-input {
+samp {
+  /* Klassen-Inhalte (Code-Charakter) tragen font-family in ihren Fachdateien;
+   * .markdown .md-code in 04-chips-and-forms.css. */
   font-family: var(--font-code);
 }
