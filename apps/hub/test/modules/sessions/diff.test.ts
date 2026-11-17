@@ -20,6 +20,34 @@ async function initRepo(): Promise<{ dir: string; cleanup: () => Promise<void> }
 }
 
 describe("getSessionDiff — real git repo, no mocking", () => {
+  it("diffet einen Wurzel-Commit im Bereich gegen den leeren Baum, statt den ganzen Diff",
+     // zu verlieren (BUG-0202: `sha^` gibt es nur, wenn der Commit Eltern hat — der
+     // erste Commit eines Zweiges hat keine).
+  async () => {
+    const { dir, cleanup } = await initRepo();
+    try {
+      const base = (await execFileAsync("git", ["-C", dir, "rev-parse", "HEAD"])).stdout.trim();
+      await execFileAsync("git", ["-C", dir, "checkout", "-q", "--orphan", "wurzelzweig"]);
+      await writeFile(join(dir, "wurzel.txt"), "neu in der welt\n");
+      await execFileAsync("git", ["-C", dir, "add", "wurzel.txt"]);
+      await execFileAsync("git", ["-C", dir, "commit", "-q", "-m", "Wurzel ohne Eltern"]);
+      const result = await getSessionDiff(dir, base);
+      expect(result.error).toBeUndefined();
+      const committeten = (result.commits ?? []).flatMap((c) => c.files);
+      const wurzel = committeten.find((f) => f.path === "wurzel.txt");
+      expect(wurzel).toBeTruthy();
+      expect(wurzel!.additions).toBeGreaterThan(0);
+      expect(wurzel!.hunks[0]!.body).toContain("+neu in der welt");
+
+      // Dieselbe Stelle trifft die Einzel-Datei-Abfrage (Expand eines Kompletthunks).
+      const sha = (await execFileAsync("git", ["-C", dir, "rev-parse", "HEAD"])).stdout.trim();
+      const hunks = await getSessionFileHunks(dir, "wurzel.txt", null, sha);
+      expect(hunks.length).toBeGreaterThan(0);
+      expect(hunks[0]!.body).toContain("+neu in der welt");
+    } finally {
+      await cleanup();
+    }
+  });
   it("reports no changes as a named error, not an empty success", async () => {
     const { dir, cleanup } = await initRepo();
     try {

@@ -9,6 +9,14 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **BUG-0202 behoben (Zweig `fix/0202-wurzel-commit-laesst-den-ganzen-diff-fallen`).**
+  Ein Eltern-loser Commit im Bereich `baseRef..HEAD` liess den ganzen Aenderungsdiff
+  ausfallen: `apps/hub/src/modules/sessions/diff.ts` diffte blind `sha^..sha`, und fuer den
+  Wurzel-Commit gibt es keine Eltern-Revision (`fatal: ambiguous argument`). Live gemessen:
+  Aenderungs-Reiter der eigenen Session mit `dateien 0, hunks 0` und abgeschnittener
+  fatal-Meldung. Neu diffelt `parentOrEmptyTree` gegen Git's leeren Baum (Per-Commit-Diff
+  und Einzel-Datei-Hunks). Rot-dann-gruen im echten Git-Repo: 1 failed | 13 passed ->
+  **14 passed**. Server-Code, braucht Hub-Neustart fuer die Live-Wirkung.
 - **Wortweise +/- Markierung im Aenderungs-Diff (Zweig
   `feat/0202-wortdiff-markierungen`).** Auf Kais Wunsch: wenn sich nur eine Zahl oder ein
   Wort aendert, malt ein Zeilen-Diff zwei komplett rote/gruene Zeilen. Neu werden gepaarte
