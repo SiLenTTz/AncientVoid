@@ -51,7 +51,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0019](bug-0019-tmux-reap-kills-foreign-workers.md) | Ein zweiter Hub oder `npm test` tötet die tmux-Worker des laufenden Hubs | done | S1 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0020](bug-0020-diff-hides-new-files.md) | Diff und Bericht zeigen keine neu angelegten Dateien | done | S2 | server | — |
 | [BUG-0021](bug-0021-skill-chain-misses-base-catalog.md) | Skill-Kette ist kürzer, wenn vorher niemand die Skill-Liste geöffnet hat | done | S2 | server | — |
-| [BUG-0022](bug-0022-reply-box-missing-after-offline-open.md) | Antwortfeld fehlt dauerhaft, wenn der Hub beim Öffnen kurz weg war | done | S3 | pwa | — |
+| [BUG-0022](bug-0022-reply-box-missing-after-offline-open.md) | Antwortfeld fehlt dauerhaft, wenn der Hub beim Öffnen kurz weg war | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0023](bug-0023-chat-duplicates-overlapping-batches.md) | Chat zeigt Events doppelt nach Resync oder Replay | done | S2 | pwa | — |
 | [BUG-0024](bug-0024-session-link-mixes-histories.md) | Ein Link auf eine andere Session mischt beide Verläufe | done | S2 | pwa | — |
 | [BUG-0025](bug-0025-tmux-kill-never-reports-exit.md) | Ein per Kill beendeter tmux-Worker meldet nie sein Ende | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
@@ -60,7 +60,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0028](bug-0028-tokens-in-request-log.md) | Geräte-Tokens stehen im Klartext im Request-Log | done | S1 | server | — |
 | [BUG-0029](bug-0029-hub-log-default-permissions.md) | Hub-Log wird mit der Benutzer-umask für andere lesbar angelegt | done | S3 | hub.sh | — |
 | [BUG-0030](bug-0030-data-directory-world-readable.md) | Hub-Datadir und SQLite-Credentials sind für andere Benutzer lesbar | done | S2 | core, hubctl | — |
-| [BUG-0031](bug-0031-token-login-waits-for-fleet-hello.md) | Token-Login wartet auf Fleet-Handshake | done | S3 | pwa | — |
+| [BUG-0031](bug-0031-token-login-waits-for-fleet-hello.md) | Token-Login wartet auf Fleet-Handshake | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0032](bug-0032-acp-turn-haengt-ohne-timeout.md) | ACP-Zug kann endlos hängen: kein Turn-Timeout, Herzschlag blind | done | S1 | adapters | [!124](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/124) |
 | [BUG-0033](bug-0033-acp-verlauf-erst-nach-zugende.md) | ACP-Verlauf kommt live nie an + Chat-Marker fehlen (ACP vs. CLI-Adapter) | done | S2 | adapters, pwa | [!125](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/125) |
 | [BUG-0034](bug-0034-messlauf-laesst-acp-worker-zurueck.md) | Messlauf hinterlässt ACP-Worker und Zombie-tmux-Server | done | S2 | messlauf, workers | [!129](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/129) |
@@ -70,13 +70,13 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0038](bug-0038-cursor-exit-1-ohne-modell.md) | Cursor-Sessions crashen ohne Modell: Exit 1 (out of usage) | done | S1 | adapters | — |
 | [BUG-0039](bug-0039-acp-adoption-verliert-historie.md) | Übernommene ACP-Session zeigt keine Historie: ewiges „lädt…" | done | S1 | adapters | — |
 | [BUG-0040](bug-0040-claude-cli-klartextfehler-und-neue-eventtypen.md) | Claude-CLI: Klartext-Fehler und neue Event-Typen erscheinen kryptisch | done | S2 | adapters | — |
-| [BUG-0041](bug-0041-voice-aufnahme-laeuft-bei-gesperrtem-bildschirm.md) | Voice-Aufnahme läuft weiter, wenn der Bildschirm schon gesperrt ist | done | S3 | pwa | — |
-| [BUG-0042](bug-0042-invite-qr-chunk-fehler-unbehandelt.md) | Einladungs-QR: fehlgeschlagener Chunk-Abruf bleibt unbehandelt und still | done | S3 | pwa | — |
+| [BUG-0041](bug-0041-voice-aufnahme-laeuft-bei-gesperrtem-bildschirm.md) | Voice-Aufnahme läuft weiter, wenn der Bildschirm schon gesperrt ist | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
+| [BUG-0042](bug-0042-invite-qr-chunk-fehler-unbehandelt.md) | Einladungs-QR: fehlgeschlagener Chunk-Abruf bleibt unbehandelt und still | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0043](bug-0043-verlauf-springt-nach-unten-beim-lesen.md) | Verlauf springt nach unten, während man weiter oben liest | done | S2 | pwa | — |
 | [BUG-0044](bug-0044-letzte-nachrichten-unter-dem-dock.md) | Die letzten Nachrichten liegen unter dem fixierten Dock | done | S2 | pwa | — |
-| [BUG-0045](bug-0045-einzelner-abruffehler-laesst-ui-flackern.md) | Ein einzelner fehlgeschlagener Abruf lässt Meldungen aufflackern | done | S3 | pwa | — |
+| [BUG-0045](bug-0045-einzelner-abruffehler-laesst-ui-flackern.md) | Ein einzelner fehlgeschlagener Abruf lässt Meldungen aufflackern | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0046](bug-0046-thinking-block-leer-und-aufklappbar.md) | Aufgeklappte „thinking“-Blöcke sind immer leer | done | S3 | adapters, pwa | — |
-| [BUG-0047](bug-0047-pc-tippen-leert-text-vor-dem-ergebnis.md) | „Am PC eintippen“ leert den Text, bevor der PC getippt hat | done | S3 | pwa | — |
+| [BUG-0047](bug-0047-pc-tippen-leert-text-vor-dem-ergebnis.md) | „Am PC eintippen“ leert den Text, bevor der PC getippt hat | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0048](bug-0048-freigabe-noetig-haengt-nach-neustart.md) | „Freigabe nötig“ bleibt stehen, obwohl nichts zu entscheiden ist | done | S2 | core | — |
 | [BUG-0049](bug-0049-meldung-flackert-beim-tippen.md) | Eine Meldung flackert auf (Entwurf-Zeile, Hub-Hinweise, „Am PC offen“) | done | S3 | pwa, core | — |
 | [BUG-0050](bug-0050-recovery-nacheinander-statt-parallel.md) | Hub-Recovery braucht 12–14 s statt unter 3 s (K7) | done | S2 | core | — |
@@ -111,7 +111,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0079](bug-0079-maki-slash-bridge-fuehrt-commands-nicht-aus.md) | maki-Slash-Brücke führte deklarierte Commands nicht aus („/new" kam nur als Chat an) | done | S2 | adapters | [#33](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/33) |
 | [BUG-0080](bug-0080-slash-new-frische-session-ohne-modell.md) | Erste Nachricht nach /new stirbt an falschem Modell (403 → „Internal error") | done | S2 | adapters | [#34](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/34) |
 | [BUG-0081](bug-0081-loop-start-wirkungslos.md) | Loop-Start im neuen Session-Dialog „tut nichts" (Blocker überlesbar, Pflicht-Selects galten nicht als gewählt) | done | S2 | pwa | — |
-| [BUG-0082](bug-0082-notif-panel-ui-zoom.md) | Benachrichtigungs-Panel ragt bei UI-Zoom aus dem Bildschirm | done | S3 | pwa | — |
+| [BUG-0082](bug-0082-notif-panel-ui-zoom.md) | Benachrichtigungs-Panel ragt bei UI-Zoom aus dem Bildschirm | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0083](bug-0083-pwa-freeze-securesight-anbindungsformular.md) | securesight-Anbindungsformular friert die PWA ein (endloser Render-Loop durch leere Modell-Vorgabe) | done | S1 | pwa | — |
 | [BUG-0084](bug-0084-live-smoke-spezifische-locator-mehrdeutig.md) | Live-Smoke: Locator „Status"/„Einstellungen" mehrdeutig gegen den bevölkerten Live-Hub | done | S3 | e2e | — |
 | [BUG-0085](bug-0085-factory-rollen-ohne-titel.md) | Factory-Beobachter erscheint ohne Auftrag | done | S2 | pwa | [#35](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/35) |
@@ -125,15 +125,15 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0093](bug-0093-desktop-e2e-zweiter-auftrag-fertig-race.md) | Desktop-E2E prüft zweiten Auftrag gegen altes „fertig“ | done | S3 | e2e | — |
 | [BUG-0094](bug-0094-resize-e2e-autogrow-misst-vor-render.md) | Resize-E2E misst Auto-Grow vor dem Re-Render | done | S3 | e2e | — |
 | [BUG-0095](bug-0095-fehler-exit-durch-folgeprompt-zu-interrupted.md) | Fehler-Exit wird durch sofortigen Folgeprompt zu „interrupted“ | done | S2 | core | — |
-| [BUG-0096](bug-0096-drafts-e2e-adapter-merkung-dummy.md) | Neue-Session-Formular zeigt gemerkten Adapter als „dummy“ | done | S3 | pwa | — |
+| [BUG-0096](bug-0096-drafts-e2e-adapter-merkung-dummy.md) | Neue-Session-Formular zeigt gemerkten Adapter als „dummy“ | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0097](bug-0097-sessionseite-scrollt-bei-ui-zoom.md) | Session-Hauptseite scrollt; Chat ragt unter den Dock (UI-Zoom) | done | S2 | pwa | — |
 | [BUG-0098](bug-0098-dock-buttons-abgeschnitten.md) | Fixierter Dock schneidet Buttons ab, wenn er höher als der Screen wird | done | S2 | pwa | — |
 | [BUG-0099](bug-0099-uebersicht-scrollt-als-ganze-seite.md) | Übersicht scrollt als ganze Seite statt in der Session-Liste | done | S2 | pwa | — |
 | [BUG-0100](bug-0100-prompt-an-fehler-session-lauft-ins-leere.md) | Prompt an eine fehlerklassifizierte Session läuft ins Leere | done | S2 | core | — |
 | [BUG-0101](bug-0101-acp-weitermachen-tot.md) | „Weitermachen" auf unterbrochener maki-Session wirkt nicht | done | S2 | adapters | — |
 | [BUG-0102](bug-0102-maki-internal-error-ohne-ursache.md) | maki „Internal error" ohne Ursache | done | S2 | adapters | — |
-| [BUG-0103](bug-0103-popout-mobil-und-doppelte-scrollbalken.md) | Eigenes Fenster in Handy-Breite, doppelte Scrollbalken links | done | S3 | pwa | — |
-| [BUG-0104](bug-0104-popout-lesespalte-rand.md) | Eigenes Fenster nutzt nicht die ganze Fläche: 1200-px-Lesespalte als Ränder | done | S3 | pwa | — |
+| [BUG-0103](bug-0103-popout-mobil-und-doppelte-scrollbalken.md) | Eigenes Fenster in Handy-Breite, doppelte Scrollbalken links | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
+| [BUG-0104](bug-0104-popout-lesespalte-rand.md) | Eigenes Fenster nutzt nicht die ganze Fläche: 1200-px-Lesespalte als Ränder | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0105](bug-0105-gewaehlter-harness-startet-nicht.md) | Gewählter Harness startet nicht: stiller Treiber-Reset, Wahl überlebt Remount nicht | done | S2 | pwa | — |
 | [BUG-0106](bug-0106-tool-pane-esc-flake.md) | Esc schließt die Werkzeugfläche sporadisch nicht (CI-Flake) | done | S4 | pwa | — |
 | [BUG-0107](bug-0107-selection-copy-ci-flake.md) | Clipboard-Test „fertige Auswahl im Clipboard" flakt in CI | done | S4 | pwa | — |
@@ -142,12 +142,12 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0110](bug-0110-agent-read-mapping-kosten.md) | Agent-Token löst Kosten-/Schreib-Endpunkte ohne Approval aus | done | S4 | server | [#44](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/44) |
 | [BUG-0111](bug-0111-brave-crash-unter-voller-testlast.md) | Brave fällt unter voller lokaler Testlast aus (Renderer-SIGTRAP) | done | S3 | e2e | [#45](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/45) |
 | [BUG-0112](bug-0112-popout-fenster-scrollt-bei-ui-zoom.md) | Eigenes Fenster (Chat) scrollt als ganze Seite bei UI-Zoom | done | S2 | pwa | — |
-| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | done | S3 | pwa | — |
+| [BUG-0113](bug-0113-dateien-schublade-browser-panel-ui-zoom.md) | Dateien-Schublade und Browser-Panel falsch vermessen bei UI-Zoom | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0114](bug-0114-vormerken-jetzt-sendens.md) | Vorgemerkte Nachricht lässt sich nicht sofort in den laufenden Zug senden | done | S3 | pwa | [#49](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/49) |
 | [BUG-0115](bug-0115-sendqueuednow-bad-request.md) | „Jetzt senden" der Vormerkung schlägt in der PWA immer mit „Bad Request" fehl (leerer JSON-Body) | done | S3 | pwa | [#50](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/50) |
 | [BUG-0116](bug-0116-automation-prompt-update-hash.md) | Automation-Update prüft Prompt-Hash nicht | done | S2 | core | [#47](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/47) |
 | [BUG-0117](bug-0117-dock-acht-ziele-mobil.md) | Acht Dock-Ziele überlappen auf schmalen Displays | done | S2 | pwa | [#48](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/48) |
-| [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | — |
+| [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | done | S3 | e2e | — |
 | [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | [#3](https://github.com/SiLenTTz/AncientVoid/issues/3) |
@@ -157,7 +157,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0125](bug-0125-worktree-vitest-nutzt-fremde-workspace-pakete.md) | Tests im Worktree laden `@ancientvoid/*` aus dem Haupt-Checkout | done | S2 | tooling | — |
 | [BUG-0126](bug-0126-native-session-verloren-session-klemmt.md) | Verlorene Provider-Session klemmt die Hub-Session fest (kein Reparieren/Übergeben) | done | S2 | adapters | — |
 | [BUG-0127](bug-0127-suche-indexierung-qmd-schlaegt-fehl.md) | Such-Indexierung: qmd-Abfrage endet 500 statt 200 (4 rot-Tests auf main) | done | S2 | server | — |
-| [BUG-0128](bug-0128-dateibaum-detach-als-einzelfenster.md) | Herauslösen der Datei-Seitenleiste erzeugt Einzeldatei-Fenster statt einem gebündelten Fenster | done | S3 | pwa | — |
+| [BUG-0128](bug-0128-dateibaum-detach-als-einzelfenster.md) | Herauslösen der Datei-Seitenleiste erzeugt Einzeldatei-Fenster statt einem gebündelten Fenster | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0129](bug-0129-vault-ordnerwahl-symlink-ordner-fehlen.md) | Vault-Ordnerwahl: Symlink-Ordner fehlten, keine Pfad-Eingabe/Vorschläge (Fix via P51 T51.1–T51.2 / ADR-0063) | done | S3 | core | EPIC-P51 |
 | [BUG-0130](bug-0130-setup-token-falsches-datadir.md) | Setup stellt Tokens in der falschen Datenbank aus | done | S2 | ops | [#51](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/51) |
 | [BUG-0131](bug-0131-openai-fehler-still-verworfen.md) | OpenAI-Beispieladapter verschweigt Stream- und Folgepromptfehler | done | S2 | adapters | [#52](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/52) |
@@ -166,7 +166,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0134](bug-0134-setup-openai-json-escaping.md) | OpenAI-Wizard serialisiert Benutzereingaben als ungültiges JSON | done | S3 | ops | [#55](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/55) |
 | [BUG-0135](bug-0135-setup-voidwarden-zweittokens.md) | Wiederholtes VoidWarden-Setup stellt zusätzliche Tokens aus | done | S3 | ops | [#56](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/56) |
 | [BUG-0136](bug-0136-vormerkung-streichen-kommt-zurueck.md) | Gestrichene vorgemerkte Nachricht ist nach dem Neuladen wieder da | done | S2 | pwa, server | — |
-| [BUG-0137](bug-0137-nyx-fab-laesst-sich-nicht-ziehen.md) | Der Voice-FAB lässt sich mit der Maus kaum verschieben | done | S3 | pwa | — |
+| [BUG-0137](bug-0137-nyx-fab-laesst-sich-nicht-ziehen.md) | Der Voice-FAB lässt sich mit der Maus kaum verschieben | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0138](bug-0138-nyx-fab-verdeckt-dock-tasten.md) | Voice-FAB liegt in der Standardposition auf den Dock-Tasten | done | S2 | pwa | — |
 | [BUG-0139](bug-0139-e2e-specs-lesen-title-statt-data-tip.md) | E2E-Specs lesen `title`, das der Tooltip-Layer in `data-tip` verschoben hat | done | S3 | e2e | — |
 | [BUG-0140](bug-0140-e2e-kartenmenue-ohne-uebergeben.md) | Kleinkram-Regel 3 kennt den Kartenmenüpunkt „Übergeben…“ nicht | done | S3 | e2e | — |
@@ -175,8 +175,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0143](bug-0143-e2e-selection-copy-ohne-fokus.md) | Markieren-kopiert-Spec unter voller Suite ohne Kopier-Bestätigung | done | S3 | e2e | — |
 | [BUG-0144](bug-0144-openai-beispiel-vertrag.md) | OpenAI-Beispieladapter besteht die Testkit-Vertragsprüfung nicht | done | S3 | adapters | — |
 | [BUG-0145](bug-0145-fab-verdeckt-verlaufsende.md) | Voice-FAB verdeckt das Ende des Verlaufs auf Handy und Tablet | done | S2 | pwa | — |
-| [BUG-0146](bug-0146-preset-speichern-nach-paint.md) | Verlauf-Preset wird erst nach dem Zeichnen gespeichert — sofortiges Neuladen verliert es | done | S3 | pwa | — |
-| [BUG-0147](bug-0147-erststart-leerer-hub-gelesen.md) | Erststart mit leerem Hub: die ersten Sessions gelten als gelesen | done | S3 | pwa | — |
+| [BUG-0146](bug-0146-preset-speichern-nach-paint.md) | Verlauf-Preset wird erst nach dem Zeichnen gespeichert — sofortiges Neuladen verliert es | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
+| [BUG-0147](bug-0147-erststart-leerer-hub-gelesen.md) | Erststart mit leerem Hub: die ersten Sessions gelten als gelesen | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0148](bug-0148-automations-tick-waechst.md) | Automations-Tick wächst mit der Laufzeit und blockiert den Hub | done | S2 | core | — |
 | [BUG-0149](bug-0149-cursor-kontingent-unsichtbar.md) | Cursor-Kontingent lässt die Session auf „arbeitet“ hängen, ohne Fehler und ohne Übergabe | done | S2 | adapter-cursor | — |
 | [BUG-0150](bug-0150-horizontale-inhaltsscroller.md) | Lange Inhalte erzeugen horizontale Scrollflächen | done | S3 | pwa | [#58](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/58) |
@@ -189,7 +189,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0157](bug-0157-tmux-alter-handle-killt-nachfolger.md) | Alter tmux-Handle beendet den Nachfolger derselben Session | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0158](bug-0158-codex-ablehnung-als-erfolg.md) | Codex bestätigt abgelehnte Folgeeingaben als angenommen | done | S2 | adapter-codex | [#61](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/61) |
 | [BUG-0159](bug-0159-nyx-fab-feedback-blende-steht-dauerhaft.md) | Feedbackblende des Nyx-Voice-FAB steht nach der Aufnahme dauerhaft | done | S3 | pwa | [#457](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/457) |
-| [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | — |
+| [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0161](bug-0161-tool-aktivitaet-beendet-hauptzug-vorzeitig.md) | Ein Tool-Aktivitätsende beendet den Hauptzug vorzeitig | done | S1 | core | — |
 | [BUG-0162](bug-0162-exit-regex-matcht-fremde-event-typen.md) | Exit-Regex matcht fremde Event-Typen | done | S2 | core | — |
 | [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | done | S2 | ci | [#4](https://github.com/SiLenTTz/AncientVoid/issues/4) |
@@ -220,7 +220,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0170](bug-0170-testsuite-auf-windows-rot.md) | `npm test` ist auf Windows breit rot (CRLF, Symlinks, Spawn/Signale) — Gate und `^`-Commits blockiert | open | S2 | tests | — |
 | [BUG-0171](bug-0171-session-start-fehlt-bei-neuem-ordner.md) | Session-Start in noch nicht existierendem Ordner scheitert mit falscher Begründung | done | S2 | core | — |
 | [BUG-0172](bug-0172-ordner-ohne-git-nicht-waehlbar.md) | Ordner ohne `.git` erscheinen nie in der Projektauswahl | done | S3 | core | — |
-| [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | — |
+| [BUG-0173](bug-0173-neue-session-vergisst-letzten-pfad.md) | Gemerkter Pfad, Anlegen-Block und Wurzelhinweis hängen an der Zahl gefundener Git-Ordner | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0174](bug-0174-zweite-session-im-gleichen-ordner.md) | Zweite Session im selben Ordner ist ohne Git eine Sackgasse | done | S2 | core | — |
 | [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
 
@@ -228,18 +228,19 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
 | [BUG-0193](bug-0193-schneller-testloop-laeuft-auf-windows-nicht.md) | `test:fast`/`test:slow` setzen die Tier-Umgebung inline — auf Windows (cmd.exe) gibt es dafür kein Ergebnis, der schnelle Loop war dort unbenutzbar | done | S2 | repo | — |
 | [BUG-0194](bug-0194-niedriges-querformat-dock-haengt-an-der-listenspalte.md) | niedriges Querformat: Dock an der Listenspalte eingerueckt (Tabs + Eingabe unter der Kante), Warteschlangen-Text auf 390 px unlesbar | done | S2 | pwa | — |
-| [BUG-0195](bug-0195-live-thinking-groesser-als-die-denk-notiz.md) | das live uebertragene Denken war groesser, gerahmt und hinterlegt (15 px + Akzentkasten) statt wie eine Denk-Notiz (12 px, dimmt, kursiv) | done | S3 | pwa | — |
+| [BUG-0195](bug-0195-live-thinking-groesser-als-die-denk-notiz.md) | das live uebertragene Denken war groesser, gerahmt und hinterlegt (15 px + Akzentkasten) statt wie eine Denk-Notiz (12 px, dimmt, kursiv) | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0196](bug-0196-windows-projektpfad-statt-projektname.md) | PWA zeigt unter Windows den vollen Projektpfad (inkl. Benutzername) statt des Projektnamens — `split("/")` an 20 Stellen | done | S2 | pwa | — |
 | [BUG-0197](bug-0197-inventar-g19-s04-nach-ui-konsolidierung-rot.md) | nach PR #94 meldete das Inventar veraltete Leerzustands-Selektoren (`.empty`/`.empty-state` statt `ui-empty`) — Produkt war korrekt; 6 failed wurden 10 passed / 1 failed | done | S2 | pwa | — |
 | [BUG-0198](bug-0198-check-context-token-tabelle-falschalarm-auf-windows.md) | `check:context` meldet auf Windows (CRLF-Checkout) „Token-Tabelle veraltet“, obwohl nichts veraltet ist — Generator schreibt LF in ein CRLF-Dokument | done | S3 | repo | — |
 | [BUG-0199](bug-0199-sprach-fab-liegt-auf-einstellungen-ueber-einer-reihe.md) | der Sprach-FAB verdeckt auf langen Seiten (Einstellungen, y=3200) den Pinch-Zoom-Schalter — elementFromPoint trifft `nyx-fab`, der Schalter ist nicht erreichbar | done | S2 | pwa | — |
 | [BUG-0200](bug-0200-mehr-menue-in-eigenen-fenstern-offnet-nicht.md) | Menüpunkte des „Mehr“-Menüs lagen im Kachelkopf hinter der Steuerung (Stapelkontext `--z-sticky` < `--z-dock`) — jetzt erbt der Kopf nur im geöffneten Zustand `--z-sheet`; Inventar 9 passed | done | S2 | pwa | — |
-| [BUG-0201](bug-0201-nyx-fab-am-pc-liegt-ueber-dem-verlauf.md) | am PC lag der Nyx-FAB in der Viewport-Mitte und deckte eine Verlaufszeile ab — PC-Default sitzt jetzt unten links in der freien Liste | done | S3 | pwa | — |
+| [BUG-0201](bug-0201-nyx-fab-am-pc-liegt-ueber-dem-verlauf.md) | am PC lag der Nyx-FAB in der Viewport-Mitte und deckte eine Verlaufszeile ab — PC-Default sitzt jetzt unten links in der freien Liste | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0202](bug-0202-cursor-interaction-query-fehlt-im-chat.md) | Cursor `interaction_query`/`tool_call` nur als `cursor.unhandled` im Verlauf — Plan-/Auswahlfrage fehlt im Chat | open | S2 | adapters | [#116](https://github.com/securesight-ai/AncientVoid/issues/116) |
 | [BUG-0203](bug-0203-wurzel-commit-im-bereich-laesst-den-ganzen-aenderungs-diff-fallen.md) | ein Eltern-loser Commit im Bereich liess den gesamten Aenderungsdiff ausfallen (`sha^` existiert nicht) — diffet jetzt gegen den leeren Baum | done | S2 | hub | — |
 | [BUG-0204](bug-0204-ubergrosser-aenderungs-diff-faellt-wegen-maxbuffer-komplett-raus.md) | ein Commit-Diff ueber der Groessenkante loeschte den gesamten Aenderungs-View (live: `stdout maxBuffer length exceeded`) — jetzt Teilbefund pro Commit, uebrige Commits bleiben lesbar | done | S2 | hub | — |
 | [BUG-0205](bug-0205-metrik-karten-ohne-region-role.md) | die Karten der Metrik-Seite haben nach der P63-Baustein-Migration keine region-Rolle mehr — `getByRole("region", { name: "Metrik-Quelle …" })` (ki-server-metriken.spec) findet sie nicht | done | S3 | pwa | [#117](https://github.com/securesight-ai/AncientVoid/issues/117) |
-Die nächste freie Nummer ist **0206** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0206](bug-0206-terminal-css-bricht-token-ratchet.md) | Terminal-CSS aus PR #125 bricht den css-tokens-Ratchet (3 Farbliterale, 2 var-Fallbacks, Phantom-Token `--danger`) — main stand rot | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
+Die nächste freie Nummer ist **0207** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens

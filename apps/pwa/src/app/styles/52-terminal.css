@@ -22,10 +22,10 @@
 .terminal-host {
   flex: 1;
   min-height: 12rem;
-  border: 1px solid var(--border, #30363d);
+  border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
-  background: #0d1117;
+  background: var(--gray-950);
 }
 .terminal-host .xterm {
   height: 100%;
@@ -33,5 +33,5 @@
 }
 .terminal-page .ui-error {
   margin: 0;
-  color: var(--danger, #f85149);
+  color: var(--err);
 }
