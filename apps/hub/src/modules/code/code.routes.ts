@@ -4,7 +4,7 @@ import { realpath } from "node:fs/promises";
 import { z } from "zod";
 import { basename, resolve } from "node:path";
 import { CodeSearchMode, type ActionDefinition, type WorkspaceIdentity } from "@ancientvoid/contracts";
-import { ActionRunner, BUILTIN_ACTIONS, FEEDBACK_MAX_ITEMS, FEEDBACK_NOTE_MAX_CHARS, composeFileFeedback, detectedActions, resolveFeedbackItems, runDiagnostics, fileMeta, findInFile, isProjectPathAllowed, listTree, listZip, mimeOf, officeSections, offsetOfLine, readCodeFile, readRange, resolveFile, searchCode, workspaceIdentity } from "@ancientvoid/core";
+import { ActionRunner, BUILTIN_ACTIONS, FEEDBACK_MAX_ITEMS, FEEDBACK_NOTE_MAX_CHARS, composeFileFeedback, detectedActions, resolveFeedbackItems, runDiagnostics, fileMeta, findInFile, isProjectPathAllowed, listTree, listZip, mimeOf, officeSections, offsetOfLine, readCodeFile, readCodeFileAt, readRange, resolveFile, searchCode, workspaceIdentity } from "@ancientvoid/core";
 import { getSessionDiff } from "../sessions/diff.ts";
 import { relativeDataDir } from "../search/search.ts";
 import type { RouteContext } from "../../route-context.ts";
@@ -73,10 +73,16 @@ export function registerCodeRoutes(app: FastifyInstance, ctx: RouteContext): voi
   });
 
   app.get("/api/code/file", async (req, reply) => {
-    const q = req.query as { path?: string };
+    const q = req.query as { path?: string; sha?: string };
     if (!q.path) return reply.code(400).send({ error: "path required" });
     const t = await target(req, reply);
     if (!t) return;
+    // BUG-0191: Historie-Blob @ Commit — kein Worktree-Stand.
+    if (q.sha) {
+      const hist = await readCodeFileAt(t.root, q.path, q.sha, t.identity);
+      if (!hist) return reply.code(404).send({ error: "file not found at revision, not a blob, or outside the workspace" });
+      return hist;
+    }
     let changed: { additions: number; deletions: number } | null = null;
     if (t.identity.kind === "session") {
       const diff = await getSessionDiff(t.root, t.base).catch(() => null);

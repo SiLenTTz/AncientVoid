@@ -153,6 +153,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     capabilities(): AdapterCapabilities {
       return {
         promptDelivery: "next-turn",
+        // ADR-0085: Pi's steer ist ein eigener Lauf (kein zweiter Prozess auf dieselbe
+        // native Session) — daher ist Lenken mitten im Zug erlaubt und waehlbar.
+        midTurnInput: true,
         reasoning: true,
         tools: true,
         cost: false,

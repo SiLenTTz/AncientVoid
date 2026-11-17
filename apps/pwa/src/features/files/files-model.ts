@@ -10,6 +10,8 @@ export const rootKey = (root: FilesRoot): string => `${root.hostId ? `${root.hos
 interface OpenTab {
   rootKey: string;
   path: string;
+  /** BUG-0191: Commit-SHA für Historie-Blob statt Worktree-Datei. */
+  sha?: string;
 }
 
 const KEY = "ancientvoid.files.v1";

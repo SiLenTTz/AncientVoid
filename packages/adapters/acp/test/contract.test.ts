@@ -1,11 +1,11 @@
 import { describe, it } from "vitest";
 import { chmodSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { runContractTests, assertContractGreen } from "@ancientvoid/adapter-testkit";
 import { ProcessRunner } from "@ancientvoid/workers";
 import { createAdapter } from "../src/index.ts";
+import { standIn } from "../../../../e2e/support/stand-in.ts";
 
-const agent = fileURLToPath(new URL("../../../../e2e/support/bin/acp-agent", import.meta.url));
+const agent = standIn("acp-agent");
 chmodSync(agent, 0o755);
 
 describe("acp adapter contract", () => {

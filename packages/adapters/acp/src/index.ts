@@ -19,6 +19,7 @@ import {
   type SteerInput,
   type WorkerProcess,
 } from "@ancientvoid/contracts";
+import { spawnArgv } from "@ancientvoid/contracts";
 import { JsonRpcConnection as AcpConnection, RpcError } from "@ancientvoid/adapter-jsonrpc";
 import { resolveContextWindow } from "@ancientvoid/models";
 import { UpdateMapper, type SessionUpdate } from "./normalize.ts";
@@ -88,8 +89,16 @@ export const ACP_PRESETS = {
  * only where the harness documents it — copilot's ACP server executes
  * built-in slash commands from a text block (docs.github.com …/acp-server,
  * picker commands excluded), omp dispatches its built-in registry in ACP
- * mode too (slash-command-internals.md). opencode/dsh/maki: no driven-mode
- * evidence yet → nothing declared, the PWA says so (fail loud, T25.6). */
+ * mode too (slash-command-internals.md). opencode: live verified
+ * 17.11.2026 against 2.1.4 (BUG-0192) — "/compact" as prompt text ran as a
+ * command (session_info_update _meta.opencode/compaction "started"→
+ * "completed", reason "manual"; no model turn about the word), and the
+ * agent advertises /init, /review, /compact via available_commands_update;
+ * the ACP spec defines command invocation as command text inside a regular
+ * prompt (agentclientprotocol.com/protocol/v1/slash-commands). "/new" is
+ * opencode's own client-side command, no agent command — never declarable.
+ * dsh/maki: no driven-mode evidence yet → nothing declared, the PWA says
+ * so (fail loud, T25.6). */
 const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   copilot: [
     { name: "/compact", description: "Verlauf komprimieren", scope: "both" },
@@ -98,6 +107,11 @@ const ACP_PRESET_COMMANDS: Record<string, readonly SlashCommand[]> = {
   omp: [
     { name: "/new", description: "Neue Session mit frischem Kontext", scope: "both" },
     { name: "/compact", description: "Kontext komprimieren, optional mit Anleitung", scope: "both" },
+  ],
+  opencode: [
+    { name: "/init", description: "Geführtes AGENTS.md-Setup starten", scope: "both" },
+    { name: "/review", description: "Änderungen reviewen (commit|branch|pr, sonst uncommitted)", scope: "both" },
+    { name: "/compact", description: "Session komprimieren", scope: "both" },
   ],
 };
 
@@ -705,7 +719,8 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (!cfg.modelsCommand && (cfg.preset === "dsh" || cfg.preset === "maki" || cfg.preset === "omp") && command) return probeModelCatalog(command, env);
       const cmd = cfg.modelsCommand ?? (command?.at(-1) === "acp" ? [...command.slice(0, -1), "models"] : undefined);
       if (!cmd) return [];
-      const { stdout } = await run(cmd[0]!, cmd.slice(1), { timeout: 20_000, maxBuffer: 1024 * 1024 });
+      const start = spawnArgv(cmd[0]!, cmd.slice(1));
+      const { stdout } = await run(start.file, start.args, { timeout: 20_000, maxBuffer: 1024 * 1024, ...(start.shell ? { shell: true } : {}) });
       return stdout
         .split("\n")
         .map((line) => line.trim())

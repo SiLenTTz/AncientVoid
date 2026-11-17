@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { spawnArgv } from "@ancientvoid/contracts";
 import { tmpdir } from "node:os";
 import type { ModelOption } from "@ancientvoid/contracts";
 
@@ -46,7 +47,8 @@ export async function probeModelCatalog(
   opts: { settleMs?: number; timeoutMs?: number; cwd?: string } = {},
 ): Promise<ModelOption[]> {
   const { settleMs = 1500, timeoutMs = 20_000, cwd = tmpdir() } = opts;
-  const child = spawn(command[0]!, command.slice(1), { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "ignore"] });
+  const start = spawnArgv(command[0]!, command.slice(1));
+  const child = spawn(start.file, start.args, { cwd, env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "ignore"], ...(start.shell ? { shell: true } : {}) });
   const send = (msg: Record<string, unknown>) => child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", ...msg })}\n`);
   let best: ModelOption[] = [];
   let sessionId: string | null = null;

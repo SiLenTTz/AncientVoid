@@ -4,7 +4,7 @@
   "private": true,
   "description": "Shared contracts for AncientVoid: NormalizedEvent, Adapter interface, worker and server protocols. Zero runtime dependencies beyond zod.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
     "./event": "./src/sessions/event.ts",

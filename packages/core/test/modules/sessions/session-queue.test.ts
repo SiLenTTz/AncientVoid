@@ -10,7 +10,7 @@ import { HubDatabase } from "../../../src/platform/db.ts";
 import { SessionManager } from "../../../src/modules/sessions/session-manager.ts";
 
 /** EPIC-P15 T15.3: Pause und vorgemerkte Nachrichten. */
-function fakeAdapter(nextTurn = false) {
+function fakeAdapter(nextTurn = false, midTurnInput = false) {
   const steered: SteerInput[] = [];
   const ctxs = new Map<string, AdapterContext>();
   let refusePrompts = false;
@@ -20,6 +20,7 @@ function fakeAdapter(nextTurn = false) {
     version: "0.0.1",
     capabilities: () => ({
       ...(nextTurn ? { promptDelivery: "next-turn" as const } : {}),
+      ...(midTurnInput ? { midTurnInput: true } : {}),
       reasoning: false,
       tools: false,
       cost: false,
@@ -67,9 +68,9 @@ async function waitFor(check: () => boolean | Promise<boolean>, ms = 4000): Prom
   throw new Error("waitFor: Bedingung nicht erfüllt");
 }
 
-const setup = async (dbFile?: string, root?: string, nextTurn = false, steerWaitMs?: number) => {
+const setup = async (dbFile?: string, root?: string, nextTurn = false, steerWaitMs?: number, midTurnInput = false) => {
   const dir = root ?? (await mkdtemp(join(tmpdir(), "ancientvoid-queue-")));
-  const { steered, registry, endTurn, refuseNext, hangNext } = fakeAdapter(nextTurn);
+  const { steered, registry, endTurn, refuseNext, hangNext } = fakeAdapter(nextTurn, midTurnInput);
   const db = new HubDatabase(dbFile ?? ":memory:");
   const sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner(), undefined, undefined, undefined, null, [], steerWaitMs === undefined ? {} : { steerWaitMs });
   return { dir, sessions, steered, endTurn, refuseNext, hangNext, db, registry, done: async () => { await sessions.shutdown(); if (!root) await rm(dir, { recursive: true, force: true }); } };
@@ -330,6 +331,114 @@ describe("Pause", () => {
       expect(resumed.ok).toBe(true);
       expect(prompts(steered)).toEqual(["weiter"]);
       expect(sessions.get(rec.id)?.status).toBe("working");
+    } finally {
+      await done();
+    }
+  });
+});
+
+/**
+ * ADR-0085: dieselbe Meldung kann „am Zugende“ oder „jetzt“ meinen, und eine vorgemerkte
+ * Meldung wird nachträglich geändert (Text und Stelle in der Reihe). Die Reihe ist
+ * gespeichert (Migration 35: `session_queue.position`), nicht Ankunftsreihenfolge.
+ */
+describe("Zustellung und nachträgliches Ändern (ADR-0085)", () => {
+  it("die Reihe ist gespeichert: 1, 2, 3 — und ↑ holt die dritte nach vorn", async () => {
+    const { dir, sessions, steered, endTurn, done } = await setup(undefined, undefined, true);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      for (const text of ["eins", "zwei", "drei"]) await sessions.steer(rec.id, { kind: "prompt", text }, undefined, { queue: true });
+      expect(sessions.queued(rec.id).map((q) => [q.position, q.text])).toEqual([[0, "eins"], [1, "zwei"], [2, "drei"]]);
+
+      const dritte = sessions.queued(rec.id)[2]!;
+      expect(await sessions.editQueued(rec.id, dritte.id, { move: "front" })).toEqual({ ok: true, detail: "position 1" });
+      expect(sessions.queued(rec.id).map((q) => [q.position, q.text])).toEqual([[0, "drei"], [1, "eins"], [2, "zwei"]]);
+      expect(await kinds(sessions, rec.id)).toContain("session.queue_moved");
+
+      // Ausgesandt wird in der neuen Reihe, nicht in der alten Ankunftsreihenfolge.
+      for (let i = 0; i < 3; i++) {
+        endTurn(rec.id);
+        await waitFor(() => prompts(steered).length === i + 1);
+        await new Promise((r) => setTimeout(r, 120));
+      }
+      expect(prompts(steered)).toEqual(["drei", "eins", "zwei"]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("✎ ändert den Text, und der Verlauf zeigt die Änderung", async () => {
+    const { dir, sessions, done } = await setup(undefined, undefined, true);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      await sessions.steer(rec.id, { kind: "prompt", text: "URSPRÜNGLICH" }, undefined, { queue: true });
+      const item = sessions.queued(rec.id)[0]!;
+      expect(await sessions.editQueued(rec.id, item.id, { text: "KORRIGIERT, ausführlicher" })).toEqual({ ok: true, detail: "position 1" });
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["KORRIGIERT, ausführlicher"]);
+      expect(await kinds(sessions, rec.id)).toContain("session.queue_edited");
+      // Leerer Text ist kein Löschen — das bleibt abgelehnt, sonst wäre der Auftrag weg.
+      expect((await sessions.editQueued(rec.id, item.id, { text: "   " })).ok).toBe(false);
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["KORRIGIERT, ausführlicher"]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("↓ fällt ans Ende zurück; die Spitze nach vorn zu holen ändert nichts", async () => {
+    const { dir, sessions, done } = await setup(undefined, undefined, true);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      for (const text of ["ersten", "zweiten"]) await sessions.steer(rec.id, { kind: "prompt", text }, undefined, { queue: true });
+      const [erste] = sessions.queued(rec.id);
+      expect(await sessions.editQueued(rec.id, erste!.id, { move: "back" })).toEqual({ ok: true, detail: "position 2" });
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["zweiten", "ersten"]);
+      const [spitze] = sessions.queued(rec.id);
+      expect(await sessions.editQueued(rec.id, spitze!.id, { move: "front" })).toEqual({ ok: true, detail: "position 1" });
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["zweiten", "ersten"]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("midTurnInput (Pi-Form): queue:false geht sofort zum Adapter, nicht in die Warteschlange", async () => {
+    const { dir, sessions, steered, done } = await setup(undefined, undefined, true, undefined, true);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      expect(sessions.get(rec.id)?.status).toBe("working");
+      const ack = await sessions.steer(rec.id, { kind: "prompt", text: "mitten im Zug" }, undefined, { queue: false });
+      expect(ack.ok).toBe(true);
+      expect(sessions.queued(rec.id)).toEqual([]);
+      await waitFor(() => prompts(steered).includes("mitten im Zug"));
+    } finally {
+      await done();
+    }
+  });
+
+  it("ohne midTurnInput bleibt queue:false sicher vorgemerkt (ADR-0074 gilt weiter)", async () => {
+    const { dir, sessions, steered, done } = await setup(undefined, undefined, true);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir });
+      const ack = await sessions.steer(rec.id, { kind: "prompt", text: "soll warten" }, undefined, { queue: false });
+      expect(ack).toEqual({ ok: true, detail: "queued" });
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["soll warten"]);
+      expect(prompts(steered)).toEqual([]);
+    } finally {
+      await done();
+    }
+  });
+
+  it("bei unklarer Annahme sind Text und Reihe gesperrt — entschieden wird nicht über einen unbeobachteten Zustand", async () => {
+    const { dir, sessions, hangNext, done } = await setup(undefined, undefined, false, 30);
+    try {
+      const rec = await sessions.create({ adapter: "turny", project: dir, prompt: "erste Frage" });
+      await sessions.steer(rec.id, { kind: "prompt", text: "ungewiss" }, "handy", { queue: true });
+      const [item] = sessions.queued(rec.id);
+      hangNext();
+      expect((await sessions.sendQueuedNow(rec.id, item!.id, "handy")).ok).toBe(false);
+      expect(sessions.queued(rec.id)).toContainEqual(expect.objectContaining({ id: item!.id, delivery: "unknown" }));
+      expect((await sessions.editQueued(rec.id, item!.id, { text: "doch anders" })).ok).toBe(false);
+      expect((await sessions.editQueued(rec.id, item!.id, { move: "front" })).ok).toBe(false);
+      expect(sessions.queued(rec.id).map((q) => q.text)).toEqual(["ungewiss"]);
     } finally {
       await done();
     }

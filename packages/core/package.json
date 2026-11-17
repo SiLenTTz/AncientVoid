@@ -4,7 +4,7 @@
   "private": true,
   "description": "AncientVoid hub kernel: EventStore (JSONL + blobs), SessionManager lifecycle, adapter registry with dynamic module loading, SQLite persistence.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -26,6 +26,6 @@
     "fast-check": "^4.10.1"
   },
   "optionalDependencies": {
-    "playwright": "^1.64.0"
+    "playwright": "^1.65.1"
   }
 }

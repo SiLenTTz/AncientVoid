@@ -51,10 +51,20 @@ const SteerBody = z.intersection(
     revision: z.number().int().nonnegative().optional(),
     clientId: z.string().min(1).optional(),
     takeover: z.boolean().optional(),
-    /** EPIC-P15 T15.3: hold a prompt back until the running turn ends. */
+    /** EPIC-P15 T15.3: hold a prompt back until the running turn ends. ADR-0085: aus-
+     * druecklich `false` heisst "nicht vormerken, sondern jetzt lenken" — erlaubt bei
+     * Adaptern mit steer (Pi), auch wenn sie Meldungen erst im naechsten Zug annehmen. */
     queue: z.boolean().optional(),
   }),
 );
+
+/** ADR-0085: was an einer vorgemerkten Meldung geaendert werden darf — Wortwahl und Stelle. */
+const QueueEditRequest = z
+  .object({
+    text: z.string().min(1).max(20_000).optional(),
+    move: z.enum(["front", "back"]).optional(),
+  })
+  .strict();
 
 /** Session lifecycle, events, steering, diff and budget. */
 export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext): void {
@@ -302,7 +312,9 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
       ...(revision !== undefined ? { revision } : {}),
       ...(clientId !== undefined ? { clientId } : {}),
       ...(takeover ? { takeover } : {}),
-      ...(queue ? { queue } : {}),
+      // ADR-0085: `false` ist eine Aussage ("nicht vormerken, jetzt lenken") — sie darf nicht
+      // wie "nicht angegeben" verschwinden.
+      ...(queue !== undefined ? { queue } : {}),
     });
     return ack.ok ? ack : reply.code(422).send(ack);
   });
@@ -326,7 +338,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
   app.get("/api/sessions/:id/queue", async (req, reply) => {
     const { id } = req.params as { id: string };
     if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
-    return deps.sessions.queued(id).map(({ id: queueId, text, createdAt, actor, attachments, delivery }) => ({ id: queueId, text, createdAt, actor, attachments: attachments?.length ?? 0, ...(delivery ? { delivery } : {}) }));
+    return deps.sessions.queued(id).map(({ id: queueId, text, createdAt, actor, attachments, delivery, position }) => ({ id: queueId, text, createdAt, actor, position, attachments: attachments?.length ?? 0, ...(delivery ? { delivery } : {}) }));
   });
 
   app.delete("/api/sessions/:id/queue/:queueId", async (req, reply) => {
@@ -342,6 +354,17 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     const { id, queueId } = req.params as { id: string; queueId: string };
     if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
     const ack = await deps.sessions.sendQueuedNow(id, queueId, callerLabel(req) ?? undefined);
+    return ack.ok ? ack : reply.code(422).send(ack);
+  });
+
+  /** ADR-0085: eine vorgemerkte Meldung nachtraeglich aendern — Text und/oder Stelle. */
+  app.patch("/api/sessions/:id/queue/:queueId", async (req, reply) => {
+    const { id, queueId } = req.params as { id: string; queueId: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    const parsed = QueueEditRequest.safeParse(req.body ?? {});
+    if (!parsed.success) return reply.code(422).send({ ok: false, detail: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
+    if (parsed.data.text === undefined && !parsed.data.move) return reply.code(422).send({ ok: false, detail: "weder Text noch Stelle angegeben" });
+    const ack = await deps.sessions.editQueued(id, queueId, parsed.data, callerLabel(req) ?? undefined);
     return ack.ok ? ack : reply.code(422).send(ack);
   });
 

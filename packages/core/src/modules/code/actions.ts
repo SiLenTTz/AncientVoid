@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { ACTION_OUTPUT_MAX_CHARS, ActionDefinition, ActionParam, actionArgv, type ActionRun, type EmittedEvent } from "@ancientvoid/contracts";
+import { ACTION_OUTPUT_MAX_CHARS, ActionDefinition, ActionParam, actionArgv, spawnArgv, type ActionRun, type EmittedEvent } from "@ancientvoid/contracts";
 
 /** Read-only git actions every worktree has. */
 export const BUILTIN_ACTIONS: ActionDefinition[] = [
@@ -191,7 +191,8 @@ export class ActionRunner {
       { type: "tool_use", summary: `${def.label}: ${argv.join(" ")}`.slice(0, 200), payload: { id: run.id, name: `aktion:${def.id}`, input: { argv, kind: def.kind, actor }, kind: "action.run" } },
     ]);
 
-    const child = spawn(argv[0]!, argv.slice(1), { cwd: workdir, detached: true, stdio: ["ignore", "pipe", "pipe"], env: this.envFor(def) });
+    const start = spawnArgv(argv[0]!, argv.slice(1));
+    const child = spawn(start.file, start.args, { cwd: workdir, detached: true, stdio: ["ignore", "pipe", "pipe"], env: this.envFor(def), ...(start.shell ? { shell: true } : {}) });
     const append = (chunk: Buffer) => {
       run.output += chunk.toString("utf8");
       if (run.output.length > ACTION_OUTPUT_MAX_CHARS) {

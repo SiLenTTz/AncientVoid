@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, type AdapterInfo, type AdapterUsage, type ApprovalRequest, type FleetHost, type SessionRecord } from "../shared/api.ts";
 import { Dashboard } from "../features/overview/Dashboard.tsx";
+import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
 import { isToolPage, pageHash } from "./route.ts";
 import { setHere } from "../shared/command-context.ts";
@@ -28,6 +29,7 @@ export function App({
   vaultFile = null,
   wide = false,
   dock = true,
+  bell = false,
 }: {
   /** `newTile`: Ctrl/⌘-click — open next to the others (EPIC-P18). */
   onOpen: (session: SessionRecord, opts?: { newTile?: boolean }) => void;
@@ -40,6 +42,8 @@ export function App({
   wide?: boolean;
   /** EPIC-P43 T43.7: die Warteschlange als eigenes Fenster hat kein Dock (ADR-0053 Punkt 2). */
   dock?: boolean;
+  /** EPIC-P64 T64.4: Glocke als Flusselement im Topbar (nur am PC mit sichtbarer Liste — main.tsx rendert sie sonst). */
+  bell?: boolean;
 }) {
   const shown: Page = wide && isToolPage(page) ? "dashboard" : page;
   useEffect(() => setHere({ page, sessionId: null, hostId: null, sessionRevision: null }), [page]);
@@ -157,6 +161,9 @@ export function App({
           <span class={`conn-dot ${error ? "closed" : "live"}`} title={error ? error : "verbunden"} />
           {/* EPIC-P43 T43.7: die Warteschlange als eigenes Fenster (nur am PC, letzte Taste im Kopf). */}
           {shown === "dashboard" && <DetachButton target={{ kind: "queue" }} label="Warteschlange" />}
+          {/* EPIC-P64 T64.4: am PC mit sichtbarer Liste sitzt die Glocke als
+           * Flusselement rechts im Kopf der Listenspalte — kein Overlay. */}
+          {bell && <NotificationCenter flow />}
         </div>
       </div>
 

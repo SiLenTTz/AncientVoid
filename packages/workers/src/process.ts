@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { spawnArgv } from "@ancientvoid/contracts";
 import type { WorkerProcess, WorkerRunner, WorkerInfo, WorkerSpec } from "@ancientvoid/contracts";
 
 /**
@@ -14,10 +15,15 @@ export class ProcessRunner implements WorkerRunner {
   }
 
   async spawn(spec: WorkerSpec): Promise<WorkerProcess> {
-    const proc = spawn(spec.cmd[0]!, spec.cmd.slice(1), {
+    // BUG-0179: Endung-lose Node-Attrappen bekommen auf Windows das Node-Programm vorangestellt —
+    // ohne Shell-Schicht, damit Pipes und Exit-Semantik heil bleiben (gemessen: .cmd + Shell
+    // kostet 13 Timeouts a 15 s in codex/app-server.test.ts).
+    const start = spawnArgv(spec.cmd[0]!, spec.cmd.slice(1));
+    const proc = spawn(start.file, start.args, {
       cwd: spec.cwd,
       env: { ...process.env, ...spec.env },
       stdio: ["pipe", "pipe", "pipe"],
+      ...(start.shell ? { shell: true } : {}),
     });
     const stdoutCbs = new Set<(chunk: string) => void>();
     const stderrCbs = new Set<(chunk: string) => void>();

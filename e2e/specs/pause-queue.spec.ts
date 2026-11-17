@@ -135,3 +135,116 @@ test.describe("Steer-Timeout (AC-P17-3)", () => {
     expect(asked).toHaveLength(1);
   });
 });
+
+/**
+ * ADR-0085: Kai steuert Pi vom Handy. Zwei Dinge müssen gehen: wählen, WIE eine Meldung
+ * zugestellt wird (vormerken am Zugende oder jetzt lenken — die Wahl darf es nur dort geben,
+ * wo der Adapter Eingaben mitten im Zug zusagt), und eine vorgemerkte Meldung nachträglich
+ * ändern (Text und Stelle in der Reihe).
+ */
+test.describe("Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-0085)", () => {
+  const prompts = async (hub: { events: (id: string) => Promise<{ type: string; summary: string; payload: Record<string, unknown> }[]> }, id: string) =>
+    (await hub.events(id)).filter((e) => (e.payload as { kind?: string }).kind === "session.prompt" || e.type === "user").map((e) => e.summary);
+  const queueTexts = async (hub: { api: { <T>(path: string): Promise<{ body: T }> } }, id: string) =>
+    (await hub.api<{ text: string; position: number }[]>(`/api/sessions/${id}/queue`)).body.map((q) => q.text);
+
+  test.describe("mit durchlaufendem Zug (Eingabe mitten im Zug möglich)", () => {
+    test.use({ hubOptions: { dummyAutoStop: 0 } });
+
+    test("⚡ lenken schickt die Meldung sofort in den laufenden Zug, ⏳ stellt um", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "dummy", prompt: "erste Frage" });
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
+
+      const chip = app.getByTestId("delivery-toggle");
+      await expect(chip).toHaveText("⏳ am Zugende");
+      await chip.click();
+      await expect(chip).toHaveText("⚡ lenken");
+      await expect(app.getByTestId("send-now")).toHaveText("Jetzt lenken");
+
+      await app.getByPlaceholder("Antworten…").fill("mitten im Zug lenken");
+      await app.getByTestId("send-now").click();
+      await expect(app.locator(".queue-list")).toHaveCount(0); // nichts vorgemerkt
+      await hub.until(
+        async () =>
+          (await hub.events(id)).some((e) => e.payload.kind === "dummy.prompt" && String((e.payload as { text?: string }).text).includes("mitten im Zug lenken")),
+        "Prompt mitten im Zug angekommen",
+        20_000,
+      );
+      expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("working");
+      // Die Wahl ist eine Gewohnheit, kein einmaliger Klick: sie übersteht ein Neuladen.
+      await app.reload();
+      await expect(app.getByTestId("delivery-toggle")).toHaveText("⚡ lenken");
+    });
+
+    test("↑ ↓ und ✎ wirken beim Hub, nicht nur in der Ansicht", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "dummy", prompt: "erste Frage" });
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
+      for (const text of ["vierte Anfrage", "wichtigste Anfrage"]) {
+        await app.getByPlaceholder("Antworten…").fill(text);
+        await app.getByRole("button", { name: "Vormerken" }).click();
+      }
+      await expect(app.locator(".queue-item")).toHaveCount(2);
+      expect(await queueTexts(hub, id)).toEqual(["vierte Anfrage", "wichtigste Anfrage"]);
+
+      await app.getByTestId("queue-move-front").nth(1).click();
+      await expect(app.locator(".queue-item").first()).toContainText("wichtigste Anfrage");
+      expect(await queueTexts(hub, id)).toEqual(["wichtigste Anfrage", "vierte Anfrage"]);
+
+      await app.getByTestId("queue-edit").first().click();
+      await app.getByLabel("Vorgemerkte Nachricht 1 bearbeiten").fill("wichtigste, präzisiert");
+      await app.getByTestId("queue-edit-save").click();
+      expect(await queueTexts(hub, id)).toEqual(["wichtigste, präzisiert", "vierte Anfrage"]);
+      expect((await hub.events(id)).some((e) => (e.payload as { kind?: string }).kind === "session.queue_moved")).toBe(true);
+      expect((await hub.events(id)).some((e) => (e.payload as { kind?: string }).kind === "session.queue_edited")).toBe(true);
+    });
+
+    test("im Querformat bleibt die Zustellwahl neben der Eingabe erreichbar", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "dummy", prompt: "erste Frage" });
+      await app.setViewportSize({ width: 915, height: 412 });
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      // Chat ist die Arbeitsansicht; im niedrigen Querformat startet die Steuerung
+      // zugeklappt (BUG-0053) — beides machen wir wie ein Nutzer.
+      await app.getByRole("button", { name: "Chat" }).click();
+      const composer = app.getByPlaceholder("Antworten…");
+      if (!(await composer.isVisible())) await app.locator(".dock-toggle").click();
+      await expect(composer).toBeVisible();
+      const chip = app.getByTestId("delivery-toggle");
+      await expect(chip).toBeInViewport();
+      const box = (await chip.boundingBox())!;
+      expect(box.height).toBeGreaterThanOrEqual(24);
+      expect(box.x + box.width).toBeLessThanOrEqual(915);
+      await expect(app.getByRole("button", { name: "Chat" })).toBeInViewport();
+    });
+  });
+
+  test("Claude darf die Wahl nicht zeigen: ADR-0074 verbietet Eingaben mitten im Zug", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
+    await expect(app.getByTestId("delivery-toggle")).toHaveCount(0);
+    await expect(app.getByRole("button", { name: "Vormerken" })).toHaveCount(1);
+    await app.getByPlaceholder("Antworten…").fill("am Zugende");
+    await app.getByRole("button", { name: "Vormerken" }).click();
+    expect(await queueTexts(hub, id)).toEqual(["am Zugende"]);
+  });
+
+  test("✎ Bearbeiten: die geänderte Fassung geht raus, nicht die alte", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "ZUEGIG erste Frage" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
+    await app.getByPlaceholder("Antworten…").fill("URSPRÜNGLICH");
+    await app.getByRole("button", { name: "Vormerken" }).click();
+    await expect(app.locator(".queue-list")).toContainText("URSPRÜNGLICH");
+
+    await app.getByTestId("queue-edit").click();
+    await app.getByLabel("Vorgemerkte Nachricht 1 bearbeiten").fill("KORRIGIERT");
+    await app.getByTestId("queue-edit-save").click();
+    await expect(app.locator(".queue-list")).toContainText("KORRIGIERT");
+    expect(await queueTexts(hub, id)).toEqual(["KORRIGIERT"]);
+
+    await hub.until(async () => (await prompts(hub, id)).some((t) => t.includes("KORRIGIERT")), "geänderte Fassung gesendet", 25_000);
+    expect(await prompts(hub, id)).not.toContain("URSPRÜNGLICH");
+  });
+});

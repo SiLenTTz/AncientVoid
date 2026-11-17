@@ -271,6 +271,22 @@ export function SessionTail({
   // one — POST /api/sessions/:id/steer existed server-side and both real
   // adapters implement it, nothing in the client ever called it.
   const [steerSupported, setSteerSupported] = useState(false);
+  /** ADR-0085: nimmt der Adapter Eingaben mitten im laufenden Zug an (Pi, live). */
+  const [midTurnInput, setMidTurnInput] = useState(false);
+  // ADR-0085: läuft ein Zug, entscheidet diese Wahl, was der Senden-Knopf tut —
+  // "vormerken (am Zugende)" oder "jetzt lenken". Der Hub kann beides; die Wahl bleibt
+  // über Neuladen hinweg erhalten, weil sie eine Gewohnheit des Nutzers ist.
+  const [delivery, setDelivery] = useState<"queue" | "now">(() =>
+    typeof localStorage !== "undefined" && localStorage.getItem("ancientvoid.queueDelivery") === "now" ? "now" : "queue",
+  );
+  const chooseDelivery = (mode: "queue" | "now") => {
+    setDelivery(mode);
+    try {
+      localStorage.setItem("ancientvoid.queueDelivery", mode);
+    } catch {
+      /* privater Modus: die Wahl gilt dann nur für diesen Laden */
+    }
+  };
   /** T7.5: an observer (clip) cannot stop the harness — only stop watching. */
   const [observerOnly, setObserverOnly] = useState(false);
   // T1.6-4: claude's result line is the one real source for both costUsd
@@ -336,6 +352,7 @@ export function SessionTail({
           // box": an adapter without capabilities.steer gets no reply field
           // at all rather than one that would silently fail every time.
           setSteerSupported(info?.capabilities.features?.followUp ?? info?.capabilities.steer ?? false);
+          setMidTurnInput((info?.capabilities.midTurnInput ?? false) || (info?.capabilities.promptDelivery ?? "live") === "live");
           setObserverOnly(info?.capabilities.features ? !info.capabilities.features.followUp && !info.capabilities.features.interrupt : false);
           setFeatures(info?.capabilities.features ?? null);
           setReportNumbersReal(info?.capabilities.cost ?? false);
@@ -347,6 +364,7 @@ export function SessionTail({
         .catch(() => {
           if (!alive) return;
           setSteerSupported(false);
+          setMidTurnInput(false);
           setReportNumbersReal(false);
           // BUG-0022: the hub was unreachable while opening — ask again
           // instead of hiding the reply field until a reload.
@@ -801,7 +819,7 @@ export function SessionTail({
     }
   };
 
-  const sendText = async (text: string, takeover = false, queue = false, submittedSources: SourceRef[] = []) => {
+  const sendText = async (text: string, takeover = false, queue?: boolean, submittedSources: SourceRef[] = []) => {
     if (!text.trim() && replyAttachments.length === 0) return;
     setReplyBusy(true);
     setReplyError("");
@@ -811,7 +829,7 @@ export function SessionTail({
       const ids = replyAttachments.map((a) => a.id);
       const ack = await api.steer(session.id, { kind: "prompt", text, ...(ids.length ? { attachmentIds: ids } : {}) }, pendingInput.current.id, takeover, queue);
       if (ack.ok) {
-        if (queue) setQueueTick((t) => t + 1);
+        if (queue || ack.detail === "queued") setQueueTick((t) => t + 1);
         pendingInput.current = null;
         setReply("");
         setReplyAttachments([]);
@@ -832,7 +850,7 @@ export function SessionTail({
     }
   };
 
-  const sendReply = (takeover = false, queue = false) => {
+  const sendReply = (takeover = false, queue?: boolean) => {
     // EPIC-P43.5 T43.5-1: Quellenchips wandern als markierter Block in den
     // Prompt — dieselbe Form wie die Vorschau im Composer, danach verbraucht.
     const sources = sourcesOf(session.id);
@@ -1425,7 +1443,7 @@ export function SessionTail({
                 commandScope="steer"
                 onSubmit={
                   !replyBusy && online && (reply.trim() || replyAttachments.length > 0)
-                    ? () => void sendReply(false, running)
+                    ? () => void sendReply(false, running ? delivery === "queue" : undefined)
                     : undefined
                 }
                 attachments={replyAttachments}
@@ -1434,15 +1452,36 @@ export function SessionTail({
                 extraActions={
                   <>
                     {running ? (
-                      // Läuft ein Zug, ersetzt Vormerken den Senden-Knopf — kein zweiter Knopf daneben.
-                      <Button
-                        
-                        aria-busy={replyBusy}
-                        onClick={() => void sendReply(false, true)}
-                        disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
-                       variant="primary" class={replyBusy ? "busy" : undefined}>
-                        {replyBusy ? "lädt…" : "Vormerken"}
-                      </Button>
+                      // Läuft ein Zug, ersetzt die Zustellwahl den Senden-Knopf — kein zweiter
+                      // Knopf daneben (BUG-0053: im Querformat ist neben der Eingabe kein Platz).
+                      // ADR-0085: der Chip links daneben wählt, was der Knopf tut.
+                      <>
+                        {midTurnInput && (
+                          /* Der Name ohne das Wort "vormerken": der Hauptknopf heißt so, und
+                              die Rollensuche findet Teilzeichenketten — sonst zählt eine Spec zwei Knöpfe. */
+                          <button
+                            class="delivery-chip"
+                            type="button"
+                            data-testid="delivery-toggle"
+                            aria-pressed={delivery === "now"}
+                            aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: warten bis zum Zugende"}
+                            title={delivery === "now" ? "Jetzt lenken — Klick stellt auf Warten bis zum Zugende" : "Warten bis der Zug endet — Klick stellt auf jetzt lenken"}
+                            onClick={() => chooseDelivery(delivery === "now" ? "queue" : "now")}
+                          >
+                            {delivery === "now" ? "⚡ lenken" : "⏳ am Zugende"}
+                          </button>
+                        )}
+                        <Button
+                          aria-busy={replyBusy}
+                          data-testid={delivery === "now" ? "send-now" : "send-queue"}
+                          onClick={() => void sendReply(false, delivery === "queue")}
+                          disabled={replyBusy || !online || (!reply.trim() && replyAttachments.length === 0)}
+                          variant="primary"
+                          class={replyBusy ? "busy" : undefined}
+                        >
+                          {replyBusy ? "lädt…" : delivery === "now" ? "Jetzt lenken" : "Vormerken"}
+                        </Button>
+                      </>
                     ) : (
                       <Button
                         

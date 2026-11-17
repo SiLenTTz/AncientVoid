@@ -153,8 +153,10 @@ mit vitest 5 / Vite 8 (2026-10-08) behoben: `npm audit` meldet insgesamt 0 Funde
 
 ## Was noch fehlt (ehrlich, nicht Teil dieser Session)
 
-- Lizenz (T4.8): entschieden — PolyForm Noncommercial 1.0.0 (`LICENSE`);
-  Meldeweg für Sicherheitslücken: [`SECURITY.md`](../SECURITY.md).
+- Lizenz: AGPL-3.0-only plus kommerzielle Lizenz (`LICENSE`,
+  [ADR-0086](adr/0086-lizenz-agpl-mit-kauflizenz.md), 17.11.2026; bis dahin
+  PolyForm Noncommercial 1.0.0 aus T4.8). Meldeweg für Sicherheitslücken:
+  [`SECURITY.md`](../SECURITY.md).
 - `swarm`-Adapter: kein Code, da das reale Event-Vokabular nicht
   auffindbar war (ADR-0001-Nachtrag) — ein spekulativer Adapter hätte ein
   eigenes Risiko dargestellt (falsch kategorisierte Events).

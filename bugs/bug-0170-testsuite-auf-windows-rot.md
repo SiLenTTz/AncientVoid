@@ -126,3 +126,10 @@ Solange BUG-0170 offen ist, tragen Commits, die nur Teilbereiche grün haben,
 `!` statt `^` (Commit-Notation). Für ^-Commits braucht es entweder a) die Suite
 auf Windows grün, oder b) eine dokumentierte, maschinenlesbare
 Plattform-Baseline im Gate.
+
+- **Tier A gemessen nach BUG-0179 und BUG-0193 (2026-11-17):**
+  `npm run test:fast` = `Test Files 52 failed | 253 passed | 2 skipped (307)`, 
+`Tests 137 failed | 1974 passed | 53 skipped (2164)`. Vorher gab es auf Windows für 
+Tier A gar kein Ergebnis (BUG-0193). Attrappen-Spawns sind erledigt (BUG-0179); 
+zwei konkrete Fälle, die als echte Aussagen übrig bleiben: 
+`apps/hub/test/factory.integration.test.ts` ("Projektpfad fehlt oder ist nicht absolut", 422 statt 200) und die Anzeigefragen-Routen in `tool-permissions.test.ts`.

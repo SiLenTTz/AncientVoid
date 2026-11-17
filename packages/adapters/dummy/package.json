@@ -4,7 +4,7 @@
   "private": true,
   "description": "Reference dummy adapter: synthetic event generator for load tests (K8), blob offload tests (K5) and crash recovery (K7).",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

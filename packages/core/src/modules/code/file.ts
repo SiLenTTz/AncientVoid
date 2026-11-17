@@ -64,6 +64,30 @@ export function languageOf(path: string): string {
   return LANGUAGES[extname(path).toLowerCase()] ?? "text";
 }
 
+function cleanRepoPath(path: string): string | null {
+  if (!path || isAbsolute(path) || path.includes("\0")) return null;
+  const clean = path.split(sep).join("/").replace(/^\.\//, "").replace(/\/$/, "");
+  if (!clean || clean.split("/").some((p) => p === ".." || p === ".git")) return null;
+  return clean;
+}
+
+function codeFileFromBuf(identity: WorkspaceIdentity, path: string, buf: Buffer, size: number, blobSha: string | null, changed: CodeFile["changed"]): CodeFile {
+  const binary = buf.subarray(0, 8000).includes(0);
+  const content = binary ? "" : buf.toString("utf8");
+  return {
+    identity,
+    path,
+    language: binary ? "binary" : languageOf(path),
+    bytes: size,
+    lines: binary ? 0 : content.split("\n").length - (content.endsWith("\n") ? 1 : 0),
+    content,
+    truncated: size > CODE_FILE_MAX_BYTES,
+    binary,
+    blobSha,
+    changed,
+  };
+}
+
 /** Reads one file for the viewer; the caller checked who may see `root`. */
 export async function readCodeFile(root: string, path: string, identity: WorkspaceIdentity, changed: CodeFile["changed"] = null): Promise<CodeFile | null> {
   const real = await containedFile(root, path);
@@ -77,19 +101,52 @@ export async function readCodeFile(root: string, path: string, identity: Workspa
   } finally {
     await handle.close();
   }
-  const binary = buf.subarray(0, 8000).includes(0);
-  const content = binary ? "" : buf.toString("utf8");
   const clean = path.split(sep).join("/").replace(/^\.\//, "");
-  return {
-    identity,
-    path: clean,
-    language: binary ? "binary" : languageOf(path),
-    bytes: size,
-    lines: binary ? 0 : content.split("\n").length - (content.endsWith("\n") ? 1 : 0),
-    content,
-    truncated: size > CODE_FILE_MAX_BYTES,
-    binary,
-    blobSha: await git(root, ["hash-object", "--", clean]),
-    changed,
+  return codeFileFromBuf(identity, clean, buf, size, await git(root, ["hash-object", "--", clean]), changed);
+}
+
+const COMMIT_SHA = /^[0-9a-f]{7,40}$/i;
+
+/**
+ * BUG-0191: Blob einer Revision (`git show <sha>:<path>`), auch wenn die Datei
+ * im Worktree fehlt. Bei Lösch-Commits Fallback auf den ersten Eltern-Stand.
+ */
+export async function readCodeFileAt(
+  root: string,
+  path: string,
+  sha: string,
+  identity: WorkspaceIdentity,
+): Promise<CodeFile | null> {
+  if (!COMMIT_SHA.test(sha)) return null;
+  const clean = cleanRepoPath(path);
+  if (!clean) return null;
+  const resolved = await git(root, ["rev-parse", "--verify", `${sha}^{commit}`]);
+  if (!resolved) return null;
+
+  const tryShow = async (at: string): Promise<Buffer | null> => {
+    try {
+      const { stdout } = await run("git", ["-C", root, "show", `${at}:${clean}`], {
+        encoding: "buffer",
+        timeout: 10_000,
+        maxBuffer: CODE_FILE_MAX_BYTES + 64 * 1024,
+      });
+      return Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
+    } catch {
+      return null;
+    }
   };
+
+  let at = resolved;
+  let buf = await tryShow(at);
+  if (!buf) {
+    const parent = await git(root, ["rev-parse", "--verify", `${resolved}^`]);
+    if (parent) {
+      at = parent;
+      buf = await tryShow(parent);
+    }
+  }
+  if (!buf) return null;
+  const slice = buf.subarray(0, Math.min(buf.length, CODE_FILE_MAX_BYTES));
+  const blobSha = await git(root, ["rev-parse", `${at}:${clean}`]);
+  return codeFileFromBuf(identity, clean, slice, buf.length, blobSha, null);
 }

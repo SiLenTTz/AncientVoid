@@ -4,7 +4,7 @@
   "private": true,
   "description": "AncientVoid. Local-first, vendor-neutral hub to supervise and steer coding agents from mobile.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "author": "SiLenT_Tz (Jan Pfrommer)",
   "homepage": "https://github.com/SiLenTTz/AncientVoid",
   "repository": {
@@ -26,8 +26,8 @@
   "scripts": {
     "build": "tsc -p . --noEmit",
     "test": "vitest run",
-    "test:fast": "VITEST_SET=fast vitest run",
-    "test:slow": "VITEST_SET=slow vitest run",
+    "test:fast": "node scripts/vitest-set.mjs fast",
+    "test:slow": "node scripts/vitest-set.mjs slow",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -61,11 +61,12 @@
     "docs:design-tokens": "node scripts/design-tokens-doc.mjs",
     "check:knip": "knip",
     "demo:seed": "node scripts/demo-seed.ts",
-    "guide:shots": "node scripts/guide-shots.ts"
+    "guide:shots": "node scripts/guide-shots.ts",
+    "readme:hero": "node scripts/readme-hero.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.64.0",
+    "@playwright/test": "^1.65.1",
     "@types/node": "^22.20.5",
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^5.0.5",
@@ -75,7 +76,7 @@
     "fastify": "5.12.5",
     "fflate": "^0.8.3",
     "knip": "^6.45.1",
-    "playwright": "^1.64.0",
+    "playwright": "^1.65.1",
     "typescript": "6.0",
     "typescript-eslint": "^8.71.1",
     "vite": "^8.3.8",

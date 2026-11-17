@@ -4,7 +4,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { createServer, type Server } from "node:net";
 import { join } from "node:path";
 import type { WorkspaceFailure, WorkspaceManifest, WorkspaceService, WorkspaceServiceState } from "@ancientvoid/contracts";
-import { WORKSPACE_LOGS_TAIL_CHARS, WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV } from "@ancientvoid/contracts";
+import { WORKSPACE_LOGS_TAIL_CHARS, WORKSPACE_OWNERSHIP_ENV, WORKSPACE_SERVICE_PORT_ENV, spawnArgv } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import type { EventStore } from "../../platform/eventstore.ts";
 import type { WorkspaceEmit } from "./workspace-runtime.ts";
@@ -177,11 +177,13 @@ export class ServiceSupervisor {
     const logFile = await this.logFileFor(ctx.sessionId, service.id);
     const logFd = await open(logFile, "a").catch(() => null);
     const stdio: ("ignore" | number)[] = ["ignore", logFd ? logFd.fd : "ignore", logFd ? logFd.fd : "ignore"];
-    const child = spawn(argv[0]!, argv.slice(1), {
+    const start = spawnArgv(argv[0]!, argv.slice(1));
+    const child = spawn(start.file, start.args, {
       cwd: ctx.worktreePath,
       env: { ...process.env, [WORKSPACE_OWNERSHIP_ENV]: ctx.sessionId, [WORKSPACE_SERVICE_PORT_ENV]: String(port) },
       detached: true, // überlebt einen Hub-Crash (K7-Adoption über den Marker)
       stdio,
+      ...(start.shell ? { shell: true } : {}),
     });
     child.unref();
     await logFd?.close().catch(() => undefined);

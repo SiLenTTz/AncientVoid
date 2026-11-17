@@ -175,6 +175,8 @@
   --code-scale: 1;
   --preset-border: 1px;
   --device-background: none;
+  /* Dock-Breite im niedrigen Querformat (BUG-0194 / 50-short-viewport.css) */
+  --chat-max-width: 720px;
 
   color-scheme: dark;
 }

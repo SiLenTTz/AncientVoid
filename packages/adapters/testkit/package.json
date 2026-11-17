@@ -4,7 +4,7 @@
   "private": true,
   "description": "Contract test kit for AncientVoid adapters: run the same suite the hub runs against your provider integration before contributing.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
     "./fake-loop": "./src/fake-loop.ts"

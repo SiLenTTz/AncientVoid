@@ -52,6 +52,8 @@ Werkzeugseiten füllen die Detailspalte.
 | G19 | Freigaben-Seite | Deeplink `#/freigaben` | T43.3 | inventar |
 | G20 | Provider-Status | Kopfzeile „Status“ | T43.3 | inventar |
 | G21 | Benachrichtigungen | Glocke | — | inventar |
+| G21a | Glocken-Glow nach Dringlichkeit (rot Fehler, gelb offene Frage, grün Lauf beendet; statisch bei reduzierter Bewegung) | Glocke, sobald offen/ungelesen | P64 | spec:notifications-glow.spec.ts |
+| G21b | Glocke am PC im Kopf der Übersichtsliste (zugeklappt/Handy: Fenstereck), Panel hängt an der Glocke — nie mittig | Kopf der Listenspalte bzw. Fenstereck | P64 | spec:notifications.spec.ts |
 | G22 | Auftrag in Worten | Kopfzeile „✦“ | T43.6 | inventar |
 | G23 | Auftrag in Worten per Tastatur (nur PC) | Strg+K | T43.6 | inventar |
 | G24 | Umschalter Projekte | Start → „Projekte“ | — | inventar |
@@ -96,7 +98,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G63 | Alle Freigaben zeigen | Start → „Du bist dran“ → „alle zeigen“ | — | spec:start-warteschlange.spec.ts |
 | G64 | Schnellsuche: Springen zu Sessions, Projekten, Dateien, Werkzeugen, Befehlen | Strg+K bzw. Dock „Suchen“ → Treffer. **Bewusste Grenze (P51 T51.11):** tiefe Sprungziele unterhalb der Werkzeug-/Session-Ebene (z. B. einzelne Notizen, Graph/Galaxie einer Session, Host-Detail) sind absichtlich nicht eigene Schnellsuche-Treffer — sie liegen einen Sprung + einen Tap entfernt (Werkzeug/Session → Tab), eine zweite Navigationsschicht wäre Doppelstruktur; Vault-Suche bleibt minimal (ADR-0063) | T43.6 + P51 T51.11 | spec:schnellsuche.spec.ts |
 | G65 | Nyx: Gesamtzustand in der Kopfzeile; Blatt mit allen wartenden Freigaben und Fragen (Vorauswahl, Ja/Nein mit einem Tipp, Begründung/Passkey → Session); am PC auch als eigenes Fenster | Kopfzeile → Nyx | T43.8 | spec:nyx-blatt.spec.ts |
-| G66 | Echtes Live-Streaming: Teiltexte des Adapters erscheinen als „antwortet“/„denkt“-Blase, bevor der Block eintrifft; der Block rückt beim Eintreffen ein (kein Nacherzählen fertiger Bloecke) | Sitzung → Chat | BUG-0178, ADR-0083 | spec:live-streaming.spec.ts |
+| G66 | Echtes Live-Streaming: Teiltexte erscheinen im Chat, bevor der Block eintrifft — die Antwort als „antwortet“-Blase, das Denken als Denk-Notiz wie jede andere (BUG-0195); der Block rückt beim Eintreffen ein (kein Nacherzählen fertiger Bloecke) | Sitzung → Chat | BUG-0178, ADR-0083, BUG-0195 | spec:live-streaming.spec.ts |
 | G67 | Team-Detail: Karten je Worker-Task (Adapter/Modell, Versuch, Fortschritt, Session-Link, Ergebnis-Vorschau), Rückfragen als Karten mit Stopp, Offline-Stand mit Zeitstempel | Teams → Team | P60 | spec:team.spec.ts |
 | G68 | Quellenchips: Code-Befund, Review-Notiz, Browser-Element, CI-Befund als sichtbare Quelle im Composer — Vorschau zeigt den `<quellen>`-Block, der beim bewussten Absenden mitgeht (kein Auto-Send, K5-gekappt) | Befund „In den Composer“ → Composer der Session | P43.5 T43.5-1 | spec:quellenchips.spec.ts |
 | G69 | Quellen und eigene Statusnotizen in der Schnellsuche; Tastatur-/Touch-Sprung bewahrt Entwurf und Verbindung | Suchen → Quelle/Statusnotiz | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
@@ -148,7 +150,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S33 | Browser-Arbeitsplatz | „Mehr“ → „Browser“ | T43.4 | inventar |
 | S34 | Graph in eigenes Fenster (nur PC) | Reiter „Graph“ → „⧉ Eigenes Fenster“ | T43.7 | inventar |
 | S35 | Pause und „Weiter“ | Taste im Kopf, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
-| S36 | Vormerken, Warteschlange, „Jetzt senden“, Streichen | Composer, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
+| S36 | Vormerken, Zustellung wählen (⏳ am Zugende / ⚡ lenken), Warteschlange nachträglich ändern (✎ Text, ↑↓ Reihe), „Jetzt senden“, Streichen | Composer, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
 | S37 | Planfortschritt und To-do-Liste des Agenten | Laufleiste, Antippen klappt auf | T43.4 | spec:progress.spec.ts |
 | S38 | Freigabekarte mit Laya-Einschätzung und „Regeln“ | Session, bei offener Freigabe | T43.3 | spec:harness.spec.ts |
 | S39 | Rückfrage des Agenten mit Optionen beantworten | Session, bei offener Frage | T43.8 | spec:harness.spec.ts |

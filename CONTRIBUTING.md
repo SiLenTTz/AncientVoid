@@ -17,12 +17,16 @@ issues and pull requests are welcome.
   `.github/ISSUE_TEMPLATE/`) so scope can be agreed before you invest time.
   Features need a reference to a quality bar (PRD §9, K1–K10) or an epic in
   `epics/` — no scope creep.
-- **Licensing of contributions (inbound = outbound):** by submitting a
-  contribution you agree that it is licensed under the project license,
-  [PolyForm Noncommercial 1.0.0](LICENSE), and you confirm you have the right
-  to submit it. Please add a `Signed-off-by: Name <email>` trailer
-  (`git commit -s`) as a [DCO](https://developercertificate.org/)-style
-  statement of that; the hooks do not enforce it.
+- **Licensing of contributions:** AncientVoid is dual-licensed: everyone
+  gets it under [AGPL-3.0-only](LICENSE), and the copyright holder also sells
+  a separate commercial license ([ADR-0086](docs/adr/0086-lizenz-agpl-mit-kauflizenz.md)).
+  By submitting a contribution you (a) license it under AGPL-3.0-only,
+  (b) grant the copyright holder a perpetual, worldwide, non-exclusive,
+  royalty-free license to use, modify and sublicense it, including under
+  commercial terms, and (c) confirm you have the right to do both. Please
+  add a `Signed-off-by: Name <email>` trailer (`git commit -s`) as a
+  [DCO](https://developercertificate.org/)-style statement of that; the
+  hooks do not enforce it.
 
 ## Setup
 

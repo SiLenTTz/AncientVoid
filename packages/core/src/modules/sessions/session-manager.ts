@@ -1712,8 +1712,14 @@ export class SessionManager {
       return done;
     }
     // EPIC-P15 T15.3: "Vormerken" — the prompt waits for the running turn instead of starting a second process.
-    const nextTurn = this.registry.get(session.record.adapter)?.capabilities.promptDelivery === "next-turn";
-    if (input.kind === "prompt" && (meta?.queue || nextTurn) && !meta?.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
+    const caps = this.registry.get(session.record.adapter)?.capabilities;
+    const nextTurn = caps?.promptDelivery === "next-turn";
+    // ADR-0085: "jetzt nicht vormerken" ist eine ausdrueckliche Wahl des Nutzers. Sie ist
+    // nur dort erlaubt, wo der Adapter Eingaben mitten im laufenden Zug zusichert
+    // (midTurnInput — Pi). Fuer Claude gilt weiterhin ADR-0074: lenken ja, aber erst im
+    // naechsten Zug, und ein zweiter Prozess auf dieselbe native Session nicht.
+    const wantsNow = meta?.queue === false && caps?.midTurnInput === true;
+    if (input.kind === "prompt" && !wantsNow && (meta?.queue || nextTurn) && !meta?.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
       const item = this.queue.add(sessionId, input.text, input.attachments, actor ?? null);
       await this.emitSystem(session, "session.queued", { queueId: item.id, position: this.queue.count(sessionId), actor: actor ?? null });
       await this.commitSteer(session, meta, foreignWriter, actor);
@@ -3187,7 +3193,12 @@ export class SessionManager {
       const session = this.live.get(sessionId);
       if (!session) return { ok: false, detail: "Session nicht aktiv" };
       if (this.uncertainQueue.has(queueId)) return { ok: false, detail: "Annahme unklar — zuerst den Verlauf prüfen." };
-      if (this.registry.get(session.record.adapter)?.capabilities.promptDelivery === "next-turn" && session.record.status !== "idle") return { ok: false, detail: "Dieser Adapter kann während des laufenden Zugs keine weitere Nachricht annehmen. Die Nachricht bleibt vorgemerkt." };
+      // ADR-0085: "now" ist erlaubt, wenn der Adapter lenken kann — auch wenn er Meldungen
+      // erst im naechsten Zug annimmt (Pi). Abgelehnt wird nur, was weder lenken kann noch
+      // im laufenden Zug annehmen wuerde.
+      const caps = this.registry.get(session.record.adapter)?.capabilities;
+      if (caps?.promptDelivery === "next-turn" && caps?.midTurnInput !== true && session.record.status !== "idle")
+        return { ok: false, detail: "Dieser Adapter kann während des laufenden Zugs keine weitere Nachricht annehmen. Die Nachricht bleibt vorgemerkt." };
       return this.deliverQueued(session, item, actor);
     });
   }
@@ -3222,6 +3233,34 @@ export class SessionManager {
     const session = this.live.get(sessionId);
     if (removed && session) await this.emitSystem(session, "session.unqueued", { queueId, actor: actor ?? null });
     return removed;
+  }
+
+  /**
+   * ADR-0085: eine vorgemerkte Meldung nachtraeglich aendern — ihr Text und/oder ihre
+   * Stelle in der Reihe. Solange sie noch nicht unterwegs ist, ist die Warteschlange die
+   * einzige Quelle; eine Annahme mit unklarem Ausgang (uncertainQueue) ist tabu, weil der
+   * Prompt dann laeuft und sein Wort bereits beim Adapter liegt.
+   */
+  async editQueued(sessionId: string, queueId: string, patch: { text?: string | undefined; move?: "front" | "back" | undefined }, actor?: string): Promise<Ack> {
+    return this.chainWork(sessionId, async () => {
+      const entry = this.queue.list(sessionId).find(q => q.id === queueId);
+      if (!entry) return { ok: false, detail: "nicht mehr in der Warteschlange" };
+      if (this.uncertainQueue.has(queueId)) return { ok: false, detail: "Annahme dieses Prompts ist unklar — Verlauf prüfen, nicht nachträglich ändern." };
+      const text = patch.text === undefined ? undefined : patch.text.trim();
+      if (text !== undefined && text === "") return { ok: false, detail: "leerer Text wird nicht vorgemerkt" };
+      if (text === undefined && !patch.move) return { ok: false, detail: "nichts zu ändern" };
+      if (text !== undefined && text !== entry.text) {
+        if (!this.queue.updateText(sessionId, queueId, text)) return { ok: false, detail: "nicht mehr in der Warteschlange" };
+      }
+      if (patch.move) this.queue.moveTo(sessionId, queueId, patch.move);
+      const position = this.queue.list(sessionId).findIndex(q => q.id === queueId);
+      const session = this.live.get(sessionId);
+      if (session) {
+        if (text !== undefined && text !== entry.text) await this.emitSystem(session, "session.queue_edited", { queueId, actor: actor ?? null });
+        if (patch.move) await this.emitSystem(session, "session.queue_moved", { queueId, position: position + 1, actor: actor ?? null });
+      }
+      return { ok: true, ...(position >= 0 ? { detail: `position ${position + 1}` } : {}) };
+    });
   }
 
   private persist(record: SessionRecord): void {

@@ -13,30 +13,32 @@ export interface GitGraphRow {
 }
 
 /**
- * Klassisches Git-Graph-Lane-Layout (neueste zuerst), angelehnt an übliche
- * Desktop-UIs: eine Spalte pro aktiver Linie, Merge/Fork sichtbar.
+ * Klassisches Git-Graph-Lane-Layout (neueste zuerst).
+ * BUG-0190: First-Parent behält die Lane des Kindes; keine doppelte
+ * Lane-Zuweisung für denselben Parent; freigewordene Spuren werden wiederverwendet.
  */
 export function layoutGitGraph(commits: readonly GitGraphCommit[]): { rows: GitGraphRow[]; laneCount: number } {
   const index = new Map(commits.map((c, i) => [c.sha, i]));
   const laneOf = new Map<string, number>();
   const rows: GitGraphRow[] = [];
   let nextLane = 0;
+  let active: (string | null)[] = [];
+
+  const usedLanes = (): Set<number> => {
+    const used = new Set<number>();
+    for (let i = 0; i < active.length; i++) if (active[i]) used.add(i);
+    return used;
+  };
 
   const freeLane = (used: Set<number>): number => {
     for (let i = 0; i < nextLane; i++) if (!used.has(i)) return i;
-    const n = nextLane++;
-    return n;
+    return nextLane++;
   };
-
-  // activeLanes[lane] = sha that owns the tip of that lane going downward
-  let active: (string | null)[] = [];
 
   for (const commit of commits) {
     let lane = laneOf.get(commit.sha);
     if (lane === undefined) {
-      // first appearance: place on a free lane (or reuse if a parent already reserved)
-      const used = new Set(active.map((s, i) => (s ? i : -1)).filter((i) => i >= 0));
-      lane = freeLane(used);
+      lane = freeLane(usedLanes());
       laneOf.set(commit.sha, lane);
     }
     while (active.length <= lane) active.push(null);
@@ -44,13 +46,14 @@ export function layoutGitGraph(commits: readonly GitGraphCommit[]): { rows: GitG
 
     const edges: GitGraphRow["edges"] = [];
     const parents = commit.parents;
+
     parents.forEach((p, pi) => {
       let pLane = laneOf.get(p);
       if (pLane === undefined) {
         if (pi === 0) {
           pLane = lane;
         } else {
-          const used = new Set(active.map((s, i) => (s ? i : -1)).filter((i) => i >= 0));
+          const used = usedLanes();
           used.add(lane);
           pLane = freeLane(used);
           while (active.length <= pLane) active.push(null);
@@ -58,19 +61,33 @@ export function layoutGitGraph(commits: readonly GitGraphCommit[]): { rows: GitG
         laneOf.set(p, pLane);
       }
       edges.push({ fromLane: lane, toLane: pLane, colorLane: pLane });
-      active[pLane] = p;
     });
 
-    // First parent continues this lane; clear if no parents (root)
-    if (parents.length === 0) {
-      active[lane] = null;
-    } else {
-      active[lane] = parents[0]!;
-      laneOf.set(parents[0]!, lane);
+    // Commit verlässt alle Spuren; First-Parent übernimmt nur, wenn noch frei
+    // (BUG-0190: ein späterer Side-Tip stiehlt dem Main-Tip nicht die Lane).
+    for (let i = 0; i < active.length; i++) {
+      if (active[i] === commit.sha) active[i] = null;
+    }
+    if (parents.length > 0) {
+      const first = parents[0]!;
+      const claimed = laneOf.get(first);
+      if (claimed === undefined || claimed === lane) {
+        laneOf.set(first, lane);
+        active[lane] = first;
+      } else {
+        active[claimed] = first;
+      }
+      for (let pi = 1; pi < parents.length; pi++) {
+        const p = parents[pi]!;
+        const pLane = laneOf.get(p);
+        if (pLane !== undefined) active[pLane] = p;
+      }
     }
 
-    // Drop tips that are not among remaining commits (already shown as child)
-    const activeLanes = active.map((s, i) => (s && index.has(s) && index.get(s)! > index.get(commit.sha)! ? i : -1)).filter((i) => i >= 0);
+    const commitIdx = index.get(commit.sha)!;
+    const activeLanes = active
+      .map((s, i) => (s && index.has(s) && index.get(s)! > commitIdx ? i : -1))
+      .filter((i) => i >= 0);
 
     rows.push({
       commit,
@@ -81,7 +98,7 @@ export function layoutGitGraph(commits: readonly GitGraphCommit[]): { rows: GitG
     });
   }
 
-  const laneCount = Math.max(1, nextLane, ...rows.map((r) => r.lane + 1));
+  const laneCount = Math.max(1, nextLane, ...rows.map((r) => Math.max(r.lane, ...r.active, ...r.edges.map((e) => Math.max(e.fromLane, e.toLane))) + 1));
   return { rows, laneCount };
 }
 
@@ -95,3 +112,17 @@ export const GIT_LANE_COLORS = [
   "#73daca",
   "#c0caf5",
 ];
+
+const AV_WT = /^ancientvoid\/([0-9a-f-]{8,})$/i;
+
+/**
+ * BUG-0190: Worktree-Branches `ancientvoid/<uuid>` lesbar kürzen;
+ * voller Name bleibt im title/Hover.
+ */
+export function formatGitRefLabel(name: string): { label: string; title: string } {
+  const m = AV_WT.exec(name);
+  if (!m) return { label: name, title: name };
+  const id = m[1]!;
+  const short = id.length > 8 ? id.slice(0, 8) : id;
+  return { label: `Session ${short}…`, title: name };
+}

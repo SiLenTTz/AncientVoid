@@ -68,6 +68,20 @@ describe("code routes (T7.6)", () => {
     expect((await call("GET", `/api/code/search?session=${s.id}&q=a.b(&mode=symbol`, human)).status).toBe(422);
   });
 
+  it("BUG-0191: ?sha= liefert den Blob der Revision, auch wenn die Datei gelöscht ist", async () => {
+    await writeFile(join(project, "hist.txt"), "alt\n");
+    execFileSync("git", ["-C", project, "add", "hist.txt"]);
+    execFileSync("git", ["-C", project, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "hist add"]);
+    const sha = execFileSync("git", ["-C", project, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    execFileSync("git", ["-C", project, "rm", "-q", "hist.txt"]);
+    execFileSync("git", ["-C", project, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "hist del"]);
+    const s = await sessions.create({ adapter: "dummy", project });
+    expect((await call("GET", `/api/code/file?session=${s.id}&path=hist.txt`, human)).status).toBe(404);
+    const hist = await call("GET", `/api/code/file?session=${s.id}&path=hist.txt&sha=${sha}`, human);
+    expect(hist.status).toBe(200);
+    expect(hist.body).toMatchObject({ path: "hist.txt", content: "alt\n" });
+  });
+
   it("a human runs a registered action; an agent may list but not run it", async () => {
     const s = await sessions.create({ adapter: "dummy", project });
     const list = await call("GET", `/api/sessions/${s.id}/actions`, agent);

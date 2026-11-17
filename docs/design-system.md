@@ -146,6 +146,7 @@ Drei Schichten: **Primitiv** (nur Hex/rgb, nur in `00-tokens.css`) →
 | `--code-scale` | preset | `1` |
 | `--preset-border` | preset | `1px` |
 | `--device-background` | preset | `none` |
+| `--chat-max-width` | preset | `720px` |
 
 <!-- END:design-tokens -->
 

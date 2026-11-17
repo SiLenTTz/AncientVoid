@@ -4,7 +4,7 @@
   "private": true,
   "description": "Loop connector for the securesight factory (securesight-factory, ADR-0038): observes supervisor status, notifications, transcript and progress; writes nothing.",
   "type": "module",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts"
   },

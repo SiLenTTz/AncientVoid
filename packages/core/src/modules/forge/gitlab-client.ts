@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { spawnArgv } from "@ancientvoid/contracts";
 import { promisify } from "node:util";
 
 /**
@@ -34,10 +35,12 @@ export class GitLabApiError extends Error {
 export function createGlabRunner(command: string, env: () => Record<string, string> = () => ({})): GlabRunner {
   return async (argv, opts) => {
     try {
-      const { stdout, stderr } = await execFileAsync(command, ["api", ...argv], {
+      const start = spawnArgv(command, ["api", ...argv]);
+      const { stdout, stderr } = await execFileAsync(start.file, start.args, {
         timeout: opts?.timeoutMs ?? 15_000,
         maxBuffer: 4 * 1024 * 1024,
         env: { ...process.env, ...env() },
+        ...(start.shell ? { shell: true } : {}),
       });
       return { stdout, stderr };
     } catch (err) {

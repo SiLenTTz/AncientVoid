@@ -4,6 +4,7 @@ import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
+import { hasApprovalCandidates, urgencyOf } from "./urgency.ts";
 
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
@@ -69,8 +70,10 @@ function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
  */
 const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
 
-/** `corner`: the list column is folded away, so bell and gear sit in the window corner. */
-export function NotificationCenter({ corner = false }: { corner?: boolean }) {
+/** `corner`: the list column is folded away, so bell and gear sit in the window corner.
+ * EPIC-P64 T64.4: `flow` — am PC mit sichtbarer Liste sitzt die Glocke als
+ * Flusselement im Kopf der Listenspalte (App-Topbar), nicht als Overlay. */
+export function NotificationCenter({ corner = false, flow = false }: { corner?: boolean; flow?: boolean }) {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
@@ -80,12 +83,21 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   const [pendingApprovals, setPendingApprovals] = useState<ReadonlySet<string>>(new Set());
   // EPIC-P51 T51.6: Esc schließt das Panel, Fokus rein/Tab-Falle/zurück auf die Glocke.
   const closeBtn = useRef<HTMLButtonElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
+  /** T64.4: gemessene Panel-Position (nur Fluss-Modus). */
+  const [panelPos, setPanelPos] = useState<{ top: string; left: string; width: string } | undefined>(undefined);
   const { ref: panelRef } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => closeBtn.current });
   const openRef = useRef(false);
   const closePanel = () => {
     openRef.current = false;
     setOpen(false);
   };
+  /** T64.3: Spiegel des Bestands für den Poll (Hintergrund-Pending-Refresh),
+   * ohne den Effect bei jeder Liste neu zu binden. */
+  const itemsRef = useRef<FleetNotification[]>([]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   useEffect(() => {
     if (!open) return;
     return registerShortcut("notifications.close", (e) => {
@@ -182,8 +194,11 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
             .catch(() => undefined),
         ),
       );
-      // Offene Fragen nur verfeinern, solange jemand hinguckt.
-      if (alive && openRef.current) refreshPending();
+      // EPIC-P64 T64.3: offene Fragen werden im Hintergrund verfeinert — der
+      // action-Glow braucht die Pending-Menge, auch wenn niemand das Panel
+      // offen hat. Nur mit Kandidaten im Bestand (kein API-Ruf je 4 s ohne
+      // Anlass); bei offenem Panel wie bisher immer (feinere Liste).
+      if (alive && (openRef.current || hasApprovalCandidates(itemsRef.current))) refreshPending();
     };
     void loadPeers().then(() => poll());
     const timer = setInterval(() => void poll(), POLL_MS);
@@ -196,6 +211,9 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   }, []);
 
   const unread = items.filter((n) => n.id > (read[n.hostId ?? ""] ?? 0)).length;
+
+  /** EPIC-P64 T64.2: höchste offene Dringlichkeit steuert den Glow der Glocke. */
+  const urgency = urgencyOf(items, read, pendingApprovals);
 
   const isOpenQuestion = (n: FleetNotification) =>
     APPROVAL_KINDS.has(n.kind) && pendingApprovals.has(`${n.hostId ?? ""}#${n.sessionId}`);
@@ -217,6 +235,24 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
       return !was;
     });
     if (!openRef.current) return;
+    // EPIC-P64 T64.4/T64.5: im Fluss-Modus hängt das Panel gemessen unter
+    // der Glocke (rechtsbündig zu ihr) — robust für jede Spaltenbreite und
+    // UI-Skalierung, statt die Geometrie in CSS nachzubauen. Rect ist in
+    // Render-Px, Inline-Styles in CSS-px — daher die Zoom-Division
+    // (--ui-zoom ist CSS `zoom` auf <html>, Muster siehe 14-notifications.css).
+    if (flow) {
+      const zoom = Number(document.documentElement.style.getPropertyValue("--ui-zoom")) || 1;
+      const rect = bellRef.current?.getBoundingClientRect();
+      if (rect) {
+        const width = Math.min(380, window.innerWidth / zoom - 16);
+        const cssRight = rect.right / zoom;
+        setPanelPos({
+          top: `${Math.round(rect.bottom / zoom + 8)}px`,
+          left: `${Math.max(8, Math.round(cssRight - width))}px`,
+          width: `${Math.round(width)}px`,
+        });
+      }
+    }
     refreshPending();
     const marks = { ...read };
     for (const n of items) marks[n.hostId ?? ""] = Math.max(marks[n.hostId ?? ""] ?? 0, n.id);
@@ -232,7 +268,8 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
   return (
       <>
       <button
-        class={`notif-bell${corner ? " corner" : ""}`}
+        ref={bellRef}
+        class={`notif-bell${corner ? " corner" : ""}${flow ? " flow" : ""}${urgency ? ` urgency-${urgency}` : ""}`}
         type="button"
         aria-label={unread > 0 ? `Benachrichtigungen (${unread} neu)` : "Benachrichtigungen"}
         title="Benachrichtigungen"
@@ -259,7 +296,14 @@ export function NotificationCenter({ corner = false }: { corner?: boolean }) {
         )}
       </div>
       {open && (
-        <div class={`notif-panel${corner ? " corner" : ""}`} role="dialog" aria-label="Benachrichtigungen" ref={panelRef} tabIndex={-1}>
+        <div
+          class={`notif-panel${corner ? " corner" : ""}${flow ? " flow" : ""}`}
+          {...(flow && panelPos ? { style: panelPos } : {})}
+          role="dialog"
+          aria-label="Benachrichtigungen"
+          ref={panelRef}
+          tabIndex={-1}
+        >
           <div class="notif-panel-head">
             <strong>Benachrichtigungen</strong>
             <Button ref={closeBtn} onClick={closePanel}>
