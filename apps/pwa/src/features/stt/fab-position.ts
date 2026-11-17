@@ -26,7 +26,11 @@ export function fabBreakpoint(width = typeof window !== "undefined" ? window.inn
 export function defaultFabPos(bp: FabBreakpoint, vw: number, vh: number, dockTop?: number): FabPos {
   const size = FAB_SIZE;
   if (bp === "pc") {
-    return { x: Math.round((vw - size) / 2), y: Math.round((vh - size) / 2) };
+    // Nicht mittig: mittig liegt der Knopf über der Lesestelle. Gemessen am produktiven Hub
+    // (1280x800, Sitzungansicht): FAB bei 608,368 — direkt auf der Ereigniszeile
+    // „session.queue…“. Unten links liegt er in der freien Flaeche der Sitzungsliste,
+    // rechts neben der Icon-Leiste und uber der Statuszeile.
+    return { x: 96, y: Math.max(8, vh - size - 32) };
   }
   const floor = dockTop !== undefined && dockTop > 0 && dockTop < vh ? dockTop : vh - 88;
   return {

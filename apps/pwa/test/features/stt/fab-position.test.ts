@@ -8,13 +8,15 @@ describe("fab-position", () => {
     expect(fabBreakpoint(1400)).toBe("pc");
   });
 
-  it("Default: Handy unten rechts, PC mittig", () => {
+  it("Default: Handy unten rechts, PC unten links in der freien Liste — nicht ueber dem Text", () => {
     const phone = defaultFabPos("phone", 390, 800);
     expect(phone.x).toBeGreaterThan(300);
     expect(phone.y).toBeGreaterThan(600);
-    const pc = defaultFabPos("pc", 1400, 900);
-    expect(pc.x).toBeCloseTo((1400 - FAB_SIZE) / 2, 0);
-    expect(pc.y).toBeCloseTo((900 - FAB_SIZE) / 2, 0);
+    const pc = defaultFabPos("pc", 1280, 800);
+    expect(pc.x).toBeGreaterThanOrEqual(80); // rechts von der festen Icon-Leiste
+    expect(pc.x).toBeLessThan(300); // in der Spalte der Sitzungsliste, nicht ueber dem Chat
+    expect(pc.y + FAB_SIZE).toBeLessThanOrEqual(800 - 24); // ueber der Statuszeile
+    expect(pc.y).toBeGreaterThan(400); // nicht in der Kopfzeile
   });
 
   it("BUG-0138: Handy/Tablet sitzt über der gemessenen Dock-Oberkante, nicht über einer Schätzung", () => {
