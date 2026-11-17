@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { TreeEntry, TreeListing } from "@ancientvoid/contracts";
 import { hostApi, remoteHost } from "../../shared/api.ts";
 import { FileViewer } from "./FileViewer.tsx";
+import { HistoricalBlobView } from "./HistoricalBlobView.tsx";
 import { openPopout } from "../windows/windows.ts";
 import { pointerOutside, type DropPoint } from "../windows/drag.ts";
 import { canDetach } from "../windows/DetachButton.tsx";
@@ -154,7 +155,7 @@ export function FilesSidebar({
   }, [rKey]);
 
   const openFile = (path: string) => {
-    const existing = state.tabs.findIndex((t) => t.rootKey === rKey && t.path === path);
+    const existing = state.tabs.findIndex((t) => t.rootKey === rKey && t.path === path && !t.sha);
     if (existing >= 0) update({ active: existing });
     else update({ tabs: [...state.tabs, { rootKey: rKey, path }], active: state.tabs.length });
     setView("file");
@@ -278,11 +279,11 @@ export function FilesSidebar({
                     role="tab"
                     aria-selected={Boolean(showFile) && state.active === index}
                     class={showFile && state.active === index ? "chip active" : "chip"}
-                    title={t.path}
+                    title={t.sha ? `${t.path} @ ${t.sha.slice(0, 7)}` : t.path}
                     onClick={() => { update({ active: index }); setView("file"); }}
                     onPointerDown={startGrip}
                   >
-                    {t.path.split("/").pop()}
+                    {t.path.split("/").pop()}{t.sha ? ` @${t.sha.slice(0, 7)}` : ""}
                   </button>
                   {!windowed && canDetach() && (
                     <button
@@ -306,7 +307,9 @@ export function FilesSidebar({
             )}
           </div>
           <div class="files-body">
-            {showFile && viewing ? (
+            {showFile && viewing?.sha ? (
+              <HistoricalBlobView key={`${viewing.rootKey}:${viewing.path}:${viewing.sha}`} hostId={root.hostId ?? null} target={rootTarget(root)} path={viewing.path} sha={viewing.sha} />
+            ) : showFile && viewing ? (
               <FileViewer key={`${viewing.rootKey}:${viewing.path}`} hostId={root.hostId ?? null} sessionId={root.kind === "session" ? root.id : null} target={rootTarget(root)} path={viewing.path} />
             ) : (
               <Folder key={`${rKey}:${state.showIgnored}`} hostId={root.hostId ?? null} target={rootTarget(root)} path="" depth={0} showIgnored={state.showIgnored} onOpenFile={openFile} activePath={viewing?.path ?? null} />

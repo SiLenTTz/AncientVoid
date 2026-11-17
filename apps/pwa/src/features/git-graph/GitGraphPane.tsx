@@ -53,12 +53,12 @@ export function GitGraphPane({
     [report, commitShas],
   );
 
-  const openInExplorer = (path: string) => {
+  const openInExplorer = (path: string, sha: string) => {
     if (!sessionId) return;
     openLayer("files");
     window.dispatchEvent(
       new CustomEvent("ancientvoid:files-open-path", {
-        detail: { sessionId, path, hostId: hostId ?? null },
+        detail: { sessionId, path, hostId: hostId ?? null, sha },
       }),
     );
   };
@@ -177,7 +177,7 @@ export function GitGraphPane({
                     <ul class="git-graph-files" data-testid="git-graph-files">
                       {row.commit.files.map((f) => (
                         <li key={f.path}>
-                          <button type="button" class="link-btn" onClick={() => openInExplorer(f.path)}>
+                          <button type="button" class="link-btn" onClick={() => openInExplorer(f.path, row.commit.sha)}>
                             <span class="git-graph-status">{f.status}</span> {f.path}
                           </button>
                         </li>

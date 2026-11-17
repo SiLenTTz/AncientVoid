@@ -1084,6 +1084,9 @@ function createHubApi(P: (path: string) => string) {
     api<CodeSearchResult>(P(`/api/code/search?session=${encodeURIComponent(sessionId)}&q=${encodeURIComponent(q)}&mode=${mode}`)),
   codeFile: (sessionId: string, path: string) =>
     api<CodeFile>(P(`/api/code/file?session=${encodeURIComponent(sessionId)}&path=${encodeURIComponent(path)}`)),
+  /** BUG-0191: Blob @ Commit (`target` = `session=`/`project=`). */
+  codeFileAt: (target: string, path: string, sha: string) =>
+    api<CodeFile>(P(`/api/code/file?${target}&path=${encodeURIComponent(path)}&sha=${encodeURIComponent(sha)}`)),
   /** EPIC-P46 (ADR-0058): Explorer. `target` = `session=<id>` oder `project=<pfad>`. */
   codeTree: (target: string, path: string, offset = 0, ignored = false) =>
     api<TreeListing>(P(`/api/code/tree?${target}&path=${encodeURIComponent(path)}&offset=${offset}${ignored ? "&ignored=1" : ""}`)),

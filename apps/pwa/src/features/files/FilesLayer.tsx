@@ -61,10 +61,10 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
     return () => window.removeEventListener("ancientvoid:files-open-root", on);
   }, []);
 
-  // ADR-0071: Git-Graph Datei-Klick → Session-Root + Datei im Explorer.
+  // ADR-0071 / BUG-0191: Git-Graph Datei-Klick → Session-Root + Datei (optional @ sha).
   useEffect(() => {
     const on = (e: Event) => {
-      const detail = (e as CustomEvent<{ sessionId: string; path: string; hostId?: string | null }>).detail;
+      const detail = (e as CustomEvent<{ sessionId: string; path: string; hostId?: string | null; sha?: string }>).detail;
       if (!detail?.sessionId || !detail.path) return;
       const session = getHubStatus().sessions.find((s) => s.id === detail.sessionId);
       const label = session?.title ?? session?.project.split("/").pop() ?? detail.sessionId.slice(0, 8);
@@ -77,8 +77,9 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
           ...(host ? { hostId: host } : {}),
         };
         const key = rootKey(root);
-        const existing = s.tabs.findIndex((t) => t.rootKey === key && t.path === detail.path);
-        const tabs = existing >= 0 ? s.tabs : [...s.tabs, { rootKey: key, path: detail.path }];
+        const sha = detail.sha || undefined;
+        const existing = s.tabs.findIndex((t) => t.rootKey === key && t.path === detail.path && (t.sha ?? undefined) === sha);
+        const tabs = existing >= 0 ? s.tabs : [...s.tabs, { rootKey: key, path: detail.path, ...(sha ? { sha } : {}) }];
         const active = existing >= 0 ? existing : tabs.length - 1;
         const next = { ...s, open: true, root, tabs, active };
         saveFilesState(next);

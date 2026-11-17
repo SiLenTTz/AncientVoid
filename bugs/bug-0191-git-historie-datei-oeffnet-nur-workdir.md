@@ -1,7 +1,7 @@
 ---
 id: BUG-0191
 slug: git-historie-datei-oeffnet-nur-workdir
-status: open
+status: done
 severity: S2
 area: pwa
 instance: dev
