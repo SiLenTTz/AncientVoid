@@ -1,0 +1,55 @@
+# Säht den node_modules-Cache auf main, damit PR-Läufe ihn finden.
+#
+# Warum ein eigener Workflow: GitHub-Caches gelten pro Zweig plus main — ein Cache aus einem
+# PR-Zweig ist für einen *anderen* PR-Zweig unsichtbar. Gemessen am 17.11.2026: PR #131 hat den
+# Cache gespeichert (106 MB), PR #132 bekam trotzdem „Cache not found for input keys“ und zahlte
+# erneut npm ci (0:40). Auf main gespeicherte Caches sehen dagegen alle PR-Zweige.
+#
+# Der Kaltlauf-Beweis (frische Installation aus dem Lockfile) bleibt hier erhalten: dieser
+# Workflow fährt echtes `npm ci`, der PR-Gate darf aus dem Cache schöpfen.
+name: cache-warm
+
+on:
+  push:
+    branches: [main]
+    # Exakt der Key hängt an diesem einen Datei-Hash: Lockfile ändert sich => neuer Cache.
+    paths: ["package-lock.json"]
+  # Einmal pro Hand Start auf main, damit der Cache überhaupt existiert (und nach einem
+  # Runner-Image-Wechsel neu gesät werden kann, ohne dass das Lockfile sich ändern muss).
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cache-warm-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: node_modules-Cache auf main säen
+        id: seed
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          # Key identisch zu ci.yml (OS + Architektur + Node + Lockfile-Hash). Das Runner-Bild
+          # ist im Key-Ausdruck nicht greifbar (`ImageOS` lebt nur in der Shell); maßgeblich ist
+          # die Plattform von esbuild, die pro Lauf mit `npm rebuild esbuild` neu gesetzt wird.
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package-lock.json') }}
+      - name: frische Installation aus dem Lockfile
+        run: |
+          if [ "${{ steps.seed.outputs.cache-hit }}" = "true" ]; then
+            echo "Cache existiert bereits — nur nachziehen (Lockfile unverändert)"
+          fi
+          npm ci
+          npm rebuild esbuild

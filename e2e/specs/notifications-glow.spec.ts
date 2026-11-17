@@ -40,7 +40,7 @@ test.describe("Glocken-Glow nach Dringlichkeit (EPIC-P64)", () => {
     await expect(app.locator(".notif-bell")).toHaveClass(/urgency-done/, { timeout: 15_000 });
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     await expect(app.locator(".notif-panel")).toBeVisible();
-    await app.locator(".notif-panel-head .btn").click();
+    await app.locator(".notif-panel-head").getByRole("button", { name: "✕" }).click();
     await expect(app.locator(".notif-bell")).not.toHaveClass(/urgency-done/, { timeout: 10_000 });
   });
 

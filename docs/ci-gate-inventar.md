@@ -154,8 +154,11 @@ die externe Einrichtung folgt erst nach dieser Entscheidung (Reihenfolge
 eingehalten). Mit dem Umzug auf das öffentliche GitHub-Repo (16.11.2026)
 ist der eigene Runner abgelöst: kein self-hosted Runner für Fork-PRs. Der PR-Gate cacht
 `node_modules` über den exakten Lockfile-Hash (`actions/cache`, nur ein exakter Treffer zählt);
-der **Kaltlauf-Beweis** — frische Installation aus dem Lockfile — bleibt im Nightly-Lauf, der
-ohne diesen Cache `npm ci` fährt.
+bei einem Teil-Treffer wird trotzdem frisch installiert. Gesät wird der Cache von
+`cache-warm.yml` auf main (bei Lockfile-Wechsel, dort läuft echtes `npm ci`) — Caches aus PR-
+Zweigen sieht ein anderer PR-Zweig nicht, gemessen am 17.11.2026. Der **Kaltlauf-Beweis** bleibt
+damit zweifach erhalten: in `cache-warm.yml` und im Nightly-Lauf, der ohne diesen Cache `npm ci`
+fährt.
 
 ## 5. Nachweislauf-Register (Historie GitLab, drei aufeinanderfolgende grüne Läufe)
 

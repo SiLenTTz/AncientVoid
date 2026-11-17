@@ -50,42 +50,52 @@ jobs:
         with:
           # Nur der exakte Lockfile-Treffer gilt als übernommen (cache-hit). Bei einem
           # Teil-Treffer über restore-keys läuft unten trotzdem npm ci — nie ein halber Stand.
+          # Der Key nennt OS, Architektur und Node: esbuild ist die einzige plattformabhängige
+          # Datei im Baum, und sie wird in jedem Lauf mit `npm rebuild esbuild` neu gesetzt. Das
+          # Runner-Bild selbst ist im Key-Ausdruck nicht greifbar (`ImageOS` lebt nur in der
+          # Shell) — Maßstab sind Plattform und Node-Stufe.
+          # Gesät wird dieser Cache von cache-warm.yml auf main — Caches von PR-Zweigen sieht
+          # ein zweiter PR-Zweig nicht (GitHub-Cache-Geltung: eigener Zweig + main).
           path: node_modules
-          key: nm-${{ runner.image }}-node24-${{ hashFiles('package-lock.json') }}
+          key: nm-${{ runner.os }}-${{ runner.arch }}-node24-${{ hashFiles('package-lock.json') }}
           restore-keys: |
-            nm-${{ runner.image }}-node24-
-      - name: System-Werkzeuge
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $APT_TOOLS > /dev/null
-      - name: Abhängigkeiten
+            nm-${{ runner.os }}-${{ runner.arch }}-node24-
+      - name: "Schneller Kern — apt, Abhängigkeiten, Guards und Tests überlappt"
+        # Wanduhr statt Warteschlange (gemessen PR #129, Lauf 44175855458: 5:14; PR #131:
+        # 3:41). apt 0:20, npm ci 0:40, Guards 1:02, Build 0:03 und die schnellen Kern-Tests
+        # 1:38-2:16 liefen hintereinander. Hier laufen sie überlappt, aber in der einzig
+        # zulässigen Reihenfolge: die Tests starten erst, NACHDEM apt durch ist — sonst
+        # skippen tmux/ffmpeg/pdftotext-Tests still und der Gate wäre heller, nicht ehrlicher.
+        # Gate-INHALT ist unverändert: jeder Guard entscheidet weiterhin einzeln OK oder Fail.
         run: |
+          set -u
+          mkdir -p test-results
+          ( sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends $APT_TOOLS > /dev/null ) &
+          apt_pid=$!
           if [ "${{ steps.nm.outputs.cache-hit }}" = "true" ]; then
             echo "node_modules aus dem Cache — Lockfile exakt, npm ci entfällt"
           else
             npm ci
           fi
           npm rebuild esbuild
-      - name: "Schneller Kern — Guards, Build und Tests parallel"
-        # Wanduhr statt Warteschlange (gemessen PR #129, Lauf 44175855458): apt 0:49 +
-        # npm ci 1:03 + Typecheck/Lint/check:* 1:02 + Build 0:03 + schnelle Kern-Tests 2:16
-        # liefen hintereinander. Die Kern-Tests starten jetzt im Hintergrund, während Guards
-        # und Build laufen. Der Gate-Inhalt ist unverändert — nur die Reihenfolge ist
-        # überlappt, und jeder Guard entscheidet weiterhin einzeln über OK oder Fail.
-        run: |
-          mkdir -p test-results
-          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml > test-results/fast-tests.log 2>&1 &
-          tests=$!
           fehler=0
-          for gate in check:workspace-links typecheck lint check:commits check:arch check:names check:adapter-matrix check:context check:secrets check:media; do
+          for gate in check:workspace-links typecheck lint check:commits check:arch check:names check:adapter-matrix check:context check:secrets; do
             echo "::group::$gate"
             npm run -s "$gate" || fehler=1
             echo "::endgroup::"
           done
+          wait "$apt_pid" || fehler=1
+          npm run test:fast -- --reporter=junit --reporter=default --outputFile=test-results/vitest-junit.xml > test-results/fast-tests.log 2>&1 &
+          tests=$!
           echo "::group::pwa-build"
           npm -w @ancientvoid/pwa run build || fehler=1
           echo "::endgroup::"
-          # AC-P1-6: Secret-Scan bleibt als wiederholtes Gate enthalten (in der Liste oben),
-          # EPIC-P62 T62.2: Medien-Leak-Guard hier in Struktur und OCR über neue/geänderte
-          # Guide-/Site-Screenshots.
+          echo "::group::check:media"
+          npm run -s check:media || fehler=1
+          echo "::endgroup::"
+          # AC-P1-6: Secret-Scan bleibt wiederholtes Gate (Guard-Liste oben). EPIC-P62 T62.2
+          # (AC-P62-5): Medien-Leak-Guard hier zusätzlich mit OCR über neue/geänderte
+          # Guide-/Site-Screenshots — dafür ist tesseract inzwischen installiert.
           echo "::group::check:media --ocr"
           npm run -s check:media -- --ocr || fehler=1
           echo "::endgroup::"

@@ -132,9 +132,13 @@ Zusammenfassung ≤ 100 Zeichen, Bereich = Paket/Modul. Keine Secrets.
 ```bash
 git push -u origin feat/adapter-local-llm
 gh pr create --base main --title "^ F adapter-local-llm: Stream des llama.cpp-Servers lesen" --body-file pr-desc.md
-gh pr checks --watch                       # CI (GitHub Actions) muss grün sein
+gh pr checks --watch                       # blockiert bis grün — NICHT mit sleep-Schleifen pollern
 gh pr merge <nr> --merge --delete-branch \
   --subject "$(gh pr view <nr> --json title -q .title)"   # Self-Merge zulässig (Solo-Projekt)
+
+# Vor dem Warten absichern, dass Push und PR wirklich existieren:
+git ls-remote --heads origin <branch>          # Push bewiesen (nicht aus dem Ausgang annehmen)
+gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Nummer nicht pollen
 ```
 
 - **Merge-Commit, kein Squash/Rebase:** Die Branch-Commits behalten ihre
@@ -146,6 +150,14 @@ gh pr merge <nr> --merge --delete-branch \
   [`docs/ci-runbook.md`](../../../docs/ci-runbook.md) (`gh run view --log-failed`).
 - Branch-Protection auf `main` verlangt die CI-Checks; `gh pr merge` scheitert,
   solange sie rot oder ausstehend sind — nicht mit Admin-Override umgehen.
+- **Warten ist Produktivzeit:** das Ruleset `main-gate` verlangt `verify`, darum bleibt
+  Warten unvermeidbar — aber es ist das bewachte Warten: `gh pr checks --watch` kehrt in
+  dem Augenblick zurück, in dem `verify` grün wird (Schleifen mit `sleep 25/85` kosten pro
+  PR 25–90 s und sind der Fehler, nicht die Vorsicht). Gemessene Gate-Länge nach der
+  Tempobeschleunigung (PR #131/#134/#135/#136/#137): 3:41 → 2:12; Ausgangslage war 5:14.
+- `gh pr merge --auto --merge` wird vom aktuellen Ruleset abgelehnt („Protected branch
+  rules not configured for this branch“), obwohl `allow_auto_merge` im Repo an ist —
+  nicht erneut probieren, sondern `--watch` benutzen.
 
 Body: Warum, Testplan, Link Issue (`Fixes #<nr>`). Der PR bleibt Pflicht als
 Log-Eintrag — der Merge-Klick/`gh pr merge` ist der **einzige** Weg, wie
@@ -157,6 +169,25 @@ angemessenem Abstand erneut versuchen; bei mehreren wartenden Branches
 strikt in Entstehungsreihenfolge pushen/mergen (sie bauen aufeinander auf).
 Dem Nutzer den Block klar benennen, nicht stillschweigend eine
 Ersatzlösung bauen.
+
+### 4.1 PR-Pipeline — CI überlappt die nächste Aufgabe (Standard)
+
+Der Gate läuft gemessen 2:12–2:40 (`docs/ci-runbook.md`, Messreihe in `PROGRESS.md`).
+Ihn blockierend abzuwarten verschenkt pro Aufgabe genau diese Zeit. Standard ist deshalb:
+
+1. **Push + PR öffnen, dann sofort weiterarbeiten** — nächste Aufgabe, eigener Branch (ein
+   Branch pro Aufgabe, siehe Hard Rules). CI-Zustand bei Bedarf nicht-blockierend abfragen
+   (`gh pr checks <nr>`); blockierend mit `--watch` nur dann, wenn *dieser* Merge jetzt
+   gebraucht wird. Niemals mit `sleep`-Schleifen pollern.
+2. **Merges en bloc:** sind mehrere PRs grün, werden sie nacheinander gemerged, danach **ein**
+   Live-Zweig-Merge, **ein** Frontend-Bau und **höchstens ein** Hub-Neustart für den ganzen
+   Stapel (Neustarts mitten im Nutzer-Turn stören Kai; Rezept: Skill `ancientvoid-live-hub`).
+3. **Was „fertig“ heißen darf:** lokal verifizierte Tests **+ grüner Gate** = abgeschlossen.
+   „Code fertig, CI läuft“ ist ein ehrlicher Zwischenstand, keine Fertigmeldung — so benennen
+   (AGENTS: fertig heißt verifiziert).
+4. **Ohne grünen Gate wird nicht gemerged.** Das Ruleset `main-gate` erzwingt `verify` derzeit
+   nicht (leere Targets; gemessen 2026-11-17: ein PR wurde gemerged, sein CI-Lauf lief drei
+   Sekunden) — bis die Ruleset-Bedingungen gefüllt sind, ist diese Regel die einzige Schranke.
 
 ### 5. Post-Merge Cleanup (Pflicht nach jedem Merge)
 
@@ -206,6 +237,8 @@ Cleanup: post-merge lokal+remote (+ fetch --prune) <done|pending|n/a>
 - [ ] Kein Branch für nicht angewiesene Arbeit.
 - [ ] Pre-Commit-Bezug konkret (`npm test/lint/typecheck`, nicht „irgendwelche Checks").
 - [ ] Merge ausschließlich über `gh pr merge --merge` (oder GitHub-UI) — kein lokales `git merge` von `feat/*` nach `main`.
+- [ ] CI nicht blockierend abgewartet, außer der Merge wird sofort benötigt; Merges und
+      Deployment en bloc (ein Live-Merge, ein Bau, höchstens ein Neustart pro Stapel).
 - [ ] Bei Remote-Ausfall: Branch offen und ungelöscht, kein Ersatz-Merge, Block klar benannt.
 - [ ] Nach Merge: Source-Branch lokal gelöscht, remote nachgezogen, `git fetch --prune`.
 - [ ] PR zielt auf `main` (oder dokumentierte kurze Epic-Kette, die bald auf `main` landet).

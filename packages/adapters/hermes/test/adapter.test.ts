@@ -340,3 +340,70 @@ describe("hermes adapter — lifecycle against the live-verified CLI shape", () 
     expect(spawnedCmds[0]!.at(-1)).toBe("-v");
   });
 });
+
+// BUG-0188 (live belegt 2026-11-17, Session d2910969): Hermes v0.21 druckt
+// mit -Q Antwort UND session_id erst am Zugende — während eines langen Turns
+// bleibt der Pane komplett stumm, die PWA zeigte minutenlang gar nichts
+// („passiert nichts"). Und v0.21 sperrt native Sessions auf einen Live-Owner
+// (live belegt 2026-11-09, Session cb017253): ein --resume-Spawn, während
+// der alte CLI-Owner noch lebt, stirbt mit Exit 1.
+describe("hermes adapter — BUG-0188: Sofort-Feedback je Turn, Owner-Lock-Retry", () => {
+  it("jeder Turn emittiert SOFORT hermes.turn_started — vor jeder Antwort/Session-ID", async () => {
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => fakeHermesProcess("OK\n", REAL_STDERR),
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "lange Aufgabe" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"));
+    expect(ctx.events[0]).toMatchObject({ type: "system" });
+    expect((ctx.events[0]!.payload as { kind?: string }).kind).toBe("hermes.turn_started");
+    // follow-up steer ebenso: auch der zweite Turn meldet sich sofort
+    const handle = { sessionId: "test-session" };
+    await adapter.steer(handle, { kind: "prompt", text: "nochmal" }, ctx);
+    await waitFor(() => ctx.events.filter((e) => (e.payload as { kind?: string }).kind === "hermes.turn_started").length >= 2);
+  });
+
+  // Wortlaut aus dem echten Worker-Log der Session cb017253 (2026-11-09):
+  const OWNER_LOCK_STDOUT =
+    "Session 20261110_003707_cd2744 already has a live owner (cli, pid 1368351, running 2m). Only one surface at a time may run a session, because a second one would reason from a transcript that does not include the first one's work.";
+
+  it("Exit 1 „already has a live owner“: genau ein Retry desselben Turns, dann die Antwort", async () => {
+    const spawnedCmds: string[][] = [];
+    let call = 0;
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        call += 1;
+        return call === 1 ? fakeHermesProcess(OWNER_LOCK_STDOUT, "", 1) : fakeHermesProcess("OK\n", REAL_STDERR);
+      },
+    });
+    const adapter = createAdapter();
+    await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "go" }, ctx);
+    await waitFor(() => ctx.events.some((e) => e.type === "assistant"), 8000);
+    expect(spawnedCmds).toHaveLength(2);
+    expect(spawnedCmds[1]).toEqual(spawnedCmds[0]); // derselbe Turn, unverändert
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "hermes.owner_conflict")).toBe(true);
+    // die Lock-Meldung ist kein Antworttext
+    expect(ctx.events.some((e) => e.type === "assistant" && /live owner/.test(e.summary))).toBe(false);
+  });
+
+  it("Owner-Konflikt zweimal in Folge: kein zweiter Retry, der Fehler bleibt sichtbar (fail loud)", async () => {
+    const spawnedCmds: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawnedCmds.push(cmd);
+        return fakeHermesProcess(OWNER_LOCK_STDOUT, "", 1);
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "hermes", project: "/tmp", prompt: "go" }, ctx);
+    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "hermes.owner_conflict_final"), 8000);
+    expect(spawnedCmds).toHaveLength(2); // Ursprung + genau ein Retry
+    let down = false;
+    for (let i = 0; i < 40 && !down; i++) {
+      down = (await adapter.status(handle)).state === "down";
+      if (!down) await new Promise((r) => setTimeout(r, 25));
+    }
+    expect(down).toBe(true);
+  });
+});

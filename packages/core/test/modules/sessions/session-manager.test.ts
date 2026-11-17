@@ -1532,4 +1532,69 @@ describe("SessionManager adoption (BUG-0039)", () => {
       db.close();
     }
   });
+
+  // BUG-0188 (live belegt 2026-11-17, Hermes-Session d2910969): stop()
+  // abortet das Signal, bevor der Adapter den onExit-Flush der Worker-Ausgabe
+  // liefert — das hermes.native_session-Event mit payload.nativeSessionId
+  // (der generische Binding-Griff, s. emitEvents) wurde still verworfen.
+  // 76 Messages echte Arbeit waren danach über den Hub unerreichbar (K7).
+  it("BUG-0188: Adapter-Event mit nativeSessionId nach stop() überlebt — Binding und EventStore", async () => {
+    const lateDir = await mkdtemp(join(tmpdir(), "ancientvoid-sm-latebind-"));
+    let lateCtx: AdapterContext | undefined;
+    const oneShot: Adapter = {
+      id: "oneshot",
+      version: "0.0.1",
+      capabilities() {
+        return {
+          reasoning: false,
+          tools: false,
+          cost: false,
+          steer: true,
+          usage: false,
+          nativeDiscovery: "none",
+          nativeResume: "native",
+          resume: { argv: ["oneshot", "--resume", "{sessionId}"], ref: "native", hub: true, auto: true },
+          features: basicFeatures(),
+        };
+      },
+      async start(_spec: SessionSpec, ctx: AdapterContext) {
+        lateCtx = ctx;
+        return { sessionId: ctx.sessionId };
+      },
+      async status() {
+        return { state: "healthy" };
+      },
+      async steer() {
+        return { ok: true };
+      },
+      async stop() {
+        // Form des hermes-onExit-Flush nach dem Kill: das Binding kommt
+        // NACH dem Abort — hier modelliert als sofortiger Folge-Callback.
+        setImmediate(() =>
+          lateCtx?.emit({ type: "system", summary: "Hermes · Session SID-1", payload: { kind: "hermes.native_session", nativeSessionId: "SID-1" } }),
+        );
+      },
+    };
+    const db = new HubDatabase(":memory:");
+    const registry = new AdapterRegistry();
+    registry.register("oneshot", () => oneShot);
+    const store = new EventStore(lateDir);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "oneshot", project: lateDir, prompt: "x" });
+      await manager.stop(record.id);
+      await waitFor(async () => (manager.get(record.id)?.nativeSessionId ?? null) === "SID-1");
+      // Event NACH dem Abort journalisiert; Status bleibt „stopped“
+      const events = await store.replay(record.id);
+      const late = events.find((e) => (e.payload as { kind?: string }).kind === "hermes.native_session");
+      expect(late).toBeDefined();
+      expect((late!.payload as { nativeSessionId?: string }).nativeSessionId).toBe("SID-1");
+      expect(events.some((e) => (e.payload as { kind?: string }).kind === "session.stopped")).toBe(true);
+      expect(manager.get(record.id)?.status).toBe("stopped");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(lateDir, { recursive: true, force: true });
+    }
+  });
 });

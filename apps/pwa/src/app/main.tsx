@@ -11,6 +11,7 @@ import { isToolPage, pageHash, parseAppHash, redirectLegacyRunHash, sessionHash,
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
 import { installShortcutHints } from "../shared/shortcut-hint.ts";
+import { installSoundUnlock } from "../shared/audio.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
 import { initAppearance } from "./appearance.ts";
@@ -52,6 +53,8 @@ applyCtxMotion(ctxMotionOn());
 installScaleShortcuts();
 // EPIC-P51 T51.8: Kürzel-Hinweis-Pill bei Klicks auf Elemente mit Shortcut.
 installShortcutHints();
+// EPIC-P65: WebAudio-Wiedergabe — die erste Geste entsperrt den Context (Premortem P65-1).
+installSoundUnlock();
 
 function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: string }) {
   const [token, setVal] = useState(getToken());

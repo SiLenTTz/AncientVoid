@@ -9,6 +9,24 @@ Git enthalten, und ohne dass der gemerkte Pfad verloren geht. Zusätzlich: die
 Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
 
 ## Erledigt (verifiziert)
+- **PR-Gate beschleunigt (Zweige `perf/ci-pr-gate-schneller` = PR #131, `perf/cache-warm-und-keyfix`
+  = PR #134).** Ausgangslage gemessen (Lauf 44175855458, PR #129): **5:14** Wanduhr — apt 0:49,
+  `npm ci` 1:03, Typecheck 0:21, Lint + `check:*` 0:22, Build 0:03, schnelle Kern-Tests 2:16,
+  alles hintereinander. Neu: `node_modules`-Cache; apt ohne vorinstallierte Pakete und ohne
+  Recommends; ein kombinierter Schritt, in dem apt im Hintergrund laeuft, die neun
+  werkzeugfreien Guards sofort anlaufen und die schnellen Kern-Tests erst NACH apt starten
+  (sonst skippen tmux-/ffmpeg-/pdftotext-Tests still). Gate-INHALT unveraendert, jeder Guard
+  entscheidet weiterhin einzeln. Gemessen Lauf fuer Lauf: #131 **3:41**, #134 **3:19**, #135
+  **2:34** (Cache erstmals getroffen: 2 s Restore, `npm ci` entfiel), #136 **2:17**.
+  Der Cache traf anfaenglich nie: `runner.image` ist keine gueltige Ausdrucksvariable (Key war
+  `nm--node24-…`), und Caches aus PR-Zweigen sieht ein anderer PR-Zweig nicht — PR #132 loggte
+  „Cache not found“, obwohl #131 106 MB gespeichert hatte. Deshalb `cache-warm.yml`: saet den
+  Cache auf main (Lockfile-Wechsel oder Handausloesung), dort laeuft echtes `npm ci` — der
+  Kaltlauf-Beweis (frische Installation) bleibt erhalten. Gesaet: Lauf 44180995622 mit
+  Key `nm-Linux--node24-…`; nach dem Key-Fix auf `runner.arch` neu gesaet in Lauf 44183836239
+  (35 s), Key `nm-Linux-X64-node24-06b19507…`. Letzter Messlauf PR #137: **2:12** — Cache
+  getroffen, `npm ci` entfallen (Restore der `node_modules` in 2 s). Entfernt ausserdem: ein von mir hinterlassener
+  Duplikat-Schritt, der Guards und Tests ein zweites Mal laufen liess.
 - **Build-Stempel im Buendel (Zweig `feat/app-stand-im-geraetebericht`).** Auf Kais Frage
   „sehe ich das am Handy schon?“ war von aussen nicht entscheidbar, WELCHES Buendel auf
   dem Geraet laeuft — der Server sagt nur, was er ausliefert, und ein Geraetecache kann
@@ -149,6 +167,18 @@ Entwicklungs-Schleife von 18 Minuten auf unter eine Minute bringen.
   immer zuerst `bugs/README.md` auf dem aktuellen `main` prüfen.
 
 ## Nächste Schritte
+- **PR-Pipeline ist Standard (Skill `git-workflow`, Abschnitt 4.1).** Der Gate kostet
+  2:12–2:40; ich warte ihn nicht blockierend ab, sondern arbeite an der naechsten Aufgabe
+  weiter, bis der Merge faellig ist (nicht-blockierend fragen, blockierend nur mit
+  `gh pr checks --watch`, sleep-Schleifen verboten). Merges, Live-Zweig-Merge, Frontend-Bau
+  und Hub-Neustart laufen en bloc pro Stapel. „Code fertig, CI laeuft“ bleibt ein
+  Zwischenstand, keine Fertigmeldung; gemerged wird nur nach gruenem Gate — das Ruleset
+  `main-gate` erzwingt das derzeit nicht (leere Targets).
+- **Auto-Merge bleibt aus, bis Kai ihn im GitHub-UI einschaltet.** Repo-seitig ist
+  `allow_auto_merge` bereits `true`, aber `gh pr merge --auto --merge` lehnt das Ruleset
+  `main-gate` ab („Protected branch rules not configured for this branch“); der Hebel sitzt in
+  der Ruleset-Bearbeitung (Owner-Rechte, nicht mein Token). Ohne das bleibt der Manuell-Merge
+  direkt nach gruenem `--watch` — die Verzoegerung ist dann nur noch die Gate-Laenge selbst.
 
 1. Gates auf GitHub-Basis fertig fahren (`typecheck`, `lint`, `check:context`,
    Tier A, `test:e2e` für Workspace-Specs), dann PR mit `gh pr create`.
