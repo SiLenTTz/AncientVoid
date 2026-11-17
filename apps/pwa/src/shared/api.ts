@@ -691,8 +691,9 @@ export interface QueuedPrompt {
   createdAt: string;
   actor: string | null;
   attachments: number;
-  /** ADR-0085: Stelle in der Reihe (niedrig = geht zuerst raus). */
-  position: number;
+  /** ADR-0085: Stelle in der Reihe (niedrig = geht zuerst raus). Ein aelterer Hub
+   *  liefert sie nicht — dann gilt die Ankunftsreihenfolge. */
+  position?: number;
 }
 
 /** ADR-0085: nachtraegliche Aenderung an einer vorgemerkten Meldung. */
