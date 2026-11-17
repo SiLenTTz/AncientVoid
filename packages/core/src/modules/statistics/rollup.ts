@@ -7,6 +7,7 @@ import {
   type Team,
   type TeamTaskStatistics,
   type ToolStatistics,
+  type TurnStatistics,
 } from "@ancientvoid/contracts";
 import type { HubDatabase } from "../../platform/db.ts";
 import { statisticsDistribution } from "./distribution.ts";
@@ -14,6 +15,7 @@ import { type GateWaitInterval, aggregateGateWaitStatistics, deriveGateWaitInter
 import { deriveRecoveryIntervals, type RecoveryInterval } from "./session-facts.ts";
 import { type SessionFacts, deriveSessionFacts } from "./session-facts.ts";
 import { aggregateSessionStatistics } from "./session-statistics.ts";
+import { aggregateTurnStatistics } from "./turn-statistics.ts";
 import { type TeamTaskCounts, sumTeamTaskCounts, teamTaskCounts } from "./team-statistics.ts";
 import { type ToolCallFact, deriveToolCallFacts, toolStatisticsOf } from "./tool-statistics.ts";
 
@@ -22,6 +24,20 @@ interface SessionRecordRef {
   adapter: string;
   model: string | null;
   lastSeq: number;
+  /** T56.3: Schnitte — Quelle ist der SessionRecord, nie das Journal. */
+  project: string;
+  hostId: string;
+  harness: string;
+  createdAt: string;
+}
+
+/** T56.3: Schnitt der Leseseite — ISO-Zeitstempel grenzen über created_at ein. */
+export interface StatisticsFilter {
+  project?: string;
+  hostId?: string;
+  harness?: string;
+  since?: string;
+  until?: string;
 }
 
 /** Was der Rollup an Quellen braucht — Journal und Team-Record bleiben Wahrheit (K7). */
@@ -55,20 +71,22 @@ export class StatisticsRollup {
   /** Inkrementeller Lauf: nur veränderte Sessions/Teams werden neu abgeleitet. */
   async run(): Promise<RollupResult> {
     const now = new Date().toISOString();
-    const sessionBasis = this.db.prepare("SELECT basis_last_seq FROM session_stat_facts WHERE session_id = ?");
+    const sessionBasis = this.db.prepare("SELECT basis_last_seq, project, created_at FROM session_stat_facts WHERE session_id = ?");
     let sessionsUpdated = 0;
     for (const record of this.source.records()) {
-      const cached = sessionBasis.get(record.id) as { basis_last_seq: number } | undefined;
-      if (cached !== undefined && cached.basis_last_seq >= record.lastSeq) continue;
+      const cached = sessionBasis.get(record.id) as { basis_last_seq: number; project: string; created_at: string } | undefined;
+      // Zeilen ohne Dimensionen stammen von vor Migration 37 — einmal neu
+      // ableiten, damit die Schnitte lückenlos sind (dann konvergiert es).
+      if (cached !== undefined && cached.basis_last_seq >= record.lastSeq && cached.project !== "" && cached.created_at !== "") continue;
       const events = await this.source.events(record.id);
       this.writeSession(record, now, deriveSessionFacts(events, { sessionId: record.id, adapter: record.adapter, model: record.model }), deriveGateWaitIntervals(events), deriveToolCallFacts(events, { sessionId: record.id }), deriveRecoveryIntervals(events, record.id));
       sessionsUpdated++;
     }
-    const teamBasis = this.db.prepare("SELECT basis_updated_at FROM team_stat_facts WHERE team_id = ?");
+    const teamBasis = this.db.prepare("SELECT basis_updated_at, project, created_at FROM team_stat_facts WHERE team_id = ?");
     let teamsUpdated = 0;
     for (const team of this.source.teams()) {
-      const cached = teamBasis.get(team.id) as { basis_updated_at: string } | undefined;
-      if (cached !== undefined && cached.basis_updated_at === team.updatedAt) continue;
+      const cached = teamBasis.get(team.id) as { basis_updated_at: string; project: string; created_at: string } | undefined;
+      if (cached !== undefined && cached.basis_updated_at === team.updatedAt && cached.project !== "" && cached.created_at !== "") continue;
       this.writeTeam(team, teamTaskCounts(team), now);
       teamsUpdated++;
     }
@@ -88,8 +106,8 @@ export class StatisticsRollup {
     try {
       this.db.prepare("DELETE FROM session_stat_facts WHERE session_id = ?").run(sessionId);
       this.db.prepare(
-        "INSERT INTO session_stat_facts (session_id, adapter, model, wall_ms, active_ms, turns, open_turn, end_reason, basis_last_seq, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run(sessionId, record.adapter, record.model, facts?.wallMs ?? null, facts?.activeMs ?? 0, facts?.turns ?? 0, facts?.openTurn ? 1 : 0, facts?.endReason ?? null, record.lastSeq, now);
+        "INSERT INTO session_stat_facts (session_id, adapter, model, wall_ms, active_ms, turns, open_turn, end_reason, basis_last_seq, updated_at, project, host_id, harness, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).run(sessionId, record.adapter, record.model, facts?.wallMs ?? null, facts?.activeMs ?? 0, facts?.turns ?? 0, facts?.openTurn ? 1 : 0, facts?.endReason ?? null, record.lastSeq, now, record.project, record.hostId, record.harness, record.createdAt);
       this.db.prepare("DELETE FROM gate_wait_facts WHERE session_id = ?").run(sessionId);
       const gate = this.db.prepare("INSERT INTO gate_wait_facts (session_id, gate_id, tool_name, wait_ms, status) VALUES (?, ?, ?, ?, ?)");
       for (const g of gates) gate.run(sessionId, g.gateId, g.toolName, g.waitMs, g.status);
@@ -108,8 +126,8 @@ export class StatisticsRollup {
 
   private writeTeam(team: Team, counts: TeamTaskCounts, now: string): void {
     this.db.prepare(
-      "INSERT OR REPLACE INTO team_stat_facts (team_id, tasks, open_tasks, unknown_tasks, done_tasks, failed_tasks, tasks_with_dispatches, retry_tasks, dispatches, stale_dispatches, basis_updated_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    ).run(team.id, counts.tasks, counts.openTasks, counts.unknownTasks, counts.doneTasks, counts.failedTasks, counts.tasksWithDispatches, counts.retryTasks, counts.dispatches, counts.staleDispatches, team.updatedAt, now);
+      "INSERT OR REPLACE INTO team_stat_facts (team_id, tasks, open_tasks, unknown_tasks, done_tasks, failed_tasks, tasks_with_dispatches, retry_tasks, dispatches, stale_dispatches, basis_updated_at, updated_at, project, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run(team.id, counts.tasks, counts.openTasks, counts.unknownTasks, counts.doneTasks, counts.failedTasks, counts.tasksWithDispatches, counts.retryTasks, counts.dispatches, counts.staleDispatches, team.updatedAt, now, team.project, team.createdAt);
   }
 
   /** Räumt Zeilen weg, deren Quelle nicht mehr existiert — der Cache erfindet keine Sessions. */
@@ -133,8 +151,23 @@ export class StatisticsRollup {
 
   // — Leseseite: T56.3 liest nur diese Aggregate, nie die Journals direkt —
 
-  sessionStatistics(): SessionStatistics[] {
-    const rows = this.db.prepare("SELECT session_id, adapter, model, wall_ms, active_ms, turns, open_turn, end_reason FROM session_stat_facts").all() as unknown as {
+  /** Frischeste Fakten-Zeile — Rollup-Alter für die Seite (null: noch kein Lauf). */
+  updatedAt(): string | null {
+    const row = this.db.prepare("SELECT MAX(updated_at) AS newest FROM session_stat_facts").get() as { newest: string | null };
+    return row.newest;
+  }
+
+  /** Verfügbare Schnittwerte für die Filterauswahl — aus dem Cache, nicht aus den Quellen. */
+  sliceValues(): { projects: string[]; hosts: string[]; harnesses: string[] } {
+    const distinct = (column: string): string[] =>
+      (this.db.prepare(`SELECT DISTINCT ${column} AS v FROM session_stat_facts WHERE ${column} != '' ORDER BY v`).all() as unknown as { v: string }[]).map(r => r.v);
+    return { projects: distinct("project"), hosts: distinct("host_id"), harnesses: distinct("harness") };
+  }
+
+  sessionStatistics(filter: StatisticsFilter = {}): SessionStatistics[] {
+    const rows = this.db.prepare(
+      `SELECT session_id, adapter, model, wall_ms, active_ms, turns, open_turn, end_reason FROM session_stat_facts ${this.sessionWhere(filter)}`,
+    ).all(...this.sessionParams(filter)) as unknown as {
       session_id: string; adapter: string; model: string | null; wall_ms: number | null; active_ms: number; turns: number; open_turn: number; end_reason: SessionEndReason | null;
     }[];
     return aggregateSessionStatistics(rows.map(r => ({
@@ -149,28 +182,80 @@ export class StatisticsRollup {
     })));
   }
 
-  gateWaitStatistics(): GateWaitStatistics | null {
-    const rows = this.db.prepare("SELECT gate_id, tool_name, wait_ms, status FROM gate_wait_facts").all() as unknown as { gate_id: string; tool_name: string | null; wait_ms: number | null; status: GateWaitInterval["status"] }[];
+  /** Zug-/Token-Statistik über den turn_metrics-Cache, geschnitten wie die Session-Fakten. */
+  turnStatistics(filter: StatisticsFilter = {}): TurnStatistics[] {
+    const rows = this.db.prepare(
+      `SELECT t.session_id, t.turn, t.adapter, t.model, t.started_at, t.ended_at, t.duration_ms, t.tokens, t.tokens_source, t.cost_usd, t.events, t.tool_calls, t.outcome
+       FROM turn_metrics t JOIN session_stat_facts f ON f.session_id = t.session_id ${this.sessionWhere(filter, "f")}`,
+    ).all(...this.sessionParams(filter)) as unknown as {
+      session_id: string; turn: number; adapter: string; model: string | null; started_at: string; ended_at: string;
+      duration_ms: number; tokens: number | null; tokens_source: "native" | "estimated" | null; cost_usd: number | null;
+      events: number; tool_calls: number; outcome: "ok" | "error";
+    }[];
+    return aggregateTurnStatistics(rows.map(r => ({
+      sessionId: r.session_id,
+      turn: r.turn,
+      adapter: r.adapter,
+      model: r.model,
+      startedAt: r.started_at,
+      endedAt: r.ended_at,
+      durationMs: r.duration_ms,
+      tokens: r.tokens,
+      tokensSource: r.tokens_source,
+      costUsd: r.cost_usd,
+      events: r.events,
+      toolCalls: r.tool_calls,
+      outcome: r.outcome,
+    })));
+  }
+
+  gateWaitStatistics(filter: StatisticsFilter = {}): GateWaitStatistics | null {
+    const rows = this.db.prepare(
+      `SELECT gate_id, tool_name, wait_ms, status FROM gate_wait_facts WHERE session_id IN (SELECT session_id FROM session_stat_facts ${this.sessionWhere(filter)})`,
+    ).all(...this.sessionParams(filter)) as unknown as { gate_id: string; tool_name: string | null; wait_ms: number | null; status: GateWaitInterval["status"] }[];
     if (rows.length === 0) return null;
     return aggregateGateWaitStatistics(rows.map(r => ({ gateId: r.gate_id, toolName: r.tool_name, waitMs: r.wait_ms, status: r.status })));
   }
 
-  toolStatistics(): ToolStatistics[] {
+  toolStatistics(filter: StatisticsFilter = {}): ToolStatistics[] {
     const rows = this.db.prepare(
-      "SELECT tool, SUM(calls) AS calls, SUM(failed) AS failed, SUM(ok) AS ok, SUM(error_status_unknown) AS unknown, SUM(unanswered) AS unanswered FROM tool_stat_facts GROUP BY tool ORDER BY tool",
-    ).all() as unknown as { tool: string; calls: number; failed: number; ok: number; unknown: number; unanswered: number }[];
+      `SELECT tool, SUM(calls) AS calls, SUM(failed) AS failed, SUM(ok) AS ok, SUM(error_status_unknown) AS unknown, SUM(unanswered) AS unanswered
+       FROM tool_stat_facts WHERE session_id IN (SELECT session_id FROM session_stat_facts ${this.sessionWhere(filter)}) GROUP BY tool ORDER BY tool`,
+    ).all(...this.sessionParams(filter)) as unknown as { tool: string; calls: number; failed: number; ok: number; unknown: number; unanswered: number }[];
     return rows.map(r => toolStatisticsOf(r.tool === "" ? null : r.tool, { calls: r.calls, failed: r.failed, ok: r.ok, errorStatusUnknown: r.unknown, unanswered: r.unanswered }));
   }
 
-  recoveryDistribution(): StatisticsDistribution {
-    const rows = this.db.prepare("SELECT recovery_ms FROM recovery_facts").all() as unknown as { recovery_ms: number | null }[];
+  recoveryDistribution(filter: StatisticsFilter = {}): StatisticsDistribution {
+    const rows = this.db.prepare(
+      `SELECT recovery_ms FROM recovery_facts WHERE session_id IN (SELECT session_id FROM session_stat_facts ${this.sessionWhere(filter)})`,
+    ).all(...this.sessionParams(filter)) as unknown as { recovery_ms: number | null }[];
     return statisticsDistribution(rows.map(r => r.recovery_ms));
   }
 
-  teamTaskStatistics(): TeamTaskStatistics | null {
+  /**
+   * Team-Zahlen folgen dem Projekt-/Zeitraum-Schnitt. Host und Harness sind
+   * keine Team-Dimensionen (ein Team gehört zum Hub, nicht zu einem Harness) —
+   * solche Filter wirken hier bewusst nicht.
+   */
+  teamTaskStatistics(filter: StatisticsFilter = {}): TeamTaskStatistics | null {
+    const conditions: string[] = [];
+    const params: string[] = [];
+    if (filter.project !== undefined) {
+      conditions.push("project = ?");
+      params.push(filter.project);
+    }
+    if (filter.since !== undefined) {
+      conditions.push("created_at >= ?");
+      params.push(filter.since);
+    }
+    if (filter.until !== undefined) {
+      conditions.push("created_at <= ?");
+      params.push(filter.until);
+    }
+    const where = conditions.length > 0 ? " WHERE " + conditions.join(" AND ") : "";
     const rows = this.db.prepare(
-      "SELECT team_id, tasks, open_tasks, unknown_tasks, done_tasks, failed_tasks, tasks_with_dispatches, retry_tasks, dispatches, stale_dispatches FROM team_stat_facts",
-    ).all() as unknown as {
+      `SELECT team_id, tasks, open_tasks, unknown_tasks, done_tasks, failed_tasks, tasks_with_dispatches, retry_tasks, dispatches, stale_dispatches FROM team_stat_facts${where}`,
+    ).all(...params) as unknown as {
       team_id: string; tasks: number; open_tasks: number; unknown_tasks: number; done_tasks: number; failed_tasks: number;
       tasks_with_dispatches: number; retry_tasks: number; dispatches: number; stale_dispatches: number;
     }[];
@@ -186,6 +271,28 @@ export class StatisticsRollup {
       dispatches: r.dispatches,
       staleDispatches: r.stale_dispatches,
     })));
+  }
+
+  /** WHERE-Klausel über die Session-Dimensionen; alias für Joins auf die Fakten-Tabelle. */
+  private sessionWhere(filter: StatisticsFilter, alias = ""): string {
+    const column = (name: string): string => (alias === "" ? name : `${alias}.${name}`);
+    const conditions: string[] = [];
+    if (filter.project !== undefined) conditions.push(`${column("project")} = ?`);
+    if (filter.hostId !== undefined) conditions.push(`${column("host_id")} = ?`);
+    if (filter.harness !== undefined) conditions.push(`${column("harness")} = ?`);
+    if (filter.since !== undefined) conditions.push(`${column("created_at")} >= ?`);
+    if (filter.until !== undefined) conditions.push(`${column("created_at")} <= ?`);
+    return conditions.length > 0 ? " WHERE " + conditions.join(" AND ") : "";
+  }
+
+  private sessionParams(filter: StatisticsFilter): string[] {
+    const params: string[] = [];
+    if (filter.project !== undefined) params.push(filter.project);
+    if (filter.hostId !== undefined) params.push(filter.hostId);
+    if (filter.harness !== undefined) params.push(filter.harness);
+    if (filter.since !== undefined) params.push(filter.since);
+    if (filter.until !== undefined) params.push(filter.until);
+    return params;
   }
 }
 

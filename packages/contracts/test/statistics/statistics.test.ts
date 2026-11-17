@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { StatisticsDistribution, TurnStatistics } from "@ancientvoid/contracts";
+import { StatisticsDistribution, StatisticsReport, TurnStatistics } from "@ancientvoid/contracts";
 
 const distribution = { n: 2, missing: 1, p50: 10, p90: 18, p95: 19, smallSample: true };
 
@@ -36,5 +36,24 @@ describe("P56 Statistik-Vertrag", () => {
     for (const patch of [{ failedTurns: 4 }, { estimatedTokenTurns: 3 }, { turns: 0 }, { tokens: { ...distribution, missing: 0 } }, { durationMs: distribution }]) {
       expect(TurnStatistics.safeParse({ ...value, ...patch }).success).toBe(false);
     }
+  });
+
+  it("T56.3: StatisticsReport trägt Schnitt, Scheiben und Aggregate lückenlos", () => {
+    const session = { adapter: "codex", model: "m1", sessions: 2, openSessions: 0, endReasons: { completed: 1, error: 1, interrupted: 0, stopped: 0 }, wallMs: { ...distribution, n: 2, missing: 0 }, activeMs: { ...distribution, n: 2, missing: 0 }, turnsPerSession: { ...distribution, n: 2, missing: 0 } };
+    const report = StatisticsReport.parse({
+      updatedAt: "2026-11-17T10:00:00.000Z",
+      filter: { project: null, hostId: null, harness: null, since: null, until: null },
+      slices: { projects: ["/repo"], hosts: ["host-a"], harnesses: ["cli"] },
+      sessions: [session],
+      turns: [],
+      gateWait: null,
+      tools: [],
+      recovery: { n: 0, missing: 0, p50: null, p90: null, p95: null, smallSample: true },
+      team: null,
+    });
+    expect(report.sessions).toHaveLength(1);
+    // Ungültige Aggregate und Scheiben-Drift werden abgewiesen, nicht gerundet.
+    expect(StatisticsReport.safeParse({ ...report, sessions: [{ ...session, sessions: 0 }] }).success).toBe(false);
+    expect(StatisticsReport.safeParse({ ...report, slices: { projects: ["/repo"], hosts: [], harnesses: [] }, extra: true }).success).toBe(false);
   });
 });

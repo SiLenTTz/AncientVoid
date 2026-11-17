@@ -584,6 +584,25 @@ export const MIGRATIONS: Migration[] = [
       );
     `,
   },
+  {
+    id: 37,
+    name: "statistics-slice-dims",
+    // EPIC-P56 T56.3: Zeitraum-/Projekt-/Host-/Harness-Schnitte als
+    // Cache-Dimensionen (docs/statistik-metriken.md). Die Dimensionen stammen
+    // aus denselben Quellen wie die Fakten (SessionRecord bzw. Team-Record,
+    // K7); Zeilen ohne Dimensionen (Stand vor dieser Migration) gelten als
+    // veraltet und werden beim nächsten Rollup-Lauf neu abgeleitet — kein
+    // SQL-Backfill, das Team-Records liegen außerhalb der Datenbank.
+    sql: `
+      ALTER TABLE session_stat_facts ADD COLUMN project TEXT NOT NULL DEFAULT '';
+      ALTER TABLE session_stat_facts ADD COLUMN host_id TEXT NOT NULL DEFAULT '';
+      ALTER TABLE session_stat_facts ADD COLUMN harness TEXT NOT NULL DEFAULT '';
+      ALTER TABLE session_stat_facts ADD COLUMN created_at TEXT NOT NULL DEFAULT '';
+      CREATE INDEX IF NOT EXISTS session_stat_facts_dims ON session_stat_facts (project, host_id, harness, created_at);
+      ALTER TABLE team_stat_facts ADD COLUMN project TEXT NOT NULL DEFAULT '';
+      ALTER TABLE team_stat_facts ADD COLUMN created_at TEXT NOT NULL DEFAULT '';
+    `,
+  },
 ];
 
 export class HubDatabase {

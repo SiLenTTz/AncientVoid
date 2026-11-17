@@ -28,6 +28,7 @@ import { registerAutomationsRoutes } from "./modules/automations/automations.rou
 import { registerBrowserRoutes } from "./modules/browser/browser.routes.ts";
 import { registerDeviceRoutes } from "./modules/devices/device.routes.ts";
 import { registerAiMetricsRoutes } from "./modules/aimetrics/aimetrics.routes.ts";
+import { registerStatisticsRoutes } from "./modules/statistics/statistics.routes.ts";
 
 /** Composition of every module's HTTP routes (ADR-0020). */
 export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
@@ -59,5 +60,6 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerBrowserRoutes(app, ctx);
   registerDeviceRoutes(app, ctx);
   registerAiMetricsRoutes(app, ctx);
+  registerStatisticsRoutes(app, ctx);
   registerConnectionRoutes(app, ctx);
 }

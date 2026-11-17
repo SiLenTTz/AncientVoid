@@ -117,10 +117,19 @@ T56.2 ergänzt den nachführbaren Rollup-Cache (`StatisticsRollup`,
 Migration 36): Fakten je Session/Team in SQLite, Nachführung über
 basis_last_seq/basis_updated_at, prune entfernt weggefallene Quellen,
 rebuild() rekonstruiert alles aus Journal und Team-Record (K7). Die
-Leseseite liefert nur Aggregate; Schnitte nach Zeitraum/Projekt/Host
-brauchen zusätzlich Cache-Dimensionen und entstehen mit der Page (T56.3).
-T56.3–4 ergänzen Schnitte nach Zeitraum/Projekt/Host/Harness/Orchestrator,
-Vergleiche, Anomalien und CSV. Jede Zahl braucht Einheit, Datenabdeckung und
-Quellennachweis. Bestehende Ereignisse nicht nachträglich mit erfundenen
-Provider-/Orchestrator- oder Tokenangaben auffüllen. Neue Event-Verträge erst
-nach eigenem ADR und belegter Notwendigkeit; T56.1a/T56.1b ergänzen keine Events.
+Leseseite liefert nur Aggregate. Migration 37 (T56.3) ergänzt die
+Schnitt-Dimensionen Projekt/Host/Harness/created_at an den Fakten
+(Zeitraum-/Projekt-/Host-Schnitte); Zeilen ohne Dimensionen gelten als
+veraltet und werden beim nächsten Lauf neu abgeleitet.
+T56.3 ergänzt die Statistik-Seite (`#/statistik`) mit Les-API
+`GET /api/statistics` (Contract `StatisticsReport`): Sessions, Züge/
+Tokens (Join über den turn_metrics-Cache), Gates, Tools, Recovery und
+Team, geschnitten nach Zeitraum/Projekt/Host/Harness; Team-Zahlen folgen
+nur dem Projekt-/Zeitraum-Schnitt (keine Host-/Harness-Dimension). Der
+Orchestrator-Schnitt (P54 self/hermes) ist auf Session-Ebene nicht
+belegt und bleibt offen, bis ein belegter Faktenbestand existiert.
+T56.4 ergänzt Vergleiche, Anomalien und CSV. Jede Zahl braucht Einheit,
+Datenabdeckung und Quellennachweis. Bestehende Ereignisse nicht
+nachträglich mit erfundenen Provider-/Orchestrator- oder Tokenangaben
+auffüllen. Neue Event-Verträge erst nach eigenem ADR und belegter
+Notwendigkeit; T56.1a/T56.1b ergänzen keine Events.

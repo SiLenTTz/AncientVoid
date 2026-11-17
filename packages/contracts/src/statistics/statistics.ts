@@ -137,3 +137,32 @@ export const TeamTaskStatistics = z.object({
   (t.done + t.failed === 0 ? t.workerEndRate === null : t.workerEndRate === t.done / (t.done + t.failed)),
 "Team-Zahlen oder Quoten widersprechen sich.");
 export type TeamTaskStatistics = z.infer<typeof TeamTaskStatistics>;
+
+/**
+ * P56 T56.3: Lesevertrag der Statistik-Seite. Alle Aggregate stammen aus dem
+ * Rollup-Cache (nie direkt aus Journals); `filter` ist der wirksame Schnitt,
+ * `slices` die belegten Werte der Schnitt-Dimensionen. `updatedAt` ist das
+ * Rollup-Alter (frischeste Fakten-Zeile), kein "Jetzt".
+ */
+export const StatisticsReport = z.object({
+  updatedAt: z.string().nullable(),
+  filter: z.object({
+    project: z.string().nullable(),
+    hostId: z.string().nullable(),
+    harness: z.string().nullable(),
+    since: z.string().nullable(),
+    until: z.string().nullable(),
+  }).strict(),
+  slices: z.object({
+    projects: z.array(z.string()),
+    hosts: z.array(z.string()),
+    harnesses: z.array(z.string()),
+  }).strict(),
+  sessions: z.array(SessionStatistics),
+  turns: z.array(TurnStatistics),
+  gateWait: GateWaitStatistics.nullable(),
+  tools: z.array(ToolStatistics),
+  recovery: StatisticsDistribution,
+  team: TeamTaskStatistics.nullable(),
+}).strict();
+export type StatisticsReport = z.infer<typeof StatisticsReport>;
