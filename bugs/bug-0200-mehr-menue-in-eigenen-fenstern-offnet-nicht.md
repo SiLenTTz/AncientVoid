@@ -1,6 +1,6 @@
 # BUG-0200 — „Mehr“-Menüpunkte liegen hinter der Steuerung und sind nicht trafbar
 
-- **Status:** done (Stapelreihenicht Portal — gemessen)
+- **Status:** done (Stapelreihenfolge, nicht Portal — gemessen)
 - **Schicht:** pwa (EPIC-P63 Design-System, Auslösen von Ansichten in eigene Fenster)
 - **Schwere:** S2 — vier inventarisierte Funktionen sind in diesem Modus nicht mehr
   erreichbar; am Hauptfenster funktioniert dasselbe weiterhin
