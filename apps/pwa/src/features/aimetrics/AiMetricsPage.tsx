@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import type { AiMetricsReport, AiMetricsSourceReport } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
+import { formatMetricAge, formatMetricValue } from "../../shared/metrics.ts";
 import { Card, EmptyState } from "../../shared/ui/index.ts";
 
 /**
@@ -8,23 +9,11 @@ import { Card, EmptyState } from "../../shared/ui/index.ts";
  * Zeigt nur was der Hub gemessen meldet; jede Zahl trägt Quelle und Alter
  * (ADR-0023). Offline bleiben die letzten Daten plus Zeitstempel stehen,
  * kein Whiteout (K10). Der Poll folgt dem Intervall des Reports.
+ * EPIC-P66: Wert-/Altersformat geteilt mit der Statistik-Zentrale
+ * (shared/metrics.ts).
  */
 
 const REFRESH_FALLBACK_MS = 10_000;
-
-function formatMetric(value: number | null, unit: string): string {
-  if (value === null) return "nicht gemeldet";
-  const rounded = Math.abs(value) >= 1000 || Number.isInteger(value) ? Math.round(value) : Math.round(value * 10) / 10;
-  return `${rounded.toLocaleString("de-DE")} ${unit}`;
-}
-
-function formatAge(ts: string | null, nowMs: number = Date.now()): string {
-  if (!ts) return "—";
-  const sec = Math.max(0, Math.round((nowMs - Date.parse(ts)) / 1000));
-  if (sec < 60) return `vor ${sec} s`;
-  if (sec < 3600) return `vor ${Math.floor(sec / 60)} min`;
-  return `vor ${Math.floor(sec / 3600)} h`;
-}
 
 export function AiMetricsPage() {
   const [report, setReport] = useState<AiMetricsReport | null>(null);
@@ -82,10 +71,10 @@ function SourceCard({ source }: { source: AiMetricsSourceReport }) {
           {source.fields.map((field) => (
             <tr key={field.key}>
               <td>{field.label}</td>
-              <td>{formatMetric(field.value, field.unit)}</td>
-              <td>{field.window ? `${formatMetric(field.window.p50, field.unit)} / ${formatMetric(field.window.p95, field.unit)} (${field.window.samples})` : "—"}</td>
+              <td>{formatMetricValue(field.value, field.unit)}</td>
+              <td>{field.window ? `${formatMetricValue(field.window.p50, field.unit)} / ${formatMetricValue(field.window.p95, field.unit)} (${field.window.samples})` : "—"}</td>
               <td>{field.source}</td>
-              <td>{formatAge(field.ts)}</td>
+              <td>{formatMetricAge(field.ts)}</td>
             </tr>
           ))}
         </tbody>

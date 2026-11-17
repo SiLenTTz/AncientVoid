@@ -1,18 +1,66 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
-import type { StatisticsDistribution, StatisticsReport, TurnStatistics, SessionStatistics, SessionAnomaly } from "@ancientvoid/contracts";
+import type { ComponentChildren } from "preact";
+import type { AiMetricsReport, StatisticsDistribution, StatisticsReport, TurnStatistics, SessionStatistics, SessionAnomaly } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
+import { formatMetricAge, formatMetricValue } from "../../shared/metrics.ts";
 import { Button, Card, EmptyState, Segmented, Select } from "../../shared/ui/index.ts";
 
 /**
- * EPIC-P56 T56.3: Statistik-Seite — konsolidierte Kennzahlen aus dem
- * Rollup-Cache (ADR-0079). Beschreibend, kein Modell-Ranking: „Korrelation
- * ist nicht Kausalität" steht bewusst daneben. Jede Verteilung zeigt
- * p50/p90/p95 + n; Klein-n ist gekennzeichnet, Fehlendes bleibt sichtbar
- * (nie 0). Input-/Output-Token und EUR fehlen bis auf weiteres als
- * unbelegt (docs/statistik-metriken.md).
+ * EPIC-P56 T56.3/T56.4 + EPIC-P66: die eine Metrik-Zentrale — konsolidierte
+ * Kennzahlen aus dem Rollup-Cache (ADR-0079) plus System- und KI-Server-
+ * Sektionen aus dem unveränderten Aimetrics-Report (EPIC-P59, keine zweite
+ * Wahrheit). Beschreibend, kein Modell-Ranking. Jede Verteilung zeigt
+ * p50/p90/p95 + n; Klein-n gekennzeichnet, Fehlendes bleibt sichtbar (nie 0).
+ * Sektionen klappen auf/zu, der Zustand und der Schnitt überleben Reloads
+ * (`ancientvoid.statistik.v1`, fail-safe).
  */
 
 type Period = "all" | "7d" | "30d";
+
+const STORAGE_KEY = "ancientvoid.statistik.v1";
+/** EPIC-P66 Premortem 2: nur diese Sektionen sind standardmäßig offen. */
+const DEFAULT_OPEN: readonly string[] = ["schnitt", "sessions"];
+
+export interface StatistikState {
+  collapsed: Record<string, boolean>;
+  filter: { period: Period; project: string; host: string; harness: string };
+}
+
+const DEFAULT_STATE: StatistikState = { collapsed: {}, filter: { period: "all", project: "", host: "", harness: "" } };
+
+/** Fail-safe: defektes/unbekanntes JSON fällt auf Defaults zurück, nie auf einen Crash (K10). */
+export function parseStatistikState(raw: string | null): StatistikState {
+  if (raw === null) return { collapsed: {}, filter: DEFAULT_STATE.filter };
+  try {
+    const parsed = JSON.parse(raw) as { collapsed?: unknown; filter?: { period?: unknown; project?: unknown; host?: unknown; harness?: unknown } };
+    const collapsed: Record<string, boolean> = {};
+    if (parsed.collapsed !== null && typeof parsed.collapsed === "object") {
+      for (const [id, value] of Object.entries(parsed.collapsed as Record<string, unknown>)) {
+        if (typeof value === "boolean") collapsed[id] = value;
+      }
+    }
+    const f = parsed.filter ?? {};
+    const period = f.period === "7d" || f.period === "30d" ? f.period : "all";
+    const str = (v: unknown): string => (typeof v === "string" ? v : "");
+    return { collapsed, filter: { period, project: str(f.project), host: str(f.host), harness: str(f.harness) } };
+  } catch {
+    return { collapsed: {}, filter: DEFAULT_STATE.filter };
+  }
+}
+
+function readState(): StatistikState {
+  if (typeof localStorage === "undefined") return { collapsed: {}, filter: DEFAULT_STATE.filter };
+  return parseStatistikState(localStorage.getItem(STORAGE_KEY));
+}
+
+function writeState(state: StatistikState): void {
+  if (typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // privater Modus/voller Speicher: Dauerstand ist Komfort, kein Pflichtteil (K10).
+  }
+}
 
 function formatMs(ms: number | null): string {
   if (ms === null) return "unbekannt";
@@ -62,15 +110,37 @@ function sinceOf(period: Period): string | undefined {
   return new Date(Date.now() - days * 86_400_000).toISOString();
 }
 
+/** EPIC-P66 T66.1: eine klappbare Sektion — Kopf-Button mit aria-expanded, Inhalt nur offen im DOM. */
+function Section({ id, title, note, collapsed, onToggle, children }: { id: string; title: string; note?: string; collapsed: boolean; onToggle: () => void; children: ComponentChildren }) {
+  return (
+    <Card aria-label={`Statistik ${title}`} role="region">
+      <button type="button" class="stat-section-head" aria-expanded={!collapsed} aria-controls={`stat-sec-${id}`} onClick={onToggle}>
+        <strong>{title}</strong>
+        {note !== undefined && <small class="stat-section-note">{note}</small>}
+        <span class="stat-chevron" aria-hidden="true">{collapsed ? "▸" : "▾"}</span>
+      </button>
+      {!collapsed && <div id={`stat-sec-${id}`}>{children}</div>}
+    </Card>
+  );
+}
+
 export function StatisticsPage() {
-  const [period, setPeriod] = useState<Period>("all");
-  const [project, setProject] = useState("");
-  const [host, setHost] = useState("");
-  const [harness, setHarness] = useState("");
+  const initial = useMemo(readState, []);
+  const [period, setPeriod] = useState<Period>(initial.filter.period);
+  const [project, setProject] = useState(initial.filter.project);
+  const [host, setHost] = useState(initial.filter.host);
+  const [harness, setHarness] = useState(initial.filter.harness);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(initial.collapsed);
   const [report, setReport] = useState<StatisticsReport | null>(null);
+  const [ai, setAi] = useState<AiMetricsReport | null>(null);
   const [error, setError] = useState("");
 
   const since = useMemo(() => sinceOf(period), [period]);
+
+  // Zustand persistieren (T66.1/T66.3): ein versionierter Schlüssel.
+  useEffect(() => {
+    writeState({ collapsed, filter: { period, project, host, harness } });
+  }, [collapsed, period, project, host, harness]);
 
   useEffect(() => {
     let alive = true;
@@ -96,13 +166,61 @@ export function StatisticsPage() {
     };
   }, [project, host, harness, since]);
 
+  // T66.2: Aimetrics unverändert einbetten — Poll im Report-Intervall.
+  useEffect(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const res = await hubApi.aimetrics();
+        if (!alive) return;
+        setAi(res);
+        timer = setTimeout(poll, Math.max(2, res.intervalSec) * 1000);
+      } catch {
+        if (!alive) return;
+        timer = setTimeout(poll, 10_000);
+      }
+    };
+    void poll();
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
+  const toggle = (id: string) => setCollapsed(c => ({ ...c, [id]: !(c[id] ?? !DEFAULT_OPEN.includes(id)) }));
+  const sectionIds = ["schnitt", "system", "kiserver", "sessions", "zuege", "gates", "tools", "teams", "anomalien", "vergleich"] as const;
+  const setAll = (open: boolean) => {
+    const next: Record<string, boolean> = {};
+    for (const id of sectionIds) next[id] = !open;
+    setCollapsed(next);
+  };
+  const allCollapsed = sectionIds.every(id => collapsed[id] ?? !DEFAULT_OPEN.includes(id));
+  const resetFilter = () => {
+    setPeriod("all");
+    setProject("");
+    setHost("");
+    setHarness("");
+  };
+
   if (error) return <EmptyState text={`Statistik nicht erreichbar — ${error}`} />;
   if (!report) return <EmptyState text="lädt …" />;
   const filtered = project !== "" || host !== "" || harness !== "" || period !== "all";
+  const host2 = ai?.sources.find(s => s.kind === "hub-host") ?? null;
+  const servers = ai === null ? null : ai.sources.filter(s => s.kind === "model-server");
 
   return (
     <div class="status-page" aria-label="Statistik">
-      <Card aria-label="Statistik Schnitt" role="region">
+      <div class="stat-bar">
+        <Button variant="subtle" onClick={() => setAll(!allCollapsed)}>
+          {allCollapsed ? "alle auf" : "alle zu"}
+        </Button>
+        <Button variant="subtle" onClick={resetFilter} disabled={!filtered}>
+          Schnitt zurücksetzen
+        </Button>
+      </div>
+
+      <Section id="schnitt" title="Schnitt" note="Zeitraum · Projekt · Host · Harness" collapsed={collapsed.schnitt ?? false} onToggle={() => toggle("schnitt")}>
         <Segmented label="Zeitraum" value={period} options={PERIOD_OPTIONS} onChange={setPeriod} />
         <div class="stat-filters">
           <Select
@@ -133,21 +251,83 @@ export function StatisticsPage() {
         <Button variant="subtle" onClick={() => exportCsv(report)}>
           CSV herunterladen
         </Button>
-      </Card>
+      </Section>
+
+      <Section id="system" title="System (Hub-Host)" note="unabhängig vom Schnitt" collapsed={collapsed.system ?? true} onToggle={() => toggle("system")}>
+        {ai === null ? (
+          <p class="stat-note">Metrik-Quelle nicht erreichbar — der Hub meldet nicht.</p>
+        ) : host2 === null ? (
+          <p class="stat-note">Host-Probe nicht konfiguriert — in der Hub-Config `aiMetrics.hostProbe` einschalten. Keine Zahl wird geraten.</p>
+        ) : (
+          <MetricsTable source={host2} />
+        )}
+      </Section>
+
+      <Section id="kiserver" title="KI-Server" note="unabhängig vom Schnitt" collapsed={collapsed.kiserver ?? true} onToggle={() => toggle("kiserver")}>
+        {ai === null ? (
+          <p class="stat-note">Metrik-Quelle nicht erreichbar — der Hub meldet nicht.</p>
+        ) : servers !== null && servers.length === 0 ? (
+          <p class="stat-note">Keine Quellen konfiguriert — der Hub beprobt nur Konfiguriertes (`aiMetrics` in der Hub-Config).</p>
+        ) : (
+          servers?.map(s => <MetricsTable key={s.id} source={s} />)
+        )}
+      </Section>
 
       {report.sessions.length === 0 && report.team === null ? (
         <EmptyState text={filtered ? "Keine Session in diesem Schnitt — der Schnitt ist echt leer, nicht kaputt." : "Noch keine Session ausgewertet — der Rollup läuft mit dem ersten Abruf."} />
       ) : (
         <>
-          <SessionSection sessions={report.sessions} />
-          <TurnSection turns={report.turns} />
-          <GateSection report={report} />
-          <ToolSection report={report} />
-          <TeamSection report={report} filtered={filtered} />
-          <AnomalySection anomalies={report.anomalies} />
-          <CompareSection report={report} project={project} host={host} harness={harness} periodA={period} />
+          <Section id="sessions" title="Sessions" note="je Adapter und Modell" collapsed={collapsed.sessions ?? false} onToggle={() => toggle("sessions")}>
+            <SessionTable sessions={report.sessions} />
+          </Section>
+          <Section id="zuege" title="Züge und Tokens" note="je Adapter und Modell" collapsed={collapsed.zuege ?? true} onToggle={() => toggle("zuege")}>
+            <TurnTable turns={report.turns} />
+            <p class="stat-note">Cloud-Modelle: Tokens je Zug mit Herkunft (gemeldet oder geschätzt). Input-/Output- und Cache-Token sind über die Provider nicht kanonisch belegt; EUR-Kosten folgen mit P31.</p>
+          </Section>
+          <Section id="gates" title="Freigaben" note="Wartezeiten" collapsed={collapsed.gates ?? true} onToggle={() => toggle("gates")}>
+            <GateTable report={report} />
+          </Section>
+          <Section id="tools" title="Tools" note="Aufrufe und Fehlerquoten" collapsed={collapsed.tools ?? true} onToggle={() => toggle("tools")}>
+            <ToolTable report={report} />
+          </Section>
+          <Section id="teams" title="Teams" note="Projekt-/Zeitraum-Schnitt" collapsed={collapsed.teams ?? true} onToggle={() => toggle("teams")}>
+            <TeamTable report={report} filtered={filtered} />
+          </Section>
+          <Section id="anomalien" title="Anomalien" note="über Gruppen-p95" collapsed={collapsed.anomalien ?? true} onToggle={() => toggle("anomalien")}>
+            <AnomalyTable anomalies={report.anomalies} />
+          </Section>
+          <Section id="vergleich" title="Zeitraum-Vergleich (A/B)" note="gleicher Schnitt" collapsed={collapsed.vergleich ?? true} onToggle={() => toggle("vergleich")}>
+            <CompareBody report={report} project={project} host={host} harness={harness} periodA={period} />
+          </Section>
         </>
       )}
+    </div>
+  );
+}
+
+function MetricsTable({ source }: { source: AiMetricsReport["sources"][number] }) {
+  return (
+    <div class="stat-metrics">
+      <p class="stat-metrics-head">
+        <strong>{source.label}</strong>
+        {!source.status.ok && <span role="status">Probe fehlgeschlagen: {source.status.error}</span>}
+      </p>
+      <table>
+        <thead>
+          <tr><th>Feld</th><th>Wert</th><th>p50 / p95</th><th>Quelle</th><th>Alter</th></tr>
+        </thead>
+        <tbody>
+          {source.fields.map(field => (
+            <tr key={field.key}>
+              <td>{field.label}</td>
+              <td>{formatMetricValue(field.value, field.unit)}</td>
+              <td>{field.window ? `${formatMetricValue(field.window.p50, field.unit)} / ${formatMetricValue(field.window.p95, field.unit)} (${field.window.samples})` : "—"}</td>
+              <td>{field.source}</td>
+              <td>{formatMetricAge(field.ts)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -205,36 +385,168 @@ function exportCsv(report: StatisticsReport): void {
   URL.revokeObjectURL(url);
 }
 
-function AnomalySection({ anomalies }: { anomalies: SessionAnomaly[] }) {
-  if (anomalies.length === 0) return null;
+function SessionTable({ sessions }: { sessions: SessionStatistics[] }) {
+  if (sessions.length === 0) return <p class="stat-note">Keine Sessions in diesem Schnitt.</p>;
   return (
-    <Card aria-label="Statistik Anomalien" role="region">
-      <strong>Anomalien — Kandidaten für Runaway-Analyse</strong>
-      <table>
-        <thead>
-          <tr>
-            <th>Session</th>
-            <th>Adapter · Modell</th>
-            <th>Wall vs p95</th>
-            <th>Züge vs p95</th>
+    <table>
+      <thead>
+        <tr>
+          <th>Adapter · Modell</th>
+          <th>Sessions</th>
+          <th>Ende</th>
+          <th>Wallzeit</th>
+          <th>Aktiv</th>
+          <th>Züge/Session</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sessions.map(s => (
+          <tr key={`${s.adapter}\u0000${s.model ?? ""}`}>
+            <td>
+              {s.adapter}
+              {s.model !== null ? ` · ${s.model}` : " · Modell unbelegt"}
+            </td>
+            <td>{formatCount(s.sessions)}{s.openSessions > 0 ? ` (${formatCount(s.openSessions)} offen)` : ""}</td>
+            <td>
+              {s.endReasons.completed > 0 && `fertig ${formatCount(s.endReasons.completed)}`}
+              {s.endReasons.error > 0 && `, Fehler ${formatCount(s.endReasons.error)}`}
+              {s.endReasons.interrupted > 0 && `, unterbrochen ${formatCount(s.endReasons.interrupted)}`}
+              {s.endReasons.stopped > 0 && `, gestoppt ${formatCount(s.endReasons.stopped)}`}
+              {s.openSessions > 0 && `, Grund offen ${formatCount(s.openSessions)}`}
+            </td>
+            <td><Distribution d={s.wallMs} unit="ms" /></td>
+            <td><Distribution d={s.activeMs} unit="ms" /></td>
+            <td><Distribution d={s.turnsPerSession} unit="ms" /></td>
           </tr>
-        </thead>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TurnTable({ turns }: { turns: TurnStatistics[] }) {
+  if (turns.length === 0) return <p class="stat-note">Keine Züge in diesem Schnitt.</p>;
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Adapter · Modell</th>
+          <th>Züge</th>
+          <th>Zugdauer</th>
+          <th>Tokens/Zug</th>
+        </tr>
+      </thead>
+      <tbody>
+        {turns.map(t => (
+          <tr key={`${t.adapter}\u0000${t.model ?? ""}`}>
+            <td>
+              {t.adapter}
+              {t.model !== null ? ` · ${t.model}` : " · Modell unbelegt"}
+            </td>
+            <td>
+              {formatCount(t.turns)}
+              {t.failedTurns > 0 ? `, ${formatCount(t.failedTurns)} fehlgeschlagen` : ""}
+              {t.estimatedTokenTurns > 0 ? `, ${formatCount(t.estimatedTokenTurns)} geschätzt` : ""}
+            </td>
+            <td><Distribution d={t.durationMs} unit="ms" /></td>
+            <td><Distribution d={t.tokens} unit="tokens" /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function GateTable({ report }: { report: StatisticsReport }) {
+  const g = report.gateWait;
+  if (g === null) return <p class="stat-note">Keine Freigaben in diesem Schnitt.</p>;
+  return (
+    <table>
+      <tbody>
+        <tr><th scope="row">Gates</th><td>{formatCount(g.gates)}</td></tr>
+        <tr><th scope="row">Antworten</th><td>{formatCount(g.answered)} ({ratio(g.answered, g.gates)})</td></tr>
+        <tr><th scope="row">Abgelaufen</th><td>{formatCount(g.timedOut)}</td></tr>
+        <tr><th scope="row">Offen ohne Antwort</th><td>{formatCount(g.open)}</td></tr>
+        <tr><th scope="row">Sofort erlaubt</th><td>{formatCount(g.autoApproved)}</td></tr>
+        <tr><th scope="row">Wartezeit</th><td><Distribution d={g.waitMs} unit="ms" /></td></tr>
+      </tbody>
+    </table>
+  );
+}
+
+function ToolTable({ report }: { report: StatisticsReport }) {
+  if (report.tools.length === 0) return <p class="stat-note">Keine Tool-Aufrufe in diesem Schnitt.</p>;
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Tool</th>
+          <th>Calls</th>
+          <th>Fehler / belegte Ergebnisse</th>
+          <th>Ohne Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody>
+        {report.tools.map(t => (
+          <tr key={t.tool ?? ""}>
+            <td>{t.tool ?? "Name unbelegt"}</td>
+            <td>{formatCount(t.calls)}</td>
+            <td>
+              {t.failureRate === null ? "—" : `${Math.round(t.failureRate * 100)} %`}
+              <small> ({formatCount(t.failed + t.ok)} belegt, {formatCount(t.errorStatusUnknown)} unbekannt)</small>
+            </td>
+            <td>{formatCount(t.unanswered)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function TeamTable({ report, filtered }: { report: StatisticsReport; filtered: boolean }) {
+  const t = report.team;
+  if (t === null) return <p class="stat-note">Keine Teams in diesem Schnitt.</p>;
+  return (
+    <div>
+      <table>
         <tbody>
-          {anomalies.map(a => (
-            <tr key={a.sessionId}>
-              <td><code>{a.sessionId.slice(0, 12)}…</code></td>
-              <td>
-                {a.adapter}
-                {a.model !== null ? ` · ${a.model}` : ""}
-              </td>
-              <td>{a.wallMs === null || a.wallP95 === null ? "—" : `${formatMs(a.wallMs)} > ${formatMs(a.wallP95)}`}</td>
-              <td>{formatCount(a.turns)} &gt; {formatCount(a.turnsP95)}</td>
-            </tr>
-          ))}
+          <tr><th scope="row">Teams · Aufgaben</th><td>{formatCount(t.teams)} · {formatCount(t.tasks)}</td></tr>
+          <tr><th scope="row">Enden</th><td>done {formatCount(t.done)}, failed {formatCount(t.failed)}, offen {formatCount(t.open)}, unbekannt {formatCount(t.unknown)}</td></tr>
+          <tr><th scope="row">Worker-Ende-Quote</th><td>{t.workerEndRate === null ? "—" : `${Math.round(t.workerEndRate * 100)} %`}</td></tr>
+          <tr><th scope="row">Retry-Rate</th><td>{t.retryRate === null ? "—" : `${Math.round(t.retryRate * 100)} %`}</td></tr>
         </tbody>
       </table>
-      <p>Markiert ist, was über dem p95 der eigenen Adapter-/Modell-Gruppe liegt (Klein-n-Gruppen melden keine). Ein Hinweis, kein Urteil.</p>
-    </Card>
+      <p class="stat-note">done ist worker_done, kein bestandenes Gate (P40). Team-Zahlen folgen dem Projekt- und Zeitschnitt{filtered ? "" : " (hier ungeschnitten)"}, aber keinem Host- oder Harness-Schnitt.</p>
+    </div>
+  );
+}
+
+function AnomalyTable({ anomalies }: { anomalies: SessionAnomaly[] }) {
+  if (anomalies.length === 0) return <p class="stat-note">Keine Anomalien — entweder unauffällig oder zu wenige Sessions je Gruppe für eine Aussage (Klein-n).</p>;
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th>Adapter · Modell</th>
+          <th>Wall vs p95</th>
+          <th>Züge vs p95</th>
+        </tr>
+      </thead>
+      <tbody>
+        {anomalies.map(a => (
+          <tr key={a.sessionId}>
+            <td><code>{a.sessionId.slice(0, 12)}…</code></td>
+            <td>
+              {a.adapter}
+              {a.model !== null ? ` · ${a.model}` : ""}
+            </td>
+            <td>{a.wallMs === null || a.wallP95 === null ? "—" : `${formatMs(a.wallMs)} > ${formatMs(a.wallP95)}`}</td>
+            <td>{formatCount(a.turns)} &gt; {formatCount(a.turnsP95)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -242,7 +554,7 @@ function AnomalySection({ anomalies }: { anomalies: SessionAnomaly[] }) {
  * T56.4 A/B: derselbe Schnitt (Projekt/Host/Harness) in zwei Zeiträumen
  * nebeneinander — für Plugin-An/aus- oder Modellwechsel-Betrachtung (P55).
  */
-function CompareSection({ report, project, host, harness, periodA }: { report: StatisticsReport; project: string; host: string; harness: string; periodA: Period }) {
+function CompareBody({ report, project, host, harness, periodA }: { report: StatisticsReport; project: string; host: string; harness: string; periodA: Period }) {
   const [periodB, setPeriodB] = useState<Period>(periodA === "all" ? "7d" : "all");
   const [other, setOther] = useState<StatisticsReport | null>(null);
   useEffect(() => {
@@ -272,8 +584,7 @@ function CompareSection({ report, project, host, harness, periodA }: { report: S
   const keys = [...new Set([...a.keys(), ...b.keys()])].sort();
 
   return (
-    <Card aria-label="Statistik Vergleich" role="region">
-      <strong>Zeitraum-Vergleich (A/B)</strong>
+    <div>
       <Segmented label="Vergleichszeitraum B" value={periodB} options={PERIOD_OPTIONS} onChange={setPeriodB} />
       <table>
         <thead>
@@ -307,159 +618,7 @@ function CompareSection({ report, project, host, harness, periodA }: { report: S
           })}
         </tbody>
       </table>
-      <p>A ist der obige Zeitraum, B dieser Vergleichszeitraum — gleiche Projekt-/Host-/Harness-Wahl. Beschreibender Vergleich, kein Rang.</p>
-    </Card>
-  );
-}
-
-function SessionSection({ sessions }: { sessions: SessionStatistics[] }) {
-  if (sessions.length === 0) return null;
-  return (
-    <Card aria-label="Statistik Sessions" role="region">
-      <strong>Sessions je Adapter und Modell</strong>
-      <table>
-        <thead>
-          <tr>
-            <th>Adapter · Modell</th>
-            <th>Sessions</th>
-            <th>Ende</th>
-            <th>Wallzeit</th>
-            <th>Aktiv</th>
-            <th>Züge/Session</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sessions.map(s => (
-            <tr key={`${s.adapter}\u0000${s.model ?? ""}`}>
-              <td>
-                {s.adapter}
-                {s.model !== null ? ` · ${s.model}` : " · Modell unbelegt"}
-              </td>
-              <td>{formatCount(s.sessions)}{s.openSessions > 0 ? ` (${formatCount(s.openSessions)} offen)` : ""}</td>
-              <td>
-                {s.endReasons.completed > 0 && `fertig ${formatCount(s.endReasons.completed)}`}
-                {s.endReasons.error > 0 && `, Fehler ${formatCount(s.endReasons.error)}`}
-                {s.endReasons.interrupted > 0 && `, unterbrochen ${formatCount(s.endReasons.interrupted)}`}
-                {s.endReasons.stopped > 0 && `, gestoppt ${formatCount(s.endReasons.stopped)}`}
-                {s.openSessions > 0 && `, Grund offen ${formatCount(s.openSessions)}`}
-              </td>
-              <td><Distribution d={s.wallMs} unit="ms" /></td>
-              <td><Distribution d={s.activeMs} unit="ms" /></td>
-              <td><Distribution d={s.turnsPerSession} unit="ms" /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Card>
-  );
-}
-
-function TurnSection({ turns }: { turns: TurnStatistics[] }) {
-  if (turns.length === 0) return null;
-  return (
-    <Card aria-label="Statistik Züge und Tokens" role="region">
-      <strong>Züge und Tokens je Adapter und Modell</strong>
-      <table>
-        <thead>
-          <tr>
-            <th>Adapter · Modell</th>
-            <th>Züge</th>
-            <th>Zugdauer</th>
-            <th>Tokens/Zug</th>
-          </tr>
-        </thead>
-        <tbody>
-          {turns.map(t => (
-            <tr key={`${t.adapter}\u0000${t.model ?? ""}`}>
-              <td>
-                {t.adapter}
-                {t.model !== null ? ` · ${t.model}` : " · Modell unbelegt"}
-              </td>
-              <td>
-                {formatCount(t.turns)}
-                {t.failedTurns > 0 ? `, ${formatCount(t.failedTurns)} fehlgeschlagen` : ""}
-                {t.estimatedTokenTurns > 0 ? `, ${formatCount(t.estimatedTokenTurns)} geschätzt` : ""}
-              </td>
-              <td><Distribution d={t.durationMs} unit="ms" /></td>
-              <td><Distribution d={t.tokens} unit="tokens" /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p>Input-/Output- und Cache-Token sind über die Provider nicht kanonisch belegt — sie bleiben unbekannt, statt geraten.</p>
-    </Card>
-  );
-}
-
-function GateSection({ report }: { report: StatisticsReport }) {
-  const g = report.gateWait;
-  if (g === null) return null;
-  return (
-    <Card aria-label="Statistik Freigaben" role="region">
-      <strong>Freigabe-Wartezeiten</strong>
-      <table>
-        <tbody>
-          <tr><th scope="row">Gates</th><td>{formatCount(g.gates)}</td></tr>
-          <tr><th scope="row">Antworten</th><td>{formatCount(g.answered)} ({ratio(g.answered, g.gates)})</td></tr>
-          <tr><th scope="row">Abgelaufen</th><td>{formatCount(g.timedOut)}</td></tr>
-          <tr><th scope="row">Offen ohne Antwort</th><td>{formatCount(g.open)}</td></tr>
-          <tr><th scope="row">Sofort erlaubt</th><td>{formatCount(g.autoApproved)}</td></tr>
-          <tr><th scope="row">Wartezeit</th><td><Distribution d={g.waitMs} unit="ms" /></td></tr>
-        </tbody>
-      </table>
-      <p>Wartezeit trennt „Agent langsam" von „Mensch langsam" (nur beantwortete und abgelaufene Gates).</p>
-    </Card>
-  );
-}
-
-function ToolSection({ report }: { report: StatisticsReport }) {
-  if (report.tools.length === 0) return null;
-  return (
-    <Card aria-label="Statistik Tools" role="region">
-      <strong>Tool-Aufrufe</strong>
-      <table>
-        <thead>
-          <tr>
-            <th>Tool</th>
-            <th>Calls</th>
-            <th>Fehler / belegte Ergebnisse</th>
-            <th>Ohne Ergebnis</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.tools.map(t => (
-            <tr key={t.tool ?? ""}>
-              <td>{t.tool ?? "Name unbelegt"}</td>
-              <td>{formatCount(t.calls)}</td>
-              <td>
-                {t.failureRate === null ? "—" : `${Math.round(t.failureRate * 100)} %`}
-                <small> ({formatCount(t.failed + t.ok)} belegt, {formatCount(t.errorStatusUnknown)} unbekannt)</small>
-              </td>
-              <td>{formatCount(t.unanswered)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p>Hohe Quote je Modell heißt nicht kaputtes Tool — beide Schnitte zusammen lesen.</p>
-    </Card>
-  );
-}
-
-function TeamSection({ report, filtered }: { report: StatisticsReport; filtered: boolean }) {
-  const t = report.team;
-  if (t === null) return null;
-  return (
-    <Card aria-label="Statistik Teams" role="region">
-      <strong>Team-Aufgaben</strong>
-      <table>
-        <tbody>
-          <tr><th scope="row">Teams · Aufgaben</th><td>{formatCount(t.teams)} · {formatCount(t.tasks)}</td></tr>
-          <tr><th scope="row">Enden</th><td>done {formatCount(t.done)}, failed {formatCount(t.failed)}, offen {formatCount(t.open)}, unbekannt {formatCount(t.unknown)}</td></tr>
-          <tr><th scope="row">Worker-Ende-Quote</th><td>{t.workerEndRate === null ? "—" : `${Math.round(t.workerEndRate * 100)} %`}</td></tr>
-          <tr><th scope="row">Retry-Rate</th><td>{t.retryRate === null ? "—" : `${Math.round(t.retryRate * 100)} %`}</td></tr>
-        </tbody>
-      </table>
-      <p>done ist worker_done, kein bestandenes Gate (P40). Team-Zahlen folgen dem Projekt- und Zeitschnitt{filtered ? "" : " (hier ungeschnitten)"}, aber keinem Host- oder Harness-Schnitt.</p>
-    </Card>
+      <p class="stat-note">A ist der obige Zeitraum, B dieser Vergleichszeitraum — gleiche Projekt-/Host-/Harness-Wahl. Beschreibender Vergleich, kein Rang.</p>
+    </div>
   );
 }

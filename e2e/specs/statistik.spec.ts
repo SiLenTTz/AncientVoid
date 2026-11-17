@@ -1,12 +1,46 @@
+import { createServer, type Server } from "node:http";
 import { test, expect } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 import { StatisticsReport } from "@ancientvoid/contracts";
+import { freePort } from "../support/ports.ts";
 
 /**
- * EPIC-P56 T56.3: Statistik-Seite. Echte Sessions des E2E-Hubs, echter
- * Rollup (läuft mit dem ersten Abruf), echte Schnitte. Jede Zahl mit n;
- * Klein-n gekennzeichnet; leere Schnitte sind ehrlich leer (ADR-0079).
+ * EPIC-P56 T56.3/T56.4 + EPIC-P66: Statistik-Zentrale. Echte Sessions des
+ * E2E-Hubs, echter Rollup, echte Schnitte; klappbare Sektionen mit
+ * Reload-stabilem Zustand; Aimetrics-Sektionen gegen einen llamacpp-Stand-in.
+ * Jede Zahl mit n; Klein-n gekennzeichnet; leere Schnitte ehrlich leer.
  */
+
+const port = await freePort();
+const METRICS = [
+  "# TYPE llamacpp:prompt_tokens_total counter",
+  "llamacpp:prompt_tokens_total 1000",
+  "# TYPE llamacpp:requests_processing gauge",
+  "llamacpp:requests_processing 3",
+].join("\n");
+
+let server: Server;
+test.beforeAll(async () => {
+  server = createServer((req, res) => {
+    if (req.url?.endsWith("/metrics")) {
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end(METRICS);
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  await new Promise<void>(r => server.listen(port, "127.0.0.1", r));
+});
+test.afterAll(() => {
+  server?.close();
+});
+
+test.use({
+  hubOptions: {
+    aiMetrics: { intervalSec: 2, windowSec: 60, hostProbe: false, servers: [{ url: `http://127.0.0.1:${port}/metrics`, label: "E2E KI-Server" }] },
+  },
+});
 
 async function openStatistics(page: Page) {
   await page.setViewportSize({ width: 412, height: 850 });
@@ -16,7 +50,13 @@ async function openStatistics(page: Page) {
   await expect(page).toHaveURL(/#\/statistik$/);
 }
 
-test.describe("Statistik-Seite (EPIC-P56)", () => {
+/** EPIC-P66: Sektion nach Namen öffnen (Kopf-Klick, falls zugeklappt). */
+async function openSection(page: Page, title: string) {
+  const head = page.getByRole("region", { name: `Statistik ${title}` }).getByRole("button", { name: title });
+  if ((await head.getAttribute("aria-expanded")) !== "true") await head.click();
+}
+
+test.describe("Statistik-Zentrale (EPIC-P56/P66)", () => {
   test("Dock „Mehr“ → „Statistik“ zeigt Sessions mit Verteilung und n", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Erste" });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
@@ -29,8 +69,9 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     // Klein-n ist Pflichtkennzeichnung, kein optionaler Schmuck (AC-P56-3).
     await expect(card).toContainText("wenige Daten");
 
+    await openSection(app, "Züge und Tokens");
     const turns = app.getByRole("region", { name: "Statistik Züge und Tokens" });
-    await expect(turns).toContainText(/Zug/);
+    await expect(turns).toContainText("opencode");
     await expect(turns).toContainText(/geschätzt|n \d+/);
   });
 
@@ -45,7 +86,6 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     await app.getByRole("group", { name: "Zeitraum", exact: true }).getByRole("button", { name: "Woche" }).click();
     await expect(card).toContainText("opencode");
 
-    // Projektschnitt über die Auswahl: das Projekt der Session bleibt sichtbar.
     const projekt = app.getByLabel("Projekt");
     const options = await projekt.locator("option").allTextContents();
     const eigenes = options.find(o => !o.includes("alle Projekte")) ?? options[0]!;
@@ -71,14 +111,15 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     expect(invalid.status).toBe(400);
   });
 
-  test("T56.4: Klein-n meldet keine Anomalien — die Karte bleibt ehrlich weg", async ({ app, hub }) => {
+  test("T56.4: Klein-n meldet keine Anomalien — die Sektion sagt es ehrlich", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Anomalie" });
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
     const report = await hub.api<StatisticsReport>("/api/statistics");
     expect(report.body.anomalies).toEqual([]);
 
     await openStatistics(app);
-    await expect(app.getByRole("region", { name: "Statistik Anomalien" })).toHaveCount(0);
+    await openSection(app, "Anomalien");
+    await expect(app.getByRole("region", { name: "Statistik Anomalien" })).toContainText(/Keine Anomalien/);
   });
 
   test("T56.4: Zeitraum-Vergleich lädt Seite B, CSV-Export liefert die angezeigten Daten", async ({ app, hub }) => {
@@ -86,7 +127,8 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
 
     await openStatistics(app);
-    const compare = app.getByRole("region", { name: "Statistik Vergleich" });
+    await openSection(app, "Zeitraum-Vergleich (A/B)");
+    const compare = app.getByRole("region", { name: "Statistik Zeitraum-Vergleich (A/B)" });
     await expect(compare).toBeVisible();
     await expect(compare.locator("tbody tr").first()).toContainText("opencode");
 
@@ -96,8 +138,66 @@ test.describe("Statistik-Seite (EPIC-P56)", () => {
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^statistik-export-\d{4}-\d{2}-\d{2}\.csv$/);
     const path = await download.path();
-    const csv = await (await import("node:fs/promises")).readFile(path!, "utf8");
+    const csv = await import("node:fs/promises").then(fs => fs.readFile(path!, "utf8"));
     expect(csv).toContain("# EPIC-P56 Statistik-Export");
     expect(csv).toContain("opencode,e2e/fake-model");
+  });
+
+  test("T66.1: Sektionen klappen und halten den Zustand über einen Reload", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Klappen" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+
+    await openStatistics(app);
+    const sessions = app.getByRole("region", { name: "Statistik Sessions" });
+    await expect(sessions).toContainText("opencode"); // Default offen (Premortem 4)
+
+    // Zuklappen: Inhalt verschwindet, aria-expanded kippt.
+    const head = sessions.getByRole("button", { name: /Sessions/ });
+    await head.click();
+    await expect(head).toHaveAttribute("aria-expanded", "false");
+    await expect(sessions).not.toContainText("opencode");
+
+    // Reload: der Zustand steht noch (localStorage, T66.1/AC-P66-2).
+    await app.reload();
+    await expect(app).toHaveURL(/#\/statistik$/);
+    const headAfter = app.getByRole("region", { name: "Statistik Sessions" }).getByRole("button", { name: /Sessions/ });
+    await expect(headAfter).toHaveAttribute("aria-expanded", "false");
+    await headAfter.click();
+    await expect(app.getByRole("region", { name: "Statistik Sessions" })).toContainText("opencode");
+  });
+
+  test("T66.3: Schnitt überlebt einen Reload, „Zurücksetzen“ stellt Defaults her", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Statistik-Filter" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+
+    await openStatistics(app);
+    await app.getByRole("group", { name: "Zeitraum", exact: true }).getByRole("button", { name: "Woche" }).click();
+    const projekt = app.getByLabel("Projekt");
+    const options = await projekt.locator("option").allTextContents();
+    const eigenes = options.find(o => !o.includes("alle Projekte")) ?? options[0]!;
+    await projekt.selectOption({ label: eigenes });
+
+    await app.reload();
+    await expect(app).toHaveURL(/#\/statistik$/);
+    await expect(app.getByRole("group", { name: "Zeitraum", exact: true }).getByRole("button", { name: "Woche" })).toHaveAttribute("aria-pressed", "true");
+    await expect(app.getByLabel("Projekt")).not.toHaveValue("");
+
+    await app.getByRole("button", { name: "Schnitt zurücksetzen" }).click();
+    await expect(app.getByRole("group", { name: "Zeitraum", exact: true }).getByRole("button", { name: "Alles" })).toHaveAttribute("aria-pressed", "true");
+    await expect(app.getByLabel("Projekt")).toHaveValue("");
+  });
+
+  test("T66.2: System- und KI-Server-Sektionen betten den Aimetrics-Report ehrlich ein", async ({ app }) => {
+    await openStatistics(app);
+
+    await openSection(app, "System (Hub-Host)");
+    const system = app.getByRole("region", { name: "Statistik System (Hub-Host)" });
+    await expect(system).toContainText("Host-Probe nicht konfiguriert");
+
+    await openSection(app, "KI-Server");
+    const ki = app.getByRole("region", { name: "Statistik KI-Server" });
+    await expect(ki).toContainText("E2E KI-Server");
+    await expect(ki).toContainText("nicht gemeldet"); // fehlende Familien bleiben ehrlich (ADR-0023)
+    await expect(ki.locator("tr").filter({ hasText: "Queue: in Bearbeitung" })).toContainText("3");
   });
 });

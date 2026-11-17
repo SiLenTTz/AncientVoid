@@ -134,10 +134,12 @@ Spec: [ki-server-metriken.spec.ts](../../e2e/specs/ki-server-metriken.spec.ts)
 
 ### page:statistics — Statistiken
 
-`#/statistik`. Consolidated session, turn/token, gate, tool and team numbers
-from the rollup cache (EPIC-P56): p50/p90/p95 with n, small-sample marks,
-end-reason distribution — sliced by period, project, host and harness.
-Describing, not ranking.
+`#/statistik`. The one metrics hub (EPIC-P56/P66): system and AI server
+sections from the unchanged aimetrics report, consolidated session,
+turn/token, gate, tool and team numbers from the rollup cache —
+p50/p90/p95 with n, small-sample marks, end-reason distribution, sliced
+by period, project, host and harness. Sections collapse; the state and the
+slice survive reloads. Describing, not ranking.
 
 Spec: [statistik.spec.ts](../../e2e/specs/statistik.spec.ts)
 

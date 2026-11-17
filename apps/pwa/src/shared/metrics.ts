@@ -39,3 +39,22 @@ export function totalCostText(sessions: SessionRecord[], format: (n: number) => 
   if (sum === 0 && !complete) return "nicht gemeldet";
   return complete ? format(sum) : `mind. ${format(sum)}`;
 }
+
+/**
+ * EPIC-P66 T66.2: Wert- und Altersformat der Metrik-Zeilen — von der
+ * Metrik-Seite (EPIC-P59) geteilt, damit beide Flächen identisch zeigen:
+ * null bleibt „nicht gemeldet" (ADR-0023), nie eine 0.
+ */
+export function formatMetricValue(value: number | null, unit: string): string {
+  if (value === null) return "nicht gemeldet";
+  const rounded = Math.abs(value) >= 1000 || Number.isInteger(value) ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded.toLocaleString("de-DE")} ${unit}`;
+}
+
+export function formatMetricAge(ts: string | null, nowMs: number = Date.now()): string {
+  if (!ts) return "—";
+  const sec = Math.max(0, Math.round((nowMs - Date.parse(ts)) / 1000));
+  if (sec < 60) return `vor ${sec} s`;
+  if (sec < 3600) return `vor ${Math.floor(sec / 60)} min`;
+  return `vor ${Math.floor(sec / 3600)} h`;
+}
