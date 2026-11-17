@@ -29,6 +29,54 @@
 .notif-bell:hover {
   border-color: var(--accent);
 }
+
+/* EPIC-P64 T64.2: pulsierender Glow nach höchster offener Dringlichkeit
+ * (urgencyOf, T64.1): rot Fehler (--err), gelb offene Frage (--warn),
+ * grün Lauf beendet (--ok). Nur Semantik-Tokens + color-mix — keine
+ * Hex-Werte, kein z-index (P63-kompatibel). Puls wirkt allein auf der
+ * Glocke (box-shadow), kein Repaint der Liste (K2). */
+.notif-bell.urgency-error,
+.notif-bell.urgency-action,
+.notif-bell.urgency-done {
+  --notif-urgency: var(--err);
+}
+.notif-bell.urgency-action {
+  --notif-urgency: var(--warn);
+}
+.notif-bell.urgency-done {
+  --notif-urgency: var(--ok);
+}
+.notif-bell.urgency-error,
+.notif-bell.urgency-action,
+.notif-bell.urgency-done {
+  border-color: color-mix(in srgb, var(--notif-urgency) 65%, var(--bg-chip));
+  animation: notif-glow-pulse 2.4s ease-in-out infinite;
+}
+@keyframes notif-glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--notif-urgency) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--notif-urgency) 12%, transparent);
+  }
+}
+/* Reduzierte Bewegung — Systemeinstellung UND der „Bewegung“-Schalter der
+ * App (ui-scale.ts): statischer Ring statt Puls, Farbe bleibt sichtbar. */
+@media (prefers-reduced-motion: reduce) {
+  .notif-bell.urgency-error,
+  .notif-bell.urgency-action,
+  .notif-bell.urgency-done {
+    animation: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--notif-urgency) 40%, transparent);
+  }
+}
+:root[data-ctx-motion="off"] .notif-bell.urgency-error,
+:root[data-ctx-motion="off"] .notif-bell.urgency-action,
+:root[data-ctx-motion="off"] .notif-bell.urgency-done {
+  animation: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--notif-urgency) 40%, transparent);
+}
 .notif-count {
   position: absolute;
   top: -4px;
@@ -187,6 +235,45 @@
 /* List folded away: the bell moves to the window corner (EPIC-P18 + P20). */
 .notif-bell.corner {
   right: 8px;
+}
+/* EPIC-P64 T64.4: am PC mit sichtbarer Liste sitzt die Glocke als
+ * Flusselement im Kopf der Listenspalte (App-Topbar) — kein Overlay mehr,
+ * nichts wird verdeckt. 44 px: größer als die umliegenden Icons/Chips
+ * (zuvor 36 px), damit sie heraussticht. */
+.notif-bell.flow {
+  position: static;
+  width: 44px;
+  height: 44px;
+  font-size: calc(18px * var(--font-scale, 1));
+  flex: none;
+}
+/* Der 44-px-Reserve der Topbar (unten) bedarf es nicht, wenn die Glocke
+ * selbst in der Topbar liegt. */
+.app-page:has(.notif-bell.flow) .topbar {
+  padding-right: 0;
+}
+/* EPIC-P64 T64.4: die 44-px-Glocke macht die Topbar der schmalen
+ * Listenspalte (360–420 px) eng — der Brand darf schrumpfen (Ellipse),
+ * statt die Zeile über die Spalte hinaus zu drücken (Font-Metrik-Unterschied
+ * Desktop-Chrome vs. Mobile-Emulation, Nutzerfläche Z Fold). */
+.app-page:has(.notif-bell.flow) .topbar h1 {
+  min-width: 0;
+  overflow: hidden;
+}
+.app-page:has(.notif-bell.flow) .brand-link {
+  min-width: 0;
+}
+.app-page:has(.notif-bell.flow) .brand-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* EPIC-P64 T64.4/T64.5: im Fluss-Modus hängt das Panel gemessen unter der
+ * Glocke (top/left/max-width inline aus der Bell-Rect), rechtsbündig zu
+ * ihr — der Anker folgt der Glocke, nie mittig im Bild. */
+.notif-panel.flow {
+  right: auto;
+  width: auto;
 }
 /* EPIC-P51 T51.4: das Panel folgt der Eck-Glocke statt der 680-px-Zentrierung. */
 .notif-panel.corner {

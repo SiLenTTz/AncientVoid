@@ -79,8 +79,15 @@
     text-align: start;
   }
 
-  /* Die Glocke sitzt in der Ecke des Fensters, nicht am Rand der 680-px-Spalte (dort läge sie auf „Stop“). */
+  /* Die Glocke sitzt in der Ecke des Fensters, nicht am Rand der 680-px-Spalte (dort läge sie auf „Stop"). */
   body:has(.tablet-split) .notif-bell {
+    right: max(8px, env(safe-area-inset-right, 0px));
+  }
+
+  /* EPIC-P64 T64.5: das Panel folgt der Glocke an den Fensterrand — bislang
+   * stand es nach der 680-px-Formel mitten über den Sessions (Nutzerfund
+   * 17.11.2026: „nicht mitten im Bild"). */
+  body:has(.tablet-split) .notif-panel {
     right: max(8px, env(safe-area-inset-right, 0px));
   }
 

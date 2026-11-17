@@ -131,23 +131,23 @@ unter der Glocke (gleiche rechte Kante), Breite und `max-height` wie heute.
 
 ## 4. Aufgaben (Checkliste T64.m)
 
-- [ ] **T64.1** `urgencyOf()` als reine Funktion (Notification-Bestand,
+- [x] **T64.1** `urgencyOf()` als reine Funktion (Notification-Bestand,
   Read-Marks, Pending-Menge) + Unit-Tests: Priorität, ungelesen/ungelesen,
   leer. Messlatte: K2 (Voraussetzung, keine Messung nötig).
-- [ ] **T64.2** Glow-CSS (Keyframes, Token-Farben, reduced-motion-Fallback,
+- [x] **T64.2** Glow-CSS (Keyframes, Token-Farben, reduced-motion-Fallback,
   Kontrast in Dark/Light geprüft) in `14-notifications.css`.
   Messlatte: AC-P43-4.
-- [ ] **T64.3** Hintergrund-Refresh offener Freigaben im Poll-Takt (nur bei
+- [x] **T64.3** Hintergrund-Refresh offener Freigaben im Poll-Takt (nur bei
   Kandidaten); Unit-Test gegen die Drosselung.
-- [ ] **T64.4** Glocke in den Listenkopf am PC (Flow statt fixed, 44 px,
+- [x] **T64.4** Glocke in den Listenkopf am PC (Flow statt fixed, 44 px,
   Symmetrie, Entfall der überflüssigen Padding-Workarounds); Handy und
   zugeklappte Liste unverändert. E2E: Position/Symmetrie/Größe per
   `boundingBox()`. Messlatten: K2, AC-P43-4.
-- [ ] **T64.5** Panel-Anker gemeinsame Quelle mit der Glocke (3.5): eine
+- [x] **T64.5** Panel-Anker gemeinsame Quelle mit der Glocke (3.5): eine
   Anker-Größe für alle Layoutzustände (schmal/wide/tablet-split), Panel
   rechtsbündig unter der Glocke, nie mittig; `41-tablet.css`-Lücke
   geschlossen. E2E in allen drei Zuständen. Messlatte: K2.
-- [ ] **T64.6** E2E `notifications-glow.spec.ts`: Zustände rot/gelb/grün/
+- [x] **T64.6** E2E `notifications-glow.spec.ts`: Zustände rot/gelb/grün/
   aus (auch reduced-motion emuliert), Glow verschwindet nach dem
   Panel-Öffnen; Screenshot-Vergleich Dark/Light; Eintrag
   `docs/funktionsinventar.md`.
@@ -205,3 +205,41 @@ UI-Zustände mit Spec in `e2e/specs/` (`notifications-glow.spec.ts`) und
 Eintrag in `docs/funktionsinventar.md`; Glocke bleibt über die
 Kurzbefehle/Tooltips erreichbar wie heute. K2/AC-P43-4 nachweislich
 unverändert bzw. erfüllt; kein TODO ohne Epic-Bezug.
+
+## 8. Retro (17.11.2026 — Abschluss)
+
+| AC | Stand | Beleg |
+|---|---|---|
+| AC-P64-1 | ✅ | `notifications.spec.ts` „Liste offen: Glocke im Listenkopf …": `expectInListHead` prüft Fluss-Lage in der Spalte, 44 px, Abstand > 40 px zum Fensterrand; auch bei 130 % Zoom (mobile + desktop Projekt) |
+| AC-P64-2 | ✅ | `urgency.test.ts` (9 Unit-Tests: Priorität, Read-Marks, Fleet-Hosts, live Pending) + `notifications-glow.spec.ts` (Klassen error/action/done, Priorität, `notif-glow-pulse`) |
+| AC-P64-3 | ✅ | Glow-Spec „Panel öffnen liest den Bestand — done-Glow erlischt"; kein neuer Persistenzstand (Read-Marks unverändert) |
+| AC-P64-4 | ✅ | Glow-Spec „reduzierte Bewegung": `reducedMotion: reduce` → `animationName: none`, statischer `box-shadow` |
+| AC-P64-5 | ✅ | K2-A/B gleichentags: [`docs/messlauf/2026-11-17_k2-glocke-glow.md`](../docs/messlauf/2026-11-17_k2-glocke-glow.md) — main vs. P64-Branch **identisch** (median 12/12 ms, p95 20/20 ms, je 0 über 200-ms-Budget); Vorbehalt: Glow während des Messlaufs inaktiv (keine ungelesenen Meldungen im Frisch-Hub) — Belastungslauf mit aktivem Glow bleibt der T63.0-Referenzmessung vorbehalten (Action Item unten) |
+| AC-P64-6 | ✅ | Handy unverändert (mobile-Projekt: alle notifications/glow-Specs grün); zugeklappte Liste weiter im Fenstereck (`expectCornered` nach `tile-list-toggle`) |
+| AC-P64-7 | ✅ | `notifications-glow.spec.ts` @tablet: Glocke **und** Panel am Fensterrand (≤ 14 px) in der Session-Ansicht 800 px — die 680-px-Formel-Lücke (41-tablet.css) ist geschlossen; Flow-Modus: Panel rechtsbündig unter der Glocke (± 2 px, auch bei 130 % Zoom) |
+
+**Erkenntnisse**
+
+1. Die Panel-Geometrie im Fluss-Modus ist bewusst **gemessen** (Bell-Rect
+   ÷ `--ui-zoom`), nicht in CSS nachgebaut — die Spaltenbreite ist
+   `minmax(360px, 420px)` und zoom-abhängig; CSS-Rechnungen dafür wären
+   fragil (der 2026-10-30-Nutzerfund „Panel außer Reichweite" war genau
+   so eine Formel).
+2. `--ui-zoom` ist CSS `zoom` auf `<html>`: `getBoundingClientRect` liefert
+   Render-px, Inline-Styles erwarten CSS-px — jede Messung muss teilen.
+   Als Muster im Code kommentiert.
+3. Mobile-Emulation (Pixel-7-Projekt) rendert Text ~5 px breiter als
+   Desktop-Chrome: Die 44-px-Glocke drückte die Topbar der schmalen
+   Listenspalte über die Spalte. Brand schrumpft jetzt mit Ellipse.
+4. T51.4 („Glocke immer im Fenstereck am PC") ist für den Zustand
+   „Liste sichtbar" von T64.4 abgelöst — Spec-Kommentar entsprechend
+   umbenannt, Muskelgedächtnis bleibt gewahrt (beide Anker rechts oben,
+   identischer rechter Innenabstand im Eck-Fall).
+
+**Action Items**
+
+- T63.0 (P63): K2-Referenzmessung sollte einmal mit **aktivem Glow**
+  laufen (ungelesene Fehlermeldung offen), um AC-P64-5 ohne Vorbehalt zu
+  belegen; dieses Epic verweist darauf.
+- P65 (Status-Sounds) baut auf `urgency.ts` als gemeinsamer
+  Dringlichkeits-Quelle auf — gleiche Taxonomie weiterverwenden.
