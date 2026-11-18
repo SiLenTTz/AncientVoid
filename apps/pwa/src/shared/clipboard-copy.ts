@@ -44,3 +44,18 @@ export async function copyIntoShelf(text: string, origin: ShelfOrigin, opts: Cop
   pushShelf(text, origin, opts);
   return ok;
 }
+
+/**
+ * ADR-0093: ein Bild zurück ins System-Clipboard. Ohne `ClipboardItem` (älterer
+ * Browser, unsicherer Kontext) sagt die Rueckgabe ehrlich „nein“ — die App behauptet
+ * keinen Erfolg.
+ */
+export async function copyImageIntoSystem(blob: Blob, mime: string): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
+    await navigator.clipboard.write([new ClipboardItem({ [mime]: blob })]);
+    return true;
+  } catch {
+    return false;
+  }
+}

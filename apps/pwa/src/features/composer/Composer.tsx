@@ -429,7 +429,7 @@ export function Composer({
           title={shelfCount > 0 ? `Zwischenablage-Ablage (${shelfCount} Stufen)` : "Zwischenablage-Ablage — noch nichts kopiert"}
         >
           <ShelfGlyph />
-          {shelfCount > 0 && <span class="shelf-badge" aria-hidden="true">{shelfCount > 9 ? "9+" : shelfCount}</span>}
+          {shelfCount > 0 && <span class="shelf-badge" data-testid="clipboard-count" aria-hidden="true">{shelfCount > 9 ? "9+" : shelfCount}</span>}
         </Button>
         <Button
           aria-pressed={expanded}
