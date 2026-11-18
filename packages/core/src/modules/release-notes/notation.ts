@@ -6,7 +6,7 @@ const NOTATION_RE = /^([.@^!]) ([FBrdteam]) ([a-z0-9][a-z0-9/._-]*): (.+)$/;
 /** GitHub schreibt die PR-Nummer als `(#N)` ans Subject-Ende des Merge-Commits. */
 const PR_NUMBER_RE = /\s\(#(\d+)\)$/;
 
-/** ADR-0089: Subject in Notation zerlegen. Subjects ohne Notation (real z. B.
+/** ADR-0092: Subject in Notation zerlegen. Subjects ohne Notation (real z. B.
  * BUG-Titel wie PR #150) bleiben roh sichtbar (`unparsed`), nie gefiltert;
  * die PR-Nummer ist unabhängig davon optional — nichts wird geraten. */
 export function parseCommitNotation(subject: string): CommitNotation {

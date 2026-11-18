@@ -1,4 +1,4 @@
-/** ADR-0089: Release-Notes — gemergte PRs aus dem lokalen Git-Verlauf;
+/** ADR-0092: Release-Notes — gemergte PRs aus dem lokalen Git-Verlauf;
  * Commit-Notation (docs/commit-notation.md) als strukturierte Basis.
  * Merge-Commit-Subject = PR-Titel (mit `(#N)`), Merge-Body = PR-Beschreibung. */
 

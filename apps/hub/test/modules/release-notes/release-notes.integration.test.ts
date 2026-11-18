@@ -12,8 +12,8 @@ import { createHubApp } from "../../../src/app.ts";
 
 const exec = promisify(execFile);
 
-/** EPIC-P68 (ADR-0089): Release-Notes-Routen — Liste klein (K5-Geist), Detail on
- * demand, Auth/Guards wie git-graph (ADR-0071), ehrliche Fehler (AC-P68-5/6). */
+/** EPIC-P70 (ADR-0092): Release-Notes-Routen — Liste klein (K5-Geist), Detail on
+ * demand, Auth/Guards wie git-graph (ADR-0071), ehrliche Fehler (AC-P70-5/6). */
 
 let base: string;
 let repo: string;
@@ -45,7 +45,7 @@ beforeAll(async () => {
   await git(repo, "checkout", "-q", "main");
   await git(repo, "merge", "--no-ff", "-q", "-m", "^ F core: erste Faehigkeit (#1)", "-m", "PR-Beschreibung: bündelt T1.", "feat/eins");
 
-  // Zweiter PR ohne Notation im Subject — muss roh bleiben (fail loud, AC-P68-3).
+  // Zweiter PR ohne Notation im Subject — muss roh bleiben (fail loud, AC-P70-3).
   await git(repo, "checkout", "-q", "-b", "feat/zwei");
   await commitFile(repo, "c.ts", "c;\n", "! B pwa: fehler repariert", "BUG-0001: Anzeige blieb stehen.");
   await git(repo, "checkout", "-q", "main");
@@ -96,8 +96,8 @@ afterAll(async () => {
 const headers = (): { authorization: string } => ({ authorization: `Bearer ${token}` });
 const listUrl = (): string => `/api/release-notes?project=${encodeURIComponent(repo)}`;
 
-describe("release-notes routes (integration, ADR-0089)", () => {
-  it("GET /api/release-notes listet PRs neueste zuerst; rohe Subjects bleiben (AC-P68-1/3)", async () => {
+describe("release-notes routes (integration, ADR-0092)", () => {
+  it("GET /api/release-notes listet PRs neueste zuerst; rohe Subjects bleiben (AC-P70-1/3)", async () => {
     const res = await app.inject({ method: "GET", url: listUrl(), headers: headers() });
     expect(res.statusCode).toBe(200);
     const body = res.json() as {
@@ -111,14 +111,14 @@ describe("release-notes routes (integration, ADR-0089)", () => {
     expect(body.entries[1]!.stats?.filesChanged).toBeGreaterThanOrEqual(1);
   });
 
-  it("Liste trägt keine Bodies (K5-Geist, AC-P68-4)", async () => {
+  it("Liste trägt keine Bodies (K5-Geist, AC-P70-4)", async () => {
     const res = await app.inject({ method: "GET", url: listUrl(), headers: headers() });
     const body = res.json() as Record<string, unknown>[];
     expect(JSON.stringify(body)).not.toContain("PR-Beschreibung");
     expect(body[0]?.body).toBeUndefined();
   });
 
-  it("GET detail liefert Warum (PR-Body) und Was (Commits, Dateien) — AC-P68-2", async () => {
+  it("GET detail liefert Warum (PR-Body) und Was (Commits, Dateien) — AC-P70-2", async () => {
     const list = (await app.inject({ method: "GET", url: listUrl(), headers: headers() })).json() as { entries: { mergeSha: string }[] };
     const sha = list.entries[1]!.mergeSha;
     const res = await app.inject({
@@ -134,7 +134,7 @@ describe("release-notes routes (integration, ADR-0089)", () => {
     expect(detail.files.map((f) => f.path)).toContain("a.ts");
   });
 
-  it("detail: unbekannter SHA → 404, ohne merge → 400 (AC-P68-6)", async () => {
+  it("detail: unbekannter SHA → 404, ohne merge → 400 (AC-P70-6)", async () => {
     const notFound = await app.inject({
       method: "GET",
       url: `/api/release-notes/detail?project=${encodeURIComponent(repo)}&merge=${"0".repeat(40)}`,
@@ -145,14 +145,14 @@ describe("release-notes routes (integration, ADR-0089)", () => {
     expect(noMerge.statusCode).toBe(400);
   });
 
-  it("Guard-Flächen: ohne Param 400, außerhalb projectRoots 422, ohne Token 401 (AC-P68-6)", async () => {
+  it("Guard-Flächen: ohne Param 400, außerhalb projectRoots 422, ohne Token 401 (AC-P70-6)", async () => {
     expect((await app.inject({ method: "GET", url: "/api/release-notes", headers: headers() })).statusCode).toBe(400);
     const outside = await app.inject({ method: "GET", url: `/api/release-notes?project=${encodeURIComponent(tmpdir())}`, headers: headers() });
     expect(outside.statusCode).toBe(422);
     expect((await app.inject({ method: "GET", url: listUrl() })).statusCode).toBe(401);
   });
 
-  it("Nicht-Git-Projekt antwortet 200 mit benanntem Fehler statt stiller Leerliste (AC-P68-5)", async () => {
+  it("Nicht-Git-Projekt antwortet 200 mit benanntem Fehler statt stiller Leerliste (AC-P70-5)", async () => {
     const plain = join(base, "plain");
     await mkdir(plain);
     const res = await app.inject({ method: "GET", url: `/api/release-notes?project=${encodeURIComponent(plain)}`, headers: headers() });
@@ -162,7 +162,7 @@ describe("release-notes routes (integration, ADR-0089)", () => {
     expect(body.error).toBe("Kein Git-Repository.");
   });
 
-  it("session= zeigt den Ausschnitt des Session-Worktrees (ADR-0089 §5)", async () => {
+  it("session= zeigt den Ausschnitt des Session-Worktrees (ADR-0092 §5)", async () => {
     const created = await app.inject({
       method: "POST",
       url: "/api/sessions",

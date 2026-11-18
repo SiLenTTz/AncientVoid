@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { parseCommitNotation } from "../../../src/modules/release-notes/notation.ts";
 import { parseShortStat } from "../../../src/modules/release-notes/build.ts";
 
-/** EPIC-P68 (ADR-0089): Commit-Notation als Struktur — echte Formen aus dem
+/** EPIC-P70 (ADR-0092): Commit-Notation als Struktur — echte Formen aus dem
  * eigenen Verlauf, inkl. fail loud für Subjects ohne Notation (PR #150). */
-describe("parseCommitNotation (T68.2)", () => {
+describe("parseCommitNotation (T70.2)", () => {
   it("zerlegt Risiko, Absicht, Bereich, Satz", () => {
     const n = parseCommitNotation("^ F pwa: Einladung als QR-Code anzeigen");
     expect(n).toMatchObject({ risk: "^", intent: "F", area: "pwa", summary: "Einladung als QR-Code anzeigen", prNumber: null, unparsed: false });
@@ -40,7 +40,7 @@ describe("parseCommitNotation (T68.2)", () => {
   });
 });
 
-describe("parseShortStat (T68.2)", () => {
+describe("parseShortStat (T70.2)", () => {
   it("liest Dateien/Insertions/Deletions", () => {
     expect(parseShortStat(" 2 files changed, 62 insertions(+), 12 deletions(-)")).toEqual({ filesChanged: 2, insertions: 62, deletions: 12 });
   });

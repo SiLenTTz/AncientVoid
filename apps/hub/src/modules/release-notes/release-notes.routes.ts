@@ -4,7 +4,7 @@ import { buildReleaseNotes, buildReleaseNotesDetail, isProjectPathAllowed, Relea
 import type { RouteContext } from "../../route-context.ts";
 
 /**
- * ADR-0089: Release-Notes aus dem lokalen Git-Verlauf — Zielwahl wie
+ * ADR-0092: Release-Notes aus dem lokalen Git-Verlauf — Zielwahl wie
  * `/api/git-graph` (`session=`/`project=`). Liste klein (keine Bodies, K5-Geist),
  * Detail je Merge-SHA on demand.
  */
