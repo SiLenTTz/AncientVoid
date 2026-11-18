@@ -5,9 +5,33 @@
  *
  * Ehrlich dabei: schlägt das System-Clipboard fehl (unsicherer Kontext), bleibt die Stufe
  * trotzdem in der Ablage — „Auswahl wird nie still verloren“ gilt auch ohne Clipboard-API.
+ *
+ * BUG-0107: `copyWithRetry` lebt hier in shared (nicht unter features/), damit die
+ * Architekturgrenze shared↛features hält.
  */
-import { copyWithRetry } from "../features/session/copy-selection.ts";
 import { pushShelf, type ShelfOrigin } from "./clipboard-shelf.ts";
+
+export const COPY_RETRY_DELAY_MS = 150;
+
+export async function copyWithRetry(
+  text: string,
+  writeText: (t: string) => Promise<void>,
+  sleep: (ms: number) => Promise<void> = (ms) => new Promise((r) => setTimeout(r, ms)),
+): Promise<boolean> {
+  try {
+    await writeText(text);
+    return true;
+  } catch {
+    // transient (Renderer/Clipboard-Service unter Last): genau ein Retry
+    await sleep(COPY_RETRY_DELAY_MS);
+    try {
+      await writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
 
 export interface CopyOptions {
   /** Token, Kennwörter: die Ablage bekommt davon nichts ab (ADR-0090). */
