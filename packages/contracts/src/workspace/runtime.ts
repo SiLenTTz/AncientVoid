@@ -35,6 +35,12 @@ export const WORKSPACE_EVENT_KINDS = [
   "workspace.tearing_down",
   "workspace.archived",
   "workspace.cleanup_failed",
+  // EPIC-P67 / ADR-0088: Main-Sync-Events — Payloads in main-sync.ts definiert.
+  "workspace.main_sync_checked",
+  "workspace.main_sync_applied",
+  "workspace.main_sync_conflict",
+  "workspace.main_sync_skipped",
+  "workspace.main_sync_failed",
 ] as const;
 export type WorkspaceEventKind = (typeof WORKSPACE_EVENT_KINDS)[number];
 

@@ -42,6 +42,7 @@ export * from "./loops/loop.ts";
 export * from "./loops/connector.ts";
 export * from "./workspace/manifest.ts";
 export * from "./workspace/runtime.ts";
+export * from "./workspace/main-sync.ts";
 export * from "./reviews/review.ts";
 export * from "./forge/forge.ts";
 export * from "./graph/graph.ts";
