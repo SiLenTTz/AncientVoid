@@ -2,8 +2,33 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { lstat, mkdir, readdir, realpath } from "node:fs/promises";
 import { join } from "node:path";
+import type { MainSyncSettings } from "@ancientvoid/contracts";
 
 const execFileAsync = promisify(execFile);
+
+/** Auf welcher Basis ein Session-Worktree entstanden ist — der Caller macht daraus Events (fail loud). */
+export type WorktreeBaseChoice =
+  | { source: "origin"; branch: string }
+  | { source: "local"; reason: "off" }
+  | { source: "local"; reason: "not-main-branch"; detail?: string }
+  | { source: "local"; reason: "no-remote"; detail?: string }
+  | { source: "local"; reason: "fetch-failed"; fetchReason: "timeout" | "auth" | "offline" | "unknown"; detail?: string };
+
+/** Fetch-Fehler klassifizieren — bekannte Gründe statt `unknown`-Brei (dokumentiert in ADR-0088). */
+function classifyFetchError(err: unknown): { reason: "timeout" | "auth" | "offline" | "unknown"; detail: string } {
+  const message = err instanceof Error ? err.message : String(err);
+  if ((err as { killed?: boolean } | null)?.killed) return { reason: "timeout", detail: capDetail(message) };
+  if (/Authentication failed|could not read [Uu]sername|Permission denied|403/i.test(message)) return { reason: "auth", detail: capDetail(message) };
+  if (/Could not resolve|Network is unreachable|Connection (reset|refused|timed out)|timed out|unreachable/i.test(message)) {
+    return { reason: "offline", detail: capDetail(message) };
+  }
+  return { reason: "unknown", detail: capDetail(message) };
+}
+
+/** K5-Nachschub: Detailtexte kappen (Contract erlaubt max. 500 Zeichen). */
+function capDetail(text: string): string {
+  return text.length > 500 ? `${text.slice(0, 497)}…` : text;
+}
 
 /**
  * T2.1: per-session git worktree isolation (EPIC-P2 §3 "Worktree-Manager").
@@ -137,14 +162,93 @@ export class WorktreeManager {
    * fresh branch `ancientvoid/<sessionId>`, pinned at the project's current HEAD.
    * Returns null (no throw) when `projectPath` isn't a git repo at all —
    * that is the documented, honest non-isolation fallback, not an error.
+   *
+   * EPIC-P67 / ADR-0088 Stufe 1: with `opts.mainSync` the base is chosen
+   * against `origin/<Hauptbranch>` — fetch (hard timeout, never
+   * interactive), base on the fetched sha when the project folder is on the
+   * main branch, otherwise the local HEAD with a named reason. The start is
+   * NEVER blocked by a fetch failure: `base.source` tells the caller what
+   * happened, and the caller surfaces it as an event (fail loud, K10).
    */
-  async create(sessionId: string, projectPath: string): Promise<{ path: string; baseSha: string } | null> {
-    const baseSha = await this.headSha(projectPath);
-    if (baseSha === null) return null;
+  async create(
+    sessionId: string,
+    projectPath: string,
+    opts?: { mainSync?: MainSyncSettings | undefined },
+  ): Promise<{ path: string; baseSha: string; base: WorktreeBaseChoice } | null> {
+    const { choice, sha } = await this.chooseBase(projectPath, opts?.mainSync);
+    if (sha === null) return null;
     await mkdir(this.baseDir, { recursive: true });
     const path = this.worktreePath(sessionId);
-    await execFileAsync("git", ["-C", projectPath, "worktree", "add", "-b", this.branchName(sessionId), path, baseSha]);
-    return { path, baseSha };
+    await execFileAsync("git", ["-C", projectPath, "worktree", "add", "-b", this.branchName(sessionId), path, sha]);
+    return { path, baseSha: sha, base: choice };
+  }
+
+  /** Stufe-1-Basiswahl: origin/<Hauptbranch> wenn konfiguriert und möglich, sonst lokaler HEAD mit Grund. */
+  private async chooseBase(
+    projectPath: string,
+    settings: MainSyncSettings | undefined,
+  ): Promise<{ choice: WorktreeBaseChoice; sha: string | null }> {
+    const localSha = await this.headSha(projectPath);
+    if (!settings || settings.startSync === "off") {
+      return { choice: { source: "local", reason: "off" }, sha: localSha };
+    }
+    const branch = await this.mainBranchName(projectPath, settings);
+    const projectBranch = await this.currentBranch(projectPath);
+    if (projectBranch !== branch) {
+      return {
+        choice: { source: "local", reason: "not-main-branch", detail: `Projektordner steht auf ${projectBranch ?? "detached HEAD"}, Hauptbranch ist ${branch}` },
+        sha: localSha,
+      };
+    }
+    const remoteUrl = await this.remoteUrl(projectPath);
+    if (remoteUrl === null) {
+      return { choice: { source: "local", reason: "no-remote", detail: "Projekt hat kein Remote 'origin'" }, sha: localSha };
+    }
+    try {
+      await this.fetchMainBranch(projectPath, branch, settings);
+    } catch (err) {
+      const failure = classifyFetchError(err);
+      return { choice: { source: "local", reason: "fetch-failed", fetchReason: failure.reason, detail: failure.detail }, sha: localSha };
+    }
+    const originSha = await execFileAsync("git", ["-C", projectPath, "rev-parse", `refs/remotes/origin/${branch}`])
+      .then((r) => r.stdout.trim())
+      .catch(() => "");
+    if (originSha === "") {
+      return { choice: { source: "local", reason: "fetch-failed", fetchReason: "unknown", detail: `origin/${branch} nicht auflösbar` }, sha: localSha };
+    }
+    return { choice: { source: "origin", branch }, sha: originSha };
+  }
+
+  /** Hauptbranch: Override aus den Einstellungen, sonst `origin/HEAD`, sonst `main` (EPIC-P67 §3.2). */
+  private async mainBranchName(projectPath: string, settings: MainSyncSettings): Promise<string> {
+    if (settings.defaultBranch.trim() !== "") return settings.defaultBranch.trim();
+    const { stdout } = await execFileAsync("git", ["-C", projectPath, "symbolic-ref", "--short", "refs/remotes/origin/HEAD"]).catch(() => ({ stdout: "" }));
+    const resolved = stdout.trim();
+    // symbolic-ref liefert "origin/main" — der Branchname ist alles nach dem ersten Slash.
+    return resolved === "" || !resolved.includes("/") ? "main" : resolved.slice(resolved.indexOf("/") + 1);
+  }
+
+  private async currentBranch(projectPath: string): Promise<string | null> {
+    const { stdout } = await execFileAsync("git", ["-C", projectPath, "symbolic-ref", "--short", "HEAD"]).catch(() => ({ stdout: "" }));
+    return stdout.trim() || null;
+  }
+
+  private async remoteUrl(projectPath: string): Promise<string | null> {
+    const { stdout } = await execFileAsync("git", ["-C", projectPath, "remote", "get-url", "origin"]).catch(() => ({ stdout: "" }));
+    return stdout.trim() || null;
+  }
+
+  /** Ein Fetch, hart begrenzt — nie interaktiv, nie ohne Zeitlimit (Premortem 1). */
+  private async fetchMainBranch(projectPath: string, branch: string, settings: MainSyncSettings): Promise<void> {
+    await execFileAsync(
+      "git",
+      ["-C", projectPath, "fetch", "--no-tags", "origin", `+refs/heads/${branch}:refs/remotes/origin/${branch}`],
+      {
+        timeout: settings.fetchTimeoutSec * 1000,
+        killSignal: "SIGKILL",
+        env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+      },
+    );
   }
 
   /**
