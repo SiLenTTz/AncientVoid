@@ -1,6 +1,6 @@
 # EPIC-P38 — Session-Arbeitsort: eigener Worktree oder Projekt direkt
 
-**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · in Umsetzung seit 2026-11-09 (P37 umgesetzt, Code/Gate-Stand siehe T38.1–T38.6; offen: echte Scratch-Repo-Abnahme mit echtem Harness) · **Phase:** P38
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P000 verschoben · in Umsetzung seit 2026-11-09 (P37 umgesetzt, Code/Gate-Stand siehe T38.1–T38.6; offen: echte Scratch-Repo-Abnahme mit echtem Harness) · **Phase:** P38
 **Dauer:** 1–2 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P37 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -46,7 +46,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - [x] **T38.3** Startpfade und P29 nach Arbeitsort trennen; direkt nie Include/Worktree-Cleanup/Apply auslösen. **K5/K7**. — `resolveWorkplace`/`ensureWorkdir`-Guard; direct legt nie Worktree/Include/Teardown an
 - [x] **T38.4** UI-Auswahl mit separater Sandbox-Erklärung, gewähltem Pfad, Dirty-Bestätigung und Session-Badge; CLI/API/Fleet gleich prüfen. **K1/K10**. — `WorkplaceChoice` + Badge + Diff-Markierung; API `workspaceMode`/`confirmDirty`, Preview/Status-Routen, hubctl; Fleet über dieselbe API
 - [x] **T38.5** `e2e/specs/session-workspace-mode.spec.ts`: zwei Worktrees parallel, Direct-Konflikt, Resume, Archivieren; Zielrepo-Sentinel bleibt unverändert erhalten. **K7/K8**. — `e2e/specs/session-workspace-mode.spec.ts`, Sentinel/Dirty bleiben erhalten
-- [ ] **T38.6** Gate, PWA-Build, Migrationstest und echte Scratch-Repo-Abnahme beider Varianten. **K1/K5/K7/K8/K10**. — Gate, Build, Migrationstest (`workplace-mode.test.ts`) und Runbook (`docs/workplace-runbook.md`) stehen; **offen:** echte Scratch-Repo-Abnahme mit echtem Harness (Runbook §3) → nach P69 verschoben
+- [ ] **T38.6** Gate, PWA-Build, Migrationstest und echte Scratch-Repo-Abnahme beider Varianten. **K1/K5/K7/K8/K10**. — Gate, Build, Migrationstest (`workplace-mode.test.ts`) und Runbook (`docs/workplace-runbook.md`) stehen; **offen:** echte Scratch-Repo-Abnahme mit echtem Harness (Runbook §3) → nach P000 verschoben
 
 ## 5. Acceptance Criteria (AC-P38-k)
 

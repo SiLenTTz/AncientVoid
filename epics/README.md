@@ -6,11 +6,11 @@ Keine automatische Wiederaufnahme nach grünen Vorgängern; nur auf ausdrücklic
 Nutzerauftrag. Davon abhängige Arbeit bleibt bis zur erfüllten Voraussetzung
 blockiert; diese Zurückstellung hebt kein anderes Epic-Gating auf.
 
-**Dauerhafte Menschen-Abnahmen (seit 18.11.2026): [EPIC-P69](EPIC-P69-permanente-menschen-abnahmen.md).**
+**Dauerhafte Menschen-Abnahmen (seit 18.11.2026): [EPIC-P000](EPIC-000-testsuite-fuer-menschen.md).**
 Epics schließen, sobald Code und automatisierte Tests fertig sind; die
 verbleibende Menschen-Abnahme (Gerät, echte Stimmen/Remotes,
 Nutzer-Verifikation) ist dorthin delegiert (Delegationsvermerk
-„nach P69 verschoben“) und wird nur dort abgehakt. Epics mit reinem
+„nach P000 verschoben“) und wird nur dort abgehakt. Epics mit reinem
 Agentenrest oder offenen Entscheidungen bleiben offen. Die Statusspalten
 unten sind Stand der Migration; aktuell zeigt `npm run epics:status`.
 
@@ -28,6 +28,7 @@ blockiert K10. Historische grüne Überschriften sind keine Vollumfang-Freigabe.
 
 | Datei | Phase | Titel | Dauer (Agenten-Wochen) |
 |---|---|---|---|
+| [P000 — Testsuite für Menschen (Abnahmen durch Nutzer und Contributor)](EPIC-000-testsuite-fuer-menschen.md) | Dauerhaft offenes Sammel-Epic (Nachfolger des P35-Endabnahme-Blocks): alle Menschen-Testabnahmen mit Herkunftsbezug — Gerätetermine, echte Stimmen/Remotes, Nutzer-Verifikation fester Bugs; Epics schließen ohne ihre Menschen-Abnahme mitzunehmen | permanent, öffnet nie; Aufnahme nach Aufnahmeregel §2 | laufend |
 | EPIC-P0-hub-kern.md | P0 | Hub-Kern: Sessions, EventStore, tmux-Worker, Tailscale-serve, PWA-Gerüst | 1 |
 | EPIC-P1-claude-codex-monitor.md | P1 | Adapter claude + codex, Monitor-Dashboard, Chat-Tail mit Filtern | 1–1,5 |
 | EPIC-P1.5-control-center-ux.md | P1.5 | Kontingent statt Budget, Projekt-Autoerkennung, Sprach-Composer, Skill-Overlay | 1–1,5 |
@@ -311,7 +312,6 @@ ADR vor der ersten Contract-Änderung).
 | [P66 — Metrik-Konsolidierung: alles an einem Ort, aufgeräumt und klappbar](EPIC-P66-metrik-konsolidierung-refinement.md) | `#/statistik` wird die eine Metrik-Zentrale: System- und KI-Server-Sektionen aus dem unveränderten `GET /api/aimetrics`-Report (keine zweite Wahrheit), klappbare Sektionen mit Reload-stabilem Zustand, Filter-Dauerhaftigkeit + Zurücksetzen, Design-System-Ratchets grün; EUR (P31)/Compression (P55)/Input-Output-Token-Split (unbelegt) bleiben draußen — **in Umsetzung seit 17.11.2026** | EPIC-P56 grün (T56.1a–T56.4, PR #123; T56.6-Abnahme parallel); EPIC-P59 grün | 0,5–1 |
 | [P67 — Main-Sync: frischer Main beim Start, laufende Synchronisation, einstellbar](EPIC-P67-main-sync.md) | Stufe 1: neue Session startet auf `origin/<Hauptbranch>` (Fetch mit Timeout, Fallback + sichtbares Event, nur auf dem Hauptbranch); Stufe 2: Sync-Engine (hinter/vor, Probelauf per `merge-tree`, Merge mit Abbruch, nur bei wartender Session) und Scheduler (ein Fetch je Projekt) mit Modi `notify`/`ask`/`auto`; Stufe 3: Einstellungen global + je Projekt (Takt, autonom/mit Bestätigung, Auto-Merge), PWA-Indikator „N hinter main“, `hubctl main-sync`; Hub-Checkout selbst aktualisieren bleibt Out — **umgesetzt (T67.1–T67.9, PRs #149–#158, `verify` grün); T67.10 Abnahme am echten Remote offen (Nutzeraufgabe, Schritte im Epic-Abschluss-Block)** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 2–3 |
 | [P68 — Prompt verbessern: lokales Modell zuerst, Projektkontext, Skill-Vorschläge pflegen](EPIC-P68-prompt-enhance-lokal-skill-pflege.md) | Engine-Kette lokal (`assistant.model`, Auslastung via `/slots`/503) → gewählter Adapter → OpenCode mit sichtbarem Grund je Stufe; gerahmter Projektkontext (Leitfaden, README, Manifest, Skills; ≤ 6 000 Zeichen); Skill-Empfehlung zeigt vorhandene Einträge (`mode: update`), Anpassen/Modell-Vorschlag/Speichern mit Hash-Sperre statt Dubletten (ADR-0089) — **in Umsetzung seit 18.11.2026** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 1 |
-| [P69 — Dauerhafte Menschen-Abnahmen (Abnahme-Sammelstelle)](EPIC-P69-permanente-menschen-abnahmen.md) | Dauerhaft offenes Sammel-Epic (Nachfolger des P35-Endabnahme-Blocks): alle Menschen-Testabnahmen mit Herkunftsbezug — Gerätetermine, echte Stimmen/Remotes, Nutzer-Verifikation fester Bugs; Epics schließen ohne ihre Menschen-Abnahme mitzunehmen | permanent, öffnet nie; Aufnahme nach Aufnahmeregel §2 | laufend |
 | [P70 — Release-Notes: pro PR nachvollziehen, was geändert wurde und warum](EPIC-P70-release-notes-pr-nachvollziehbar.md) | Release-Notes-Seite `#/releasenotes` aus dem lokalen Git-Verlauf (kein Netzwerk, [ADR-0093](../docs/adr/0093-release-notes-aus-git-verlauf.md)): gemergte PRs chronologisch mit Kurzfassung aus der Commit-Notation (Risiko/Absicht/Bereich/Satz, PR-Nummer, ±Zeilen aus einem `git log --merges --shortstat`-Lauf), je PR aufklappbar Was (Branch-Commits `P1..P2` mit eigener Notation, Dateien) und Warum (PR-Beschreibung aus dem Merge-Body); zwei Routen Liste/Detail (K5-Geist, Caps + `truncated`), Subjects ohne Notation roh sichtbar statt gefiltert (fail loud), Session-Worktrees zeigen PRs bis zum Branch-Punkt — **in Umsetzung seit 18.11.2026** | keine blockierende (Quer-Epic; P67 umgesetzt, T67.10-Abnahme Nutzeraufgabe ohne gemeinsame Codeflächen); P30/P31 On hold unberührt | 0,5–1 |
 
 ## Reihenfolge & Gating

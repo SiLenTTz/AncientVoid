@@ -9,7 +9,7 @@ Empfehlungen sind Vorschläge; der Report löst nichts automatisch.
 
 **Nachtrag 2026-11-18 (Migration, Nutzerauftrag):** Die Menschen-Abnahmen
 und -Verifikationen (u. a. §4) sind als inventarisiertes Verzeichnis nach
-[EPIC-P69](../epics/EPIC-P69-permanente-menschen-abnahmen.md) umgezogen;
+[EPIC-P000](../epics/EPIC-000-testsuite-fuer-menschen.md) umgezogen;
 betroffene Epics sind mit Delegationsvermerk geschlossen, der Counter zeigt
 seither nur noch Agentenarbeit und Entscheidungstore. Die Zahlen oben sind
 der Snapshot vor dieser Migration.

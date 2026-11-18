@@ -335,3 +335,40 @@
 .composer.compact .composer-more {
   display: none;
 }
+
+/*
+ * ADR-0092: die gemerkte Diktat-Aufnahme — eine schmale Zeile unter dem Eingabefeld.
+ * Sie ist kein Alarm und kein Floating-Widget: sie steht, bis neu erkannt oder
+ * verworfen wurde.
+ */
+.composer-replay {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding-top: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.composer-replay-hinweis {
+  color: var(--fg-dim);
+}
+
+.composer-replay-taten {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.composer-replay-punkt {
+  color: var(--fg-faint);
+}
+
+.composer-replay-run {
+  font-weight: 700;
+}
+
+.composer-replay-drop {
+  color: var(--fg-faint);
+}
