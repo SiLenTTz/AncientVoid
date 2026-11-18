@@ -210,12 +210,6 @@ use.
 
 Spec: [auth.spec.ts](../../e2e/specs/auth.spec.ts)
 
-### layer:git — Git
-
-Branch and commit view of the project, including the session's own commits.
-
-Spec: [git-struktur.spec.ts](../../e2e/specs/git-struktur.spec.ts)
-
 ## Features
 
 ### feature:aimetrics
@@ -283,7 +277,8 @@ review feedback back. Spec: [forge-review.spec.ts](../../e2e/specs/forge-review.
 
 ### feature:git-graph
 
-The git history as a graph — see [layer:git](#layergit--git). Spec: [git-graph.spec.ts](../../e2e/specs/git-graph.spec.ts)
+The git history as a graph, in the session tab „Git“ (the former global
+Git-Struktur layer is removed). Spec: [git-graph.spec.ts](../../e2e/specs/git-graph.spec.ts)
 
 ### feature:graph
 

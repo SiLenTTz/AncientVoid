@@ -2,9 +2,9 @@
  * EPIC-P43 (Kleinkram-Regel 6, „Nichts liegt über dem Inhalt“): Dateibaum, Browser-Arbeitsplatz und
  * Android-Geräte haben keine Randlaschen mehr. Geöffnet werden sie aus den Ansichten heraus — Reiter
  * „Befehle“, Menü „Mehr“ der Session, globales „Mehr“ —, die Ebenen selbst bleiben in main.tsx.
- * Die Git-Struktur-Ebene (Dock/Mehr, Strg+Umschalt+G) folgt demselben Muster.
+ * (Die frühere globale Git-Struktur-Ebene ist entfernt — der Session-Tab „Git“ bleibt der Weg.)
  */
-export type LayerKind = "files" | "browser" | "devices" | "git";
+export type LayerKind = "files" | "browser" | "devices";
 
 const EVENT = "ancientvoid:layer-open";
 
