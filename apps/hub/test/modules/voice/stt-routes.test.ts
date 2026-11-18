@@ -48,7 +48,10 @@ describe("local speech-to-text route (T10.2)", () => {
     const registry = new AdapterRegistry();
     const tokens = new TokenService(db);
     sessions = new SessionManager(db, new EventStore(join(dir, ".data")), registry, new ProcessRunner());
-    const fetchFake = (async (_url: string, init?: RequestInit) => {
+    const fetchFake = (async (url: string, init?: RequestInit) => {
+      // BUG-0214: der Hub fragt den Lebenszeichen-Pfad des Erkenners ab, bevor er
+      // "verfuegbar" behauptet. Ein echter Dienst antwortet dort ohne Ton.
+      if (String(url).endsWith("/health")) return new Response("ok", { status: 200 });
       seen.push(Buffer.from(init?.body as Buffer).toString("latin1"));
       return new Response(JSON.stringify(upstream.body), { status: upstream.status });
     }) as unknown as typeof fetch;
@@ -159,7 +162,7 @@ describe("local speech-to-text route (T10.2)", () => {
 
   it("fails loud: no recogniser 501, no recording 400, unreadable audio 422, recogniser down 502", async () => {
     await build(false);
-    expect((await app.inject({ method: "GET", url: "/api/stt", headers: { authorization: `Bearer ${human}` } })).json()).toEqual({ available: false, streaming: false });
+    expect((await app.inject({ method: "GET", url: "/api/stt", headers: { authorization: `Bearer ${human}` } })).json()).toEqual({ available: false, streaming: false, reason: "keine lokale Spracherkennung konfiguriert" });
     expect((await post(human, wav(500))).statusCode).toBe(501);
     await app.close();
     await sessions.shutdown();

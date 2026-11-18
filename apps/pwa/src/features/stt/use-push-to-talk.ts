@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { speechRecognitionSupported, startContinuousStt, type ContinuousSttHandle } from "../../shared/speech.ts";
-import { LocalRecorder, recordingSupported, sttStatus } from "../../shared/local-stt.ts";
+import { LocalRecorder, recordingSupported, refreshSttStatus, sttStatus } from "../../shared/local-stt.ts";
 import { pasteTranscript } from "./paste-target.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 
@@ -147,7 +147,18 @@ export function usePushToTalk() {
       if (t.text) await applyText(t.text, `lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s${streamNotice ? " · Live-Vorschau nicht verfügbar" : ""}`);
       else setError("Nichts erkannt — nochmal versuchen.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.");
+      // BUG-0214: nach einem Ausfall der eigenen Erkennung die Auskunft neu holen — sonst
+      // hält die App für den Rest der Sitzung an einem toten Weg fest.
+      const fresh = await refreshSttStatus().catch(() => ({ available: false as const }));
+      setLocalStt(fresh);
+      const grund = err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.";
+      setError(
+        fresh.available
+          ? grund
+          : speechRecognitionSupported()
+            ? `${grund} — eigene Erkennung nicht erreichbar; beim nächsten Drücken übernimmt die Browser-Erkennung.`
+            : `${grund} — eigene Erkennung ist gerade nicht erreichbar.`,
+      );
     } finally {
       setListening(false);
       setPartial("");

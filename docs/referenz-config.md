@@ -48,6 +48,7 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `stt.streaming.url` | string | — |
 | `stt.streaming.apiKeyFile` | string | — |
 | `stt.streaming.endpointingMs` | integer | 800 |
+| `stt.streaming.engine` | string | — |
 | `media.enabled` | boolean | true |
 | `media.ytDlp` | string | "yt-dlp" |
 | `media.keepSource` | boolean | false |
