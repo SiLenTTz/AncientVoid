@@ -250,7 +250,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0214](bug-0214-stt-verfuegbarkeit-geschwindelt-kein-browser-rueckfall.md) | eigene Spracherkennung abgeschaltet, `GET /api/stt` meldet weiter `available:true` (allein aus der Konfiguration), App haelt an den toten lokalen Weg fest statt auf die Browser-Erkennung umzuschalten | open | S2 | pwa | — |
 | [BUG-0215](bug-0215-live-woerter-enden-nach-einer-minute.md) | 85-Sekunden-Diktat am Live-Hub: Teiltexte bis 57 s, dann „Sprachaufnahme dauerte länger als 60 Sekunden“ — Live-Vorschau endet mitten im Satz | open | S2 | hub | — |
 | [BUG-0216](bug-0216-endtext-des-streamten-diktats-traegt-fremden-namen.md) | streamendes Diktat endet mit „engine=Nemotron 3.5 ASR Streaming“, obwohl `stt.streaming.engine` auf unsere Radeon-Erkennung steht — main.ts gibt den Schluessel nicht weiter |
-Die nächste freie Nummer ist **0217** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0217](bug-0217-mainsync-stand-gehoert-zur-auswahl.md) | Hinweis „N hinter main“ gehört nicht zur Auswahl: Abfrage läuft nur beim Mount, Kachelfokus und Rückkehr zur offenen Ansicht zeigen den Stand eines früheren Zeitpunkts/anderen Projekts | open | S3 | pwa | [#180](https://github.com/securesight-ai/AncientVoid/issues/180) |
+Die nächste freie Nummer ist **0218** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens

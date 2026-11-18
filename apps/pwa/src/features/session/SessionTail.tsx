@@ -244,17 +244,47 @@ export function SessionTail({
   const [mainSync, setMainSync] = useState<MainSyncCheckDto | null>(null);
   const [mainSyncBusy, setMainSyncBusy] = useState(false);
   const [mainSyncResult, setMainSyncResult] = useState<string | null>(null);
+  // BUG-0217: Die Abfrage gehört zur Auswahl, nicht zum Mount. Generation und
+  // In-Flight-Merker lassen nur die zuletzt gestellte Frage den Stand setzen —
+  // eine späte Antwort kann nie einen neueren Stand überschreiben.
+  const mainSyncGen = useRef(0);
+  const mainSyncAsked = useRef(false);
   const refreshMainSync = async (): Promise<void> => {
+    if (mainSyncAsked.current) return;
+    mainSyncAsked.current = true;
+    const gen = ++mainSyncGen.current;
     try {
-      setMainSync(await api.mainSyncCheck(session.id));
+      const check = await api.mainSyncCheck(session.id);
+      if (gen !== mainSyncGen.current) return;
+      setMainSync(check);
+      setMainSyncResult(null);
     } catch {
+      if (gen !== mainSyncGen.current) return;
       setMainSync(null);
+    } finally {
+      mainSyncAsked.current = false;
     }
   };
   useEffect(() => {
     void refreshMainSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id]);
+  // BUG-0217: Auswahl ohne Remount (Kachelfokus) und Rückkehr zur offenen
+  // Ansicht (Sichtbarkeit) stellen dieselbe Frage erneut — der Hinweis zeigt
+  // sonst weiter den Stand eines früheren Zeitpunkts.
+  const tileActive = tile?.active ?? true;
+  useEffect(() => {
+    if (tileActive) void refreshMainSync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tileActive]);
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && tileActive) void refreshMainSync();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tileActive]);
   /** ADR-0083: Teiltexte des Adapters, bis der dauerhafte Block eintrifft. Kein
    * Nacherzählen: was hier steht, ist wirklich schon uebertragen worden. */
   const [liveText, setLiveText] = useState<{

@@ -1,6 +1,7 @@
 import { test, expect } from "../support/fixtures.ts";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import type { TestHub } from "../support/hub.ts";
 import { join, dirname } from "node:path";
 
 const execFileAsync = promisify(execFile);
@@ -79,5 +80,70 @@ test.describe("Session: Main-Sync-Indikator und Menü (EPIC-P67 T67.8)", () => {
     expect(geo.right).toBeLessThanOrEqual(geo.headRight + 1);
     expect(geo.bottom).toBeLessThanOrEqual(geo.metaBottom + 1);
     expect(geo.hitIsSelfOrChild).toBe(true);
+  });
+
+  /** BUG-0217: Die Abfrage gehört zur Auswahl — Session-Wechsel, Kachelfokus
+   * und Rückkehr zur offenen Ansicht stellen sie jeweils neu. */
+  const idleSession = (hub: TestHub, id: string) => hub.until(async () => ((await hub.api<{ status: string }[]>(`/api/sessions`)).body.find((s) => (s as { id?: string }).id === id)?.status ?? "") === "idle", `session ${id} idle`);
+
+  test("BUG-0217: Projektwechsel über die Übersicht zeigt den Stand der gewählten Session", async ({ app, hub }) => {
+    const a = await withOrigin(hub.alpha, "wela");
+    const b = await withOrigin(hub.beta, "welb");
+    const idA = await hub.createSession({ adapter: "dummy", project: hub.alpha, prompt: "arbeite", workspaceMode: "worktree" });
+    const idB = await hub.createSession({ adapter: "dummy", project: hub.beta, prompt: "arbeite", workspaceMode: "worktree" });
+    await idleSession(hub, idA);
+    await idleSession(hub, idB);
+    await a.advance("a-1");
+    await b.advance("b-1");
+    await b.advance("b-2");
+
+    await app.goto(`${hub.origin}/#/sessions/${idB}`);
+    await expect(app.getByTestId("mainsync-behind")).toHaveText(/2 hinter main/);
+    await app.getByRole("button", { name: "Zur Übersicht" }).click();
+    await expect(app.getByRole("heading", { name: "AncientVoid", exact: true })).toBeVisible();
+    await app.locator(".session-card", { hasText: "alpha" }).first().locator(".session-open").click();
+    await expect(app.getByTestId("mainsync-behind")).toHaveText(/1 hinter main/);
+  });
+
+  test("BUG-0217: Kachelfokus fragt neu — ausgewähltes Projekt zeigt seinen aktuellen Stand @desktop", async ({ app, hub, isMobile }) => {
+    test.skip(isMobile, "Kachelfokus braucht das Desktop-Projekt (breites Layout)");
+    const a = await withOrigin(hub.alpha, "foka");
+    const b = await withOrigin(hub.beta, "fokb");
+    const idA = await hub.createSession({ adapter: "dummy", project: hub.alpha, prompt: "arbeite", workspaceMode: "worktree" });
+    const idB = await hub.createSession({ adapter: "dummy", project: hub.beta, prompt: "arbeite", workspaceMode: "worktree" });
+    await idleSession(hub, idA);
+    await idleSession(hub, idB);
+    await a.advance("a-1");
+    await b.advance("b-1");
+    await b.advance("b-2");
+    await b.advance("b-3");
+
+    await app.goto(`${hub.origin}/#/sessions/${idB}`);
+    const betaBadge = app.locator('[data-tile="1"]').getByTestId("mainsync-behind");
+    await expect(betaBadge).toHaveText(/3 hinter main/);
+    // Anderes Projekt auswählen: alpha in einer zweiten Kachel (Strg-Klick)
+    await app.locator(".session-card", { hasText: "alpha" }).first().locator(".session-open").click({ modifiers: ["Control"] });
+    await expect(app.locator('[data-tile="2"]').getByTestId("mainsync-behind")).toHaveText(/1 hinter main/);
+    // Beta-Remote rückt weiter vor — Kachel 1 weiß es nur, wenn die Auswahl neu fragt
+    await b.advance("b-4");
+    await app.locator('[data-tile="1"]').click({ position: { x: 8, y: 8 } });
+    await expect(betaBadge).toHaveText(/4 hinter main/);
+  });
+
+  test("BUG-0217: Rückkehr zur offenen Session-Ansicht fragt neu (Sichtbarkeit)", async ({ app, hub }) => {
+    const b = await withOrigin(hub.beta, "visb");
+    const idB = await hub.createSession({ adapter: "dummy", project: hub.beta, prompt: "arbeite", workspaceMode: "worktree" });
+    await idleSession(hub, idB);
+    await b.advance("b-1");
+    await b.advance("b-2");
+
+    await app.goto(`${hub.origin}/#/sessions/${idB}`);
+    const badge = app.getByTestId("mainsync-behind");
+    await expect(badge).toHaveText(/2 hinter main/);
+    await b.advance("b-3");
+    // Echter Sichtbarkeitswechsel: Playwright-Seiten bleiben beim Seitenwechsel
+    // „visible“, deshalb das Ereignis auf der echten Seite versenden.
+    await app.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(badge).toHaveText(/3 hinter main/);
   });
 });
