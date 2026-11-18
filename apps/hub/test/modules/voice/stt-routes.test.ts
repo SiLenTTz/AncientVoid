@@ -153,6 +153,62 @@ describe("local speech-to-text route (T10.2)", () => {
     expect(oversizedCode).toBe(1011);
   });
 
+  // BUG-0215: ein Diktat von ein, zwei Minuten ist ueblich — die Live-Woerter durften
+  // nicht nach einer Minute ausgehen, und die Meldung muss die echte Grenze nennen.
+  // BUG-0215: ein Mehr-Satz-Diktat ueberlebt die fruehere Ein-Minuten-Grenze. Der Test
+  // sendet 61 Sekunden Rohaudio — knapp ueber der alten Grenze — in 0,25-s-Rahmen mit
+  // Pausen, damit nicht die Pufferbremse (64 KB ungetrunkene Bytes) den Abbruch bewirkt.
+  // Alle Waarten sind zeitlich begrenzt und die Socket-Codierung laeuft im finally: ein
+  // haengender Test waere ein schlechter Beleg.
+  it("einundsechzig Sekunden Diktat behalten ihre Live-Woerter (BUG-0215)", { timeout: 90_000 }, async () => {
+    await build(true, true);
+    // Der vorangehende Fall hintert die Teiltext-Groesse auf 5000 Zeichen; ohne das zurueck
+    // zu setzen, wuerde hier die TEXTgrenze ausloesen — nicht die Dauer, um die es geht.
+    streamDelta = "Stopp";
+    const response = await app.inject({ method: "POST", url: "/api/stt/stream-ticket", headers: { authorization: `Bearer ${human}` } });
+    expect(response.statusCode).toBe(201);
+    const { ticket } = response.json() as { ticket: string };
+    await app.listen({ host: "127.0.0.1", port: 0 });
+    const address = app.server.address();
+    if (!address || typeof address === "string") throw new Error("Hub test server did not bind");
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/api/stt/stream?ticket=${ticket}`);
+    // Der Hoerer haengt VOR dem Senden: eine Endmeldung, die waehrend des Stauens laeuft,
+    // darf nicht ins Leere laufen (dann haengt der Test nur, statt zu berichten).
+    const endEvent = new Promise<{ type: string; message?: string; text?: string }>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("keine Endmeldung binnen 60 Sekunden")), 60_000);
+      socket.on("message", (raw: Buffer) => {
+        const event = JSON.parse(raw.toString()) as { type: string; message?: string; text?: string };
+        if (event.type === "final" || event.type === "error") {
+          clearTimeout(timer);
+          resolve(event);
+        }
+      });
+      socket.on("close", (code, reason) => {
+        clearTimeout(timer);
+        reject(new Error(`Stream schloss vor der Endmeldung: code=${code} grund=${reason.toString()}`));
+      });
+    });
+    try {
+      await once(socket, "open");
+      expect(JSON.parse(((await once(socket, "message"))[0] as Buffer).toString())).toEqual({ type: "ready" });
+      const frame = Buffer.alloc(8_000, 0);
+      for (let at = 0; at < 244; at += 1) {
+        socket.send(frame);
+        // Eigene Bremse: nicht mehr senden, als der Socket traegt — sonst ist die
+        // Pufferbremse des Hubs der Grund fuer einen Abbruch, nicht die Dauer.
+        while (socket.bufferedAmount > 32_000) await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      socket.send(JSON.stringify({ type: "finish" }));
+      const finalEvent = await endEvent;
+      expect(finalEvent.type, `Abbruch bei ${JSON.stringify(finalEvent)}`).toBe("final");
+      expect(String(finalEvent.text ?? "")).toBeTruthy();
+    } finally {
+      if (socket.readyState !== 3) socket.close();
+      streamDelta = "Stopp";
+    }
+  });
+
   it("denies ticket issuance to agents and advertises streaming only when configured", async () => {
     await build(true, true);
     const status = await app.inject({ method: "GET", url: "/api/stt", headers: { authorization: `Bearer ${human}` } });
