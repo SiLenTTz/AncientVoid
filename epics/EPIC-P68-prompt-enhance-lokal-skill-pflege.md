@@ -1,6 +1,6 @@
 # EPIC-P68 — Prompt verbessern: lokales Modell zuerst, Projektkontext, Skill-Vorschläge pflegen statt duplizieren
 
-**Status:** in Umsetzung (seit 2026-11-18) · **Phase:** P68 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P67; baut auf T1.5-8/T1.5-10, T3.9, T5.10, BUG-0061 auf); P30/P31 bleiben On hold und unberührt
+**Status:** lokal verifiziert (2026-11-18); PR/CI und Live-Abnahme offen · **Phase:** P68 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P67; baut auf T1.5-8/T1.5-10, T3.9, T5.10, BUG-0061 auf); P30/P31 bleiben On hold und unberührt
 
 Quelle: Nutzerauftrag vom 18.11.2026. Beobachtet: (1) Der Zauberstab
 „Verbessern“ läuft praktisch immer über OpenCode — jeder Adapter ohne eigenen
@@ -135,13 +135,13 @@ Nichts wird geschrieben — Speichern bleibt ein eigener, bewusster Klick (PUT).
 
 ## 4. Aufgaben (Checkliste T68.m)
 
-- [ ] **T68.1** Epic, ADR-0089 (Engine-Kette, Kontext, Skill-Pflege), Index. Messlatte: Regel 6, PRD §8.5.
-- [ ] **T68.2** Engine-Kette in `apps/hub/src/modules/prompts/enhance.ts`: lokaler One-Shot (OpenAI-API), Auslastungsprüfung, Stufen-Begründung; Unit-Tests mit Fake-Fetch (konfiguriert/belegt/503/Timeout/leer → Fallback). K10 (sichtbarer Grund statt still).
-- [ ] **T68.3** Projektkontext-Sammler mit Budget und Rahmung; Tests (Budget, fehlende Dateien, Injection-Rahmen). K5 (Budget ≤ 6 KB, nicht in Events).
-- [ ] **T68.4** Core-Skills: Duplikat-Schutz `update`, `readProjectArtifact`, `updateProjectArtifact` mit Hash-Sperre; Tests rot-dann-grün. K7 (Datei auf Platte ist die Quelle, kein neuer Hub-Zustand).
-- [ ] **T68.5** Routen `GET /api/skills/artifact`, `PUT /api/skills`, `POST /api/skills/revise`, Modell-Richter in `/api/prompt-recommendation`; Policy-Mapping; Integrations-Tests.
-- [ ] **T68.6** PWA: Engine-Anzeige, Empfehlungskarte mit vorhandenem Skill, Editor, Anpassung vorschlagen, Speichern (PUT/POST).
-- [ ] **T68.7** E2E-Spec `e2e/specs/prompt-enhance-skills.spec.ts` (lokal, belegt ⇒ Adapter, Skill anpassen + speichern) und bestehende Composer-Specs grün.
+- [x] **T68.1** Epic, ADR-0089 (Engine-Kette, Kontext, Skill-Pflege), Index. Messlatte: Regel 6, PRD §8.5.
+- [x] **T68.2** Engine-Kette in `apps/hub/src/modules/prompts/enhance.ts`: lokaler One-Shot (OpenAI-API), Auslastungsprüfung, Stufen-Begründung; Unit-Tests mit Fake-Fetch (konfiguriert/belegt/503/Timeout/leer → Fallback). K10 (sichtbarer Grund statt still).
+- [x] **T68.3** Projektkontext-Sammler mit Budget und Rahmung; Tests (Budget, fehlende Dateien, Injection-Rahmen). K5 (Budget ≤ 6 KB, nicht in Events).
+- [x] **T68.4** Core-Skills: Duplikat-Schutz `update`, `readProjectArtifact`, `updateProjectArtifact` mit Hash-Sperre; Tests rot-dann-grün. K7 (Datei auf Platte ist die Quelle, kein neuer Hub-Zustand).
+- [x] **T68.5** Routen `GET /api/skills/artifact`, `PUT /api/skills`, `POST /api/skills/revise`, Modell-Richter in `/api/prompt-recommendation`; Policy-Mapping; Integrations-Tests.
+- [x] **T68.6** PWA: Engine-Anzeige, Empfehlungskarte mit vorhandenem Skill, Editor, Anpassung vorschlagen, Speichern (PUT/POST).
+- [x] **T68.7** E2E-Spec `e2e/specs/prompt-enhance-skills.spec.ts` (lokal, belegt ⇒ Adapter, Skill anpassen + speichern) und bestehende Composer-Specs grün.
 - [ ] **T68.8** `docs/funktionsinventar.md`, Epic-Abschluss-Notiz; Nutzerabnahme am echten llama.cpp (Nutzeraufgabe).
 
 Reihenfolge: T68.1 → T68.2/T68.3 → T68.4 → T68.5 → T68.6 → T68.7 → T68.8.
@@ -169,9 +169,50 @@ Reihenfolge: T68.1 → T68.2/T68.3 → T68.4 → T68.5 → T68.6 → T68.7 → T
 ## 7. Definition of Done
 
 Alle T68.* und AC-P68-* mit Evidenz. Gezielte Tests (rot-dann-grün), Lint und
-Typecheck grün; `npm run gate` lokal und GitHub-Actions (`verify`, Nightly) auf
-dem Abschluss-PR grün — rote CI allein wegen Umgebung wird benannt, nie als
+Typecheck grün; gezielte lokale Gates und GitHub-Actions (`verify`) auf
+dem Abschluss-PR grün; Vollsuite/Nightly gemäß `AGENTS.md` (kein lokaler
+Breitlauf ohne ausdrücklichen Auftrag) — rote CI allein wegen Umgebung wird benannt, nie als
 Pass gezählt. Neue UI-Funktion mit Spec in `e2e/specs/`; Eintrag in
 `docs/funktionsinventar.md`. K5/K7/K10 nachweislich erfüllt; kein TODO ohne
 Epic-Bezug. Die Abnahme am echten llama.cpp (frei/belegt) ist Nutzeraufgabe und
 wird nicht vorweggenommen.
+
+
+## Übergabe und Verifikation (18.11.2026)
+
+- T68.1–T68.6: übernommene Commits `706b5131` bis `86bad153`; Policy-Typkorrektur
+  bereits in `2dbfb0e3`. Fortsetzung auf `feat/p68-fortsetzung`, Main-Stand
+  eingebunden, ursprünglicher Session-Worktree unverändert erhalten.
+- Unit/Route: `npx vitest run apps/hub/test/modules/prompts
+  apps/hub/test/modules/approvals/policy.test.ts packages/core/test/modules/skills
+  apps/pwa/test/features/composer/engine-label.test.ts`: 13 Dateien, 79 Tests grün.
+- T68.7: `npx playwright test e2e/specs/prompt-enhance-skills.spec.ts
+  --project=mobile --repeat-each=3`: 15/15 grün (lokal, belegt → Adapter,
+  Skill-Pflege, Speicherkonflikt, Änderung vor Modellvorschlag); bestehende `workspace.spec.ts --grep 'Composer:'`:
+  7/7 grün. E2E benötigt außerhalb der Sandbox einen lokalen Listener.
+- Rot-dann-grün in der Fortsetzung: `project-context.test.ts` (externe Symlinks),
+  `skill-update.test.ts` (externe Symlinks, parallele Updates), neue Browser-Spec
+  (Konflikt zeigt aktuellen Inhalt vor erneuter Bearbeitung).
+- Zusatzprüfung: gemeinsame API-Typen nach `@ancientvoid/contracts` verschoben
+  (ADR-0089). Keine Adapter-/Event-/Worker-Contractänderung, keine neue
+  Event-Payload oder State-Quelle. Skill-Dateien bleiben Recovery-Quelle (K7).
+- Hash-Prüfung vor Ersetzen plus Serialisierung der Hub-Schreibanfragen; ein
+  externer Editor teilt die Hub-Warteschlange nicht. Ein Dateisystem bietet
+  keinen atomaren Vergleich des Inhalts-Hashes mit anschließendem Rename;
+  das verbleibende Zeitfenster gegen externe Schreibprozesse bleibt bestehen.
+- T68.8: Funktionsinventar aktualisiert. Live-Abnahme offen: mit echtem llama.cpp
+  einmal frei und einmal ausgelastet verbessern; Engine/Grund und Projektbezug
+  prüfen; vorhandenen Skill lesen, Vorschlag prüfen und bewusst speichern.
+  Keine Behauptung einer bereits erfolgten Nutzerabnahme.
+
+- Abschlussprüfungen: Lint, Typecheck, PWA-Build, Architekturprüfung und
+  `check:context` grün. `check:context` benötigt hier außerhalb der Sandbox
+  verschachtelte Node-Prozesse; der Sandbox-Fehler wurde nicht als Pass gezählt.
+  Vollsuite/Gate bewusst nicht lokal gestartet (Nutzerentscheid 16.11.2026).
+- Review nach `pr-review`: D1 Auftrag durch AC-P68-1–8 mit den genannten
+  Tests abgedeckt, echte Modellqualität bleibt Nutzerabnahme; D2 gemeinsame
+  Contracts/ADR und Modulgrenzen eingehalten; D3 Auslastung, Fehler,
+  veralteter Hash und parallele Hub-Schreibanfragen geprüft; D4 keine neue
+  Modell-Infrastruktur; D5 Fake-Provider statt Cloud, Browser fünf Fälle je
+  dreimal; D6 keine Adapter-Core-Imports, keine Event-Vergrößerung (K5),
+  Recovery aus Projektdateien (K7), Engine-Fallbackgründe sichtbar.

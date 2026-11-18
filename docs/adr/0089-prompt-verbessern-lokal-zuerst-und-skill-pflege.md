@@ -42,6 +42,10 @@ EPIC-P68).
    Katalog stehen, werden verworfen, dann entscheidet die Heuristik. Für den Richter
    wird nie ein Adapter bezahlt.
 
+Die gemeinsamen Antworttypen (`RewriteEngine`, `SkippedEngine`,
+`PromptRecommendation`, `SkillArtifact`) liegen in `@ancientvoid/contracts`.
+Hub, Core und PWA importieren dieselben Typen.
+
 ## Konsequenzen
 
 - „Verbessern“ ist mit lokalem Modell kostenlos und meist schneller. Ist das Modell

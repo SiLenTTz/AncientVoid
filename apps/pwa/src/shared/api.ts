@@ -1,3 +1,5 @@
+import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine } from "@ancientvoid/contracts";
+export type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine };
 import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 export type { TerminalTarget };
 import { noteApprovalDecided } from "./first-run.ts";
@@ -581,39 +583,6 @@ export interface SkillOrAgent {
   kind: "skill" | "agent" | "workflow";
   name: string;
   description: string;
-}
-
-export interface PromptRecommendation {
-  /** EPIC-P68: `update` = exists already, adapt instead of a new file. */
-  mode: "match" | "update" | "create";
-  kind: "skill" | "agent" | "workflow";
-  name: string;
-  description: string;
-  reason: string;
-  draft: string | null;
-  /** `base` = catalog skill next to the project; read-only here. */
-  layer?: "base";
-}
-
-/** EPIC-P68: one skill/agent/workflow file with the hash an update must present. */
-export interface SkillArtifact {
-  kind: PromptRecommendation["kind"];
-  name: string;
-  path: string;
-  content: string;
-  hash: string;
-  layer?: "base";
-}
-
-/** EPIC-P68 (ADR-0089): which stage rewrote the text, and what was skipped why. */
-export interface RewriteEngine {
-  kind: "local" | "adapter";
-  id: string;
-  model?: string;
-}
-export interface SkippedEngine {
-  engine: string;
-  reason: string;
 }
 
 /** EPIC-P11 — mirrors `@ancientvoid/contracts`'s desktop types (ADR-0031). */

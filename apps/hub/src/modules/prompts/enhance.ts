@@ -1,3 +1,5 @@
+import type { RewriteEngine as EngineRef, SkippedEngine } from "@ancientvoid/contracts";
+export type { EngineRef, SkippedEngine };
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -9,11 +11,9 @@ const execFileAsync = promisify(execFile);
  *
  *   (a) the currently-selected coding adapter itself, via a quick
  *       throwaway call — CHOSEN.
- *   (b) a separate local model — REJECTED for now: no such infrastructure
- *       exists anywhere in this repo (P3 §3 envisioned a local
- *       Qwen fine-tune that was never built), so there is nothing to
- *       measure it against. (a) is the only option with a real number
- *       behind it today.
+ *   (b) a separate local model — initially rejected for lack of local
+ *       infrastructure; superseded by ADR-0089 (EPIC-P68): local first,
+ *       selected adapter as fallback.
  *
  * Real measurement, claude (2026-09-16, this session, claude-sonnet-5,
  * `claude -p ... --output-format json --tools "" --dangerously-skip-permissions`):
@@ -86,19 +86,6 @@ export function enhanceTask(rawText: string, context?: string): RewriteTask {
 /** The single-string form the CLIs get. */
 export function cliPrompt(task: RewriteTask): string {
   return `${task.context ? `${task.context}\n\n` : ""}${task.instruction}\n\n---\n${task.user}`;
-}
-
-export interface EngineRef {
-  kind: "local" | "adapter";
-  /** Adapter id, or "local". */
-  id: string;
-  /** Model name for the local stage. */
-  model?: string;
-}
-
-export interface SkippedEngine {
-  engine: string;
-  reason: string;
 }
 
 export interface EnhanceResult {

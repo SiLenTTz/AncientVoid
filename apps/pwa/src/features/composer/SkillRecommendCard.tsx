@@ -79,10 +79,15 @@ export function SkillRecommendCard({
     setRevising(true);
     try {
       const result = await api.reviseArtifact({ project, kind: current.kind, name: current.name, prompt, adapter });
+      if (artifact && result.baseHash !== artifact.hash) {
+        await load();
+        setEditing(false);
+        setCardError("Die Datei wurde inzwischen geändert. Aktueller Stand ist geladen — Änderung erneut prüfen.");
+        return;
+      }
       setDraft(result.draft);
       const skipped = skippedNote(result.skipped);
       setStatus(`Vorschlag ${engineLabel(result.engine)}${skipped ? ` — ${skipped}` : ""}`);
-      if (artifact && result.baseHash !== artifact.hash) await load();
     } catch (err) {
       setCardError(err instanceof Error ? err.message : "Vorschlag fehlgeschlagen");
     } finally {
@@ -102,7 +107,10 @@ export function SkillRecommendCard({
     } catch (err) {
       const conflict = (err as { status?: number }).status === 409;
       setCardError(conflict ? "Die Datei wurde inzwischen geändert. Aktueller Stand ist geladen — Änderung erneut prüfen." : err instanceof Error ? err.message : "Speichern fehlgeschlagen");
-      if (conflict) await load();
+      if (conflict) {
+        await load();
+        setEditing(false);
+      }
     } finally {
       setSaving(false);
     }

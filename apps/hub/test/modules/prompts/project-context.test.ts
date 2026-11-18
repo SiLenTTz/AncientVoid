@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { projectContext, PROJECT_CONTEXT_MAX } from "../../../src/modules/prompts/project-context.ts";
@@ -32,6 +32,17 @@ describe("projectContext (EPIC-P68 T68.3, AC-P68-3)", () => {
     expect(text).toContain("src/");
     expect(text).not.toContain(".git");
     expect(text).toContain("- skill bugfix — Defekt reproduzieren");
+  });
+
+  it("does not send symlinked files outside the project to a model", async () => {
+    const dir = await project();
+    const outside = await project();
+    await writeFile(join(outside, "private.md"), "private-project-data");
+    await symlink(join(outside, "private.md"), join(dir, "AGENTS.md"));
+    await symlink(join(outside, "private.md"), join(dir, "README.md"));
+    await writeFile(join(outside, "package.json"), JSON.stringify({ description: "private-package-data" }));
+    await symlink(join(outside, "package.json"), join(dir, "package.json"));
+    expect(await projectContext(dir, [])).not.toContain("private-");
   });
 
   it("an empty project is no error — just the name", async () => {

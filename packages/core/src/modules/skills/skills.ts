@@ -1,6 +1,8 @@
-import { createHash } from "node:crypto";
+import type { PromptRecommendation } from "@ancientvoid/contracts";
+export type { PromptRecommendation };
+import { createHash, randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
-import { mkdir, readdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
 /**
@@ -209,20 +211,6 @@ function slugify(value: string): string {
     .slice(0, 40)
     .replace(/-+$/g, "");
   return slug || "vorschlag";
-}
-
-export interface PromptRecommendation {
-  /** `match`: use as is. `update`: it exists already — adapt it instead of
-   * a new file (EPIC-P68). `create`: nothing similar exists. */
-  mode: "match" | "update" | "create";
-  kind: "skill" | "agent" | "workflow";
-  name: string;
-  description: string;
-  reason: string;
-  /** Markdown for a new file. Null unless `mode` is `create`. */
-  draft: string | null;
-  /** `base` = from the catalog next to the project; never overwritten from here. */
-  layer?: "base";
 }
 
 function layerRank(item: SkillOrAgent): number {
@@ -476,12 +464,19 @@ function dirFor(kind: SkillOrAgent["kind"]): string {
 async function locateArtifact(root: string, kind: SkillOrAgent["kind"], name: string): Promise<string | null> {
   if (!ARTIFACT_NAME.test(name)) throw new Error("invalid artifact name");
   const direct = resolve(root, artifactRelative(kind, name));
+  const contained = async (file: string): Promise<string> => {
+    const [base, target] = await Promise.all([realpath(root), realpath(file)]);
+    if (!target.startsWith(base + sep)) throw new Error("artifact path escapes the project");
+    return file;
+  };
+  let directExists = false;
   try {
     await readFile(direct, "utf8");
-    return direct;
+    directExists = true;
   } catch {
     // fall through to the frontmatter search
   }
+  if (directExists) return contained(direct);
   const dir = join(root, ".claude", dirFor(kind));
   let entries: Dirent[];
   try {
@@ -493,7 +488,7 @@ async function locateArtifact(root: string, kind: SkillOrAgent["kind"], name: st
     const file = kind === "skill" ? (entry.isDirectory() ? join(dir, entry.name, "SKILL.md") : null) : entry.isFile() && entry.name.endsWith(".md") ? join(dir, entry.name) : null;
     if (!file) continue;
     const meta = await readFrontmatter(file);
-    if (meta?.name === name) return file;
+    if (meta?.name === name) return contained(file);
   }
   return null;
 }
@@ -521,7 +516,28 @@ export async function readProjectArtifact(root: string, kind: SkillOrAgent["kind
  * last-write-wins. The frontmatter name must not change (a rename would
  * orphan every saved selection).
  */
+const artifactUpdates = new Map<string, Promise<void>>();
+
 export async function updateProjectArtifact(
+  projectPath: string,
+  item: { kind: SkillOrAgent["kind"]; name: string; draft: string },
+  baseHash: string,
+): Promise<{ path: string; hash: string }> {
+  const key = `${await realpath(projectPath)}:${item.kind}:${item.name}`;
+  const previous = artifactUpdates.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const pending = new Promise<void>((done) => { release = done; });
+  artifactUpdates.set(key, pending);
+  await previous;
+  try {
+    return await writeArtifactUpdate(projectPath, item, baseHash);
+  } finally {
+    release();
+    if (artifactUpdates.get(key) === pending) artifactUpdates.delete(key);
+  }
+}
+
+async function writeArtifactUpdate(
   projectPath: string,
   item: { kind: SkillOrAgent["kind"]; name: string; draft: string },
   baseHash: string,
@@ -537,9 +553,15 @@ export async function updateProjectArtifact(
   const after = parseFrontmatter(item.draft)?.name;
   if (before && after !== before) throw new Error("artifact name mismatch");
   const content = item.draft.endsWith("\n") ? item.draft : `${item.draft}\n`;
-  const tmp = `${file}.${process.pid}.tmp`;
-  await writeFile(tmp, content);
-  await rename(tmp, file);
+  const tmp = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(tmp, content, { flag: "wx" });
+    // Recheck after preparing the file: editors outside the Hub do not share its queue.
+    if (hashOf(await readFile(file, "utf8")) !== baseHash) throw new Error("artifact changed");
+    await rename(tmp, file);
+  } finally {
+    await rm(tmp, { force: true });
+  }
   return { path: file.slice(root.length + 1), hash: hashOf(content) };
 }
 

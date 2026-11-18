@@ -45,6 +45,7 @@ const ARTIFACT_ERRORS: Record<string, number> = {
   "draft too large": 400,
   "artifact name mismatch": 400,
   "artifact not found": 404,
+  "artifact path escapes the project": 422,
   "artifact changed": 409,
   "artifact already exists": 409,
 };
