@@ -70,9 +70,9 @@ Vorbild: [`epics/EPIC-P3-adapter-flotte-sprachsuche.md`](../../../epics/EPIC-P3-
 7. **Menschen-Abnahmen delegieren (seit 2026-11-18):** Braucht ein
    Acceptance-Kriterium einen Menschen (Gerät, echte Stimme, echten Remote,
    Nutzerauge), gehört der Punkt in das dauerhafte Sammel-Epic
-   `EPIC-P69-permanente-menschen-abnahmen.md` (Eintragsformat dort, §3); das
+   `EPIC-000-testsuite-fuer-menschen.md` (Eintragsformat dort, §3); das
    Epic schließt mit Code + automatisierten Tests und trägt nur noch den
-   Delegationsvermerk „nach P69 verschoben“. P69 selbst öffnet nie.
+   Delegationsvermerk „nach P000 verschoben“. P000 selbst öffnet nie.
 
 ## Output-Format
 

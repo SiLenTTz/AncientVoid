@@ -1,6 +1,6 @@
 # EPIC-P25 — Slash-Commands: Harness-Commands steuerbar in AncientVoid
 
-**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · Mechanik abgeschlossen (2026-10-29); der T25.6-Rest (Live-Verifikation der CLI-Command-Listen gegen echte Instanzen) läuft als T35.16 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) · **Phase:** P25 · **Dauer:** ~1 Agenten-Woche (Mechanik) + Verifikationsreste · **Abhängigkeit:** fachlich keine; baut auf ADR-0042 und der [Analyse vom 2026-10-29](../docs/slash-commands-analyse-2026-10-29.md) auf. Läuft neben den offenen P12-Abnahmen (Präzedenz P13/P14/P17).
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P000 verschoben · Mechanik abgeschlossen (2026-10-29); der T25.6-Rest (Live-Verifikation der CLI-Command-Listen gegen echte Instanzen) läuft als T35.16 in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) · **Phase:** P25 · **Dauer:** ~1 Agenten-Woche (Mechanik) + Verifikationsreste · **Abhängigkeit:** fachlich keine; baut auf ADR-0042 und der [Analyse vom 2026-10-29](../docs/slash-commands-analyse-2026-10-29.md) auf. Läuft neben den offenen P12-Abnahmen (Präzedenz P13/P14/P17).
 
 ## Ziel
 
