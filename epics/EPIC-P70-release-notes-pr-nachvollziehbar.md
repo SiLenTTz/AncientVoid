@@ -1,6 +1,6 @@
 # EPIC-P70 — Release-Notes: pro PR nachvollziehen, was geändert wurde und warum
 
-**Status:** in Umsetzung — T70.1–T70.5 umgesetzt (18.11.2026, Belege unten); T70.6 Abschluss (Gate/CI auf dem Abschluss-PR, AC-Bilanz) offen · **Phase:** P70 · **Dauer:** 2–3 Agenten-Tage · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P67; P67 (höchste laufende Phase) ist umgesetzt (T67.1–T67.9 auf main, PRs #149/#151–#158, alle `verify`-grün; offen bleibt allein T67.10-Abnahme als **Nutzeraufgabe**, die P70 nicht berührt — keine gemeinsamen Codeflächen). P30/P31 bleiben On hold und unberührt.
+**Status:** umgesetzt (T70.1–T70.6, 18.11.2026, PR #172, `verify` grün; AC-Bilanz und ehrliche Gates-Angabe unten) · **Phase:** P70 · **Dauer:** 2–3 Agenten-Tage · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P67; P67 (höchste laufende Phase) ist umgesetzt (T67.1–T67.9 auf main, PRs #149/#151–#158, alle `verify`-grün; offen bleibt allein T67.10-Abnahme als **Nutzeraufgabe**, die P70 nicht berührt — keine gemeinsamen Codeflächen). P30/P31 bleiben On hold und unberührt.
 
 Quelle: Nutzerauftrag vom 18.11.2026 — „eine Release-Notes-Ansicht, die pro PR
 nachvollziehbar zeigt, was geändert wurde und warum — mit klappbaren Details, so dass
@@ -124,10 +124,49 @@ BUG-0067: text-only, nie `innerHTML`), darunter Commit-Liste und Dateien.
   `docs/funktionsinventar.md` (nächste freie G-Nummer), E2E-Spec
   `e2e/specs/release-notes.spec.ts` (echtes Hub-Fixture-Projekt mit gebauten
   PR-Merges; rot ohne die Seite).
-- [ ] **T70.6** Abschluss: Aufgaben/AC-Bilanz mit Testbelegen hier nachtragen,
+- [x] **T70.6** Abschluss: Aufgaben/AC-Bilanz mit Testbelegen hier nachtragen,
   `epics/README.md`-Zeile ziehen, Gates (`npm run gate` lokal grün; GitHub-Actions
   `verify` auf dem Abschluss-PR grün; E2E mit Spec belegt).
 
+### AC-Bilanz und Gates (T70.6)
+
+- **AC-P70-1** 🟢 Notation-Kurzfassung/Reihenfolge/Stats: core-Tests (Liste,
+  Reihenfolge, `prNumber`, Stats) + E2E Test 1 („geprüft · Feature · core“).
+- **AC-P70-2** 🟢 Was/Warum aufklappbar: E2E Test 1 (PR-Body + Commit-Body +
+  Commit-Zahl), Hub-Integration Detail-Test.
+- **AC-P70-3** 🟢 Fail loud: core-Test unparsed, E2E Test 2 (rohes Subject +
+  „ohne Notation“-Badge).
+- **AC-P70-4** 🟢 K5-Geist: Hub-Test „Liste trägt keine Bodies“, Caps mit
+  truncated (core-Test), lazy Fetch in der Seite.
+- **AC-P70-5** 🟢 Ehrliche Fehler: core „Kein Git-Repository.“/„Keine gemergten
+  Pull-Requests im Verlauf.“, E2E Test 3 (Leerzustand benannt).
+- **AC-P70-6** 🟢 Guards: Hub-Tests 400/401/404/422 + session=-Worktree.
+- **AC-P70-7** 🟢 Erreichbarkeit: Dock-„Mehr“-Eintrag (nav-Spec-Etikettenliste
+  erweitert, 8 passed), Guide-Inventar page+feature+Sektionen
+  (`guide-inventory.test.ts` 7 grün, vorher rot), Funktionsinventar G76
+  (`funktionsinventar.spec.ts` 11 passed — G76 wird auf allen Geräteklassen
+  gegangen), E2E-Spec 3× `--repeat-each=3` grün.
+
+### Gates (T70.6, ehrlich)
+
+- `verify` auf dem Abschluss-PR #172 grün (2×, letzter Lauf 2:42 auf ad0ae76e).
+- Lokal grün: check:workspace-links/typecheck/lint/check:commits/check:arch/
+  check:names/check:adapter-matrix/check:context/check:media, **volle
+  Unit-Suite** (2758 Tests, 366 Dateien) und **alle P70-eigenen Specs**
+  (funktionsinventar, navigation, release-notes — je wiederholt grün).
+- **Benannte Röte, nicht Pass gezählt:** volles lokales `npm run gate`-E2E
+  (765 passed / 22 failed) — Ausfälle zerfallen in (a) **main-seitig rot,
+  auf sauberem `origin/main` 0974e3c1 nachgewiesen**: kleinkram Regel 2/4/5/8
+  (u. a. Ton-Vorschau-Buttons ohne Tooltip), layout 390×844, commands,
+  overview-shell Host-Karte, thinking-leer, workspace-runtime — Nightly/
+  nightly-bugs ist deren Ort; (b) **Lastflakes** im 35-Minuten-Volllauf
+  (dock-visibility, querformat, quellenchips, tastatur-screenreader,
+  chat-lesbarkeit — einzeln grün). Zwei davon anfangs fälschlich P70
+  zugeordnet und ausgeräumt: navigation AC-P34-1 (Dock-Etikettenliste
+  erweitert) und G75/S51-Doppelspec im Funktionsinventar (je eine Spec
+  normiert — Gate war seit den Main-Merges rot).
+- Umgebung: Harness exportiert `CI=true` — qmd verweigert dann LLM-Operationen
+  (search-egress-Test rot); mit `env -u CI` grün. Benannt, nicht umgangen.
 
 ### Belege (18.11.2026, T70.1–T70.5)
 
