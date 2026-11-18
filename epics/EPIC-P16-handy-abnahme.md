@@ -1,6 +1,6 @@
 # EPIC-P16 — Handy-Abnahme der E2E-Specs
 
-**Status:** abgeschlossen mit Restabnahmen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (T16.5 zweiter Origin und T16.8 → T35.10) · **Phase:** P16 · **Dauer:** 0,5–1 Agenten-Woche · **Abhängigkeit:** P15-Code liegt (ADR-0034-Entscheidung offen). P12-Geräteabnahme (T12.4) ist offen; dieser Epic wiederholt sie nicht, er hält fest, was der automatische Lauf auf dem Pixel 9 Pro XL am 2026-10-09 gesehen hat. Umsetzung startet nicht, bevor P12-Exit und die ADR-0034-Entscheidung geklärt sind — die Datei ist die Liste, kein Freibrief.
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · abgeschlossen mit Restabnahmen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (T16.5 zweiter Origin und T16.8 → T35.10) · **Phase:** P16 · **Dauer:** 0,5–1 Agenten-Woche · **Abhängigkeit:** P15-Code liegt (ADR-0034-Entscheidung offen). P12-Geräteabnahme (T12.4) ist offen; dieser Epic wiederholt sie nicht, er hält fest, was der automatische Lauf auf dem Pixel 9 Pro XL am 2026-10-09 gesehen hat. Umsetzung startet nicht, bevor P12-Exit und die ADR-0034-Entscheidung geklärt sind — die Datei ist die Liste, kein Freibrief.
 
 Auslöser: Volllauf der PWA auf dem echten Handy (Chrome, `adb`/CDP, Test-Hub
 auf dem PC, nie der persönliche Hub). Kernliste Hochformat: 51 bestanden,
@@ -84,7 +84,7 @@ API; die echte Drehung macht das nicht.
   ins Querformat dreht (oder `--portrait` stellt um und stellt danach zurück —
   das Skript kann das, der Zusatzlauf nutzte es nicht). Sonst sind Layout-Rot
   und Produkt-Rot nicht zu trennen.
-- [ ] **T16.5 — Zweiter Origin auf dem Handy.** Fleet, Handoff, Entwürfe,
+- [ ] **T16.5 — Zweiter Origin auf dem Handy.** Fleet, Handoff, Entwürfe, → nach P69 verschoben
   Messlauf P8 brauchen einen zweiten Port oder einen zweiten Browser. `adb
   reverse` kennt bisher nur den Test-Hub. K8 (mehrere Sessions) bleibt dort
   ungesehen.
@@ -95,7 +95,7 @@ API; die echte Drehung macht das nicht.
   beenden“ und der Hinweis „nur beobachten“ sind bei eingeklappter Steuerung
   nicht im Baum. Im Hochformat isolieren; wenn es nur das Querformat ist, den
   Hinweis außerhalb des Klappbereichs legen.
-- [ ] **T16.8 — Menschliche Restmatrix nicht hier abhaken.** T12.4 bleibt der
+- [ ] **T16.8 — Menschliche Restmatrix nicht hier abhaken.** T12.4 bleibt der → nach P69 verschoben
   Ort für Flugmodus, Sperrbildschirm-Push, TalkBack, 200 % Text, Teilen-Menü,
   echte Stimme, WAN.
 

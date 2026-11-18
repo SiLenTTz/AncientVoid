@@ -141,9 +141,11 @@ git ls-remote --heads origin <branch>          # Push bewiesen (nicht aus dem Au
 gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Nummer nicht pollen
 ```
 
-- **Merge-Commit, kein Squash/Rebase:** Die Branch-Commits behalten ihre
-  eigene Notation und Risikostufe (`check:commits`); der Merge-Commit trägt
-  den PR-Titel (`--subject`), siehe [`docs/commit-notation.md`](../../../docs/commit-notation.md).
+- **Auto-Merge-Standard (seit 2026-11-18, Nutzerauftrag, an PR #169 verifiziert):**
+  PRs mit belegten lokalen Gates werden mit `gh pr merge --auto --merge --delete-branch
+  --subject …` eingestellt und merge-t sich bei grünem `verify` selbst; nur bei
+  abgelehntem `--auto` manuell nach `gh pr checks --watch` mergen. Merge-Commit
+  bleibt Pflicht (`check:commits`, [`docs/commit-notation.md`](../../../docs/commit-notation.md)).
 - `--body-file` nimmt eine vorbereitete Beschreibungsdatei (alternativ
   `--body "$(cat …)"`); die Vorlage liegt in `.github/pull_request_template.md`.
 - Status: `gh pr view <nr>`, `gh pr checks <nr>`; roter Lauf →
@@ -155,9 +157,6 @@ gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Numme
   dem Augenblick zurück, in dem `verify` grün wird (Schleifen mit `sleep 25/85` kosten pro
   PR 25–90 s und sind der Fehler, nicht die Vorsicht). Gemessene Gate-Länge nach der
   Tempobeschleunigung (PR #131/#134/#135/#136/#137): 3:41 → 2:12; Ausgangslage war 5:14.
-- `gh pr merge --auto --merge` wird vom aktuellen Ruleset abgelehnt („Protected branch
-  rules not configured for this branch“), obwohl `allow_auto_merge` im Repo an ist —
-  nicht erneut probieren, sondern `--watch` benutzen.
 
 Body: Warum, Testplan, Link Issue (`Fixes #<nr>`). Der PR bleibt Pflicht als
 Log-Eintrag — der Merge-Klick/`gh pr merge` ist der **einzige** Weg, wie

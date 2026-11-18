@@ -3,8 +3,16 @@
 Eingefrorener Analyse-Snapshot (kein lebendes Dokument). Grundlage: `bugs/*.md`
 (Frontmatter-`status`) und `npm run epics:status -- --json` (Regeln S1/S2/C1/C2,
 `docs/epic-status.md`). Anlass: Nutzerauftrag 18.11.2026 — Kennzeichnung
-„braucht Menschen“ im Explorer (ADR-0089) und ein belastbarer Lagebericht.
+„braucht Menschen“ im Explorer (ADR-0091; bei Anlage Numerkollision mit dem
+älteren ADR-0089 von P68 — umbenannt) und ein belastbarer Lagebericht.
 Empfehlungen sind Vorschläge; der Report löst nichts automatisch.
+
+**Nachtrag 2026-11-18 (Migration, Nutzerauftrag):** Die Menschen-Abnahmen
+und -Verifikationen (u. a. §4) sind als inventarisiertes Verzeichnis nach
+[EPIC-P69](../epics/EPIC-P69-permanente-menschen-abnahmen.md) umgezogen;
+betroffene Epics sind mit Delegationsvermerk geschlossen, der Counter zeigt
+seither nur noch Agentenarbeit und Entscheidungstore. Die Zahlen oben sind
+der Snapshot vor dieser Migration.
 
 ## 1. Kurzbilanz
 

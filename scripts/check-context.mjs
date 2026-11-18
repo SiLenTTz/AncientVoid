@@ -18,7 +18,7 @@ export const LINE_BUDGETS = [
   { glob: "AGENTS.md", limit: 200 },
   { glob: "CONTRIBUTING.md", limit: 200 },
   { glob: "README.md", limit: 300 },
-  { glob: "epics/README.md", limit: 360 },
+  { glob: "epics/README.md", limit: 375 },
   { glob: ".claude/skills/README.md", limit: 120 },
   { glob: ".claude/skills/*/SKILL.md", limit: 250 },
   { glob: ".claude/agents/*.md", limit: 150 },

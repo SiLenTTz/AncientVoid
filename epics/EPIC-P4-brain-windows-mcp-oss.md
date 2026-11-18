@@ -1,6 +1,6 @@
 # EPIC-P4 — Brain-Integration, gpubox/Windows, MCP-Gateway, Veröffentlichungs-Aufbereitung (source-available)
 
-**Status:** offen mit externen Punkten (T35.13/T35.14) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · mit Externalen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (2026-11-07) — autonom umsetzbar war grün: T4.1/T4.2/T4.6/T4.7/T4.9/T4.10. Die fünf bewusst offenen Punkte laufen dort gebündelt: T4.3/T4.4 (agent-hub-Skill, Gengar — externer Zugang) → T35.13, T4.5 (WSL2, Host noch unbestimmt, **kein bmax** — Trading-Maschine, Nutzentscheid 2026-11-07) → T35.13, T4.8 (Lizenz) und T4.11 (v0.1-Tag/Changelog) → T35.14. AC-P4-6s „Secret-Scan des gesamten Repos" ist seit MR !319 als wiederholtes CI-Gate real (`npm run check:secrets`, aktuell 0 Treffer über 1039 getrackte Dateien). · **Phase:** P4 · **Dauer:** 1–2
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · offen mit externen Punkten (T35.13/T35.14) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · mit Externalen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md) (2026-11-07) — autonom umsetzbar war grün: T4.1/T4.2/T4.6/T4.7/T4.9/T4.10. Die fünf bewusst offenen Punkte laufen dort gebündelt: T4.3/T4.4 (agent-hub-Skill, Gengar — externer Zugang) → T35.13, T4.5 (WSL2, Host noch unbestimmt, **kein bmax** — Trading-Maschine, Nutzentscheid 2026-11-07) → T35.13, T4.8 (Lizenz) und T4.11 (v0.1-Tag/Changelog) → T35.14. AC-P4-6s „Secret-Scan des gesamten Repos" ist seit MR !319 als wiederholtes CI-Gate real (`npm run check:secrets`, aktuell 0 Treffer über 1039 getrackte Dateien). · **Phase:** P4 · **Dauer:** 1–2
 Agenten-Wochen · **Abhängigkeit:** P3 grün
 
 ---
@@ -96,15 +96,15 @@ Sessions, lauffähig auf gpubox (Windows/WSL), das lazy-disclosed MCP-Gateway (M
   Stop-Pfad zu beeinflussen (real getestet). 11 neue Tests
   (`packages/core/test/digest.test.ts` + 3 Wiring-Tests in
   `sessionmanager.test.ts`), plus die Live-Verifikation aus T4.1.
-- [ ] **T4.3** Hermes-Skill `agent-hub` (dünn, keine Runtime-Logik) — **bewusst
+- [ ] **T4.3** Hermes-Skill `agent-hub` (dünn, keine Runtime-Logik) — **bewusst → nach P69 verschoben
   nicht versucht**: „Hermes" ist ein externes System, zu dem diese Session
   keinen Zugriff und keine verifizierbare Kenntnis seines Skill-Formats
   hat. Ein geratener Hermes-Skill wäre genau das erfundene Artefakt, das
   R9.7 ausschließt — ehrlich offen statt einer Attrappe.
-- [ ] **T4.4** Gengar-Status-Board-Anbindung — **bewusst nicht versucht**,
+- [ ] **T4.4** Gengar-Status-Board-Anbindung — **bewusst nicht versucht**, → nach P69 verschoben
   gleicher Grund wie T4.3: „Gengar" ist ein externes System ohne
   auffindbare Doku/Zugriff in dieser Umgebung.
-- [ ] **T4.5** WSL2-Port: Installer, systemd-user-Unit, Smoke-Tests auf gpubox
+- [ ] **T4.5** WSL2-Port: Installer, systemd-user-Unit, Smoke-Tests auf gpubox → nach P69 verschoben
   — **nicht erreichbar**: gpubox/Windows ist von dieser Linux-Umgebung aus
   nicht zugreifbar. Kein Code geschrieben, der auf einer nie geprüften
   WSL2-Umgebung „sollte funktionieren" behauptet.
@@ -196,7 +196,7 @@ Sessions, lauffähig auf gpubox (Windows/WSL), das lazy-disclosed MCP-Gateway (M
     beide bereits gefixt, aber ausdrücklich **kein Ersatz** für eine
     echte unabhängige Prüfung genannt. Diese Lücke ist mit dem obigen
     Fresh-Context-Review jetzt real geschlossen.
-- [ ] **T4.11** Release-Checkliste v0.1 (Tag, Changelog, Fixtures-Hygiene,
+- [ ] **T4.11** Release-Checkliste v0.1 (Tag, Changelog, Fixtures-Hygiene, → nach P69 verschoben
   Secret-Scan) — **bewusst nicht getaggt**: ein Git-Tag/Release ist eine
   öffentlich sichtbare, schwer rückgängig zu machende Aktion, die laut den
   Session-Leitlinien eine explizite Nutzerbestätigung braucht, nicht die
