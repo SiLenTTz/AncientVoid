@@ -1,6 +1,6 @@
 # ADR-0085: Zustellung wählen und Vorgemerktes nachträglich ändern
 
-Status: akzeptiert (2026-11-17)
+Status: akzeptiert (2026-11-17), mit Nachtrag 2026-11-18 (Stelle und Symbol der Zustellwahl)
 
 ## Kontext
 
@@ -79,3 +79,29 @@ Zusatz-Information, kein Ersatz für `session.queued`/`session.prompt`.
   nur in der Ansicht“).
 - Das Funktionsinventar (S36) führt die Zustellwahl und das nachträgliche Ändern als
   dokumentierten Weg; Nachweis ist `spec:pause-queue.spec.ts`.
+
+## Nachtrag (2026-11-18): der Chip sitzt rechts vom Hauptknopf und trägt ein Linienzeichen
+
+Nutzerfund beim Blick aufs Dock (Kai, Handy): „das Icon unten, das mit dem am Zugende, sieht
+ein bisschen billig aus … und auch nicht an der Stelle, sondern rechts von dem Vormerken-
+Button, und von der Größe, dass das zum Rest stimmig passt.“
+
+1. **Stelle:** der Chip steht **rechts** vom Hauptknopf. Reihenfolge im Dock = erst die
+   Handlung („Vormerken“ / „Jetzt lenken“), dann die Art der Zustellung. Der Punkt aus
+   Abschnitt 2 — der Hauptknopf behält seine eine Stelle — bleibt unberührt.
+2. **Symbol statt Emoji:** `⏳`/`⚡` sind geräteabhängig farbig (auf Android ein buntes
+   Piktogramm neben einem violetten Formknopf) und tragen keine Linienbreite des
+   Designsystems. Ersetzt durch eigene `<svg>`-Zeichen (Uhr, Blitz) im Idiom des Composers:
+   `stroke: currentColor`, 1,8 pt Linie, runde Enden. Eine Sanduhr — naheliegend — fiel in
+   der visuellen Pruefung durch: sowohl konturiert (las sich wie ein „Ƨ“) als auch gefuellt
+   (wie ein Pokal) war sie bei 16–18 px nicht zu lesen; die Uhr ist es.
+3. **Baustein statt Rohklasse:** der Chip ist der Designsystem-Baustein `Chip`
+   (`aria-pressed` über `active`), nicht mehr die Roheigenschaft `.delivery-chip`. Die Höhe
+   folgt 44 px wie `.ui-button`, damit er mit dem Hauptknopf eine Zeile bildet; der gewählte
+   Zustand ist **angetönt** (`color-mix` mit `--accent`), ausgefüllt bleibt der Hauptknopf
+   allein. Auf Handys (`max-width: 639px`) sind Padding, Abstand, Schrift und Symbol enger
+   gestellt — sonst bricht der Chip in eine zweite Zeile um (gemessen: bei 360 px bleiben
+   119 px frei, der weitere Chip braucht 129 px in der PC-Dosierung, 110 px in der Handy-Dosierung).
+
+Nachweis in `e2e/specs/pause-queue.spec.ts`: Text ohne Emoji, eigenes `<svg>`, Chip rechts vom
+Hauptknopf (Bounding-Box) und höchstens 2 px Höhenunterschied zum Hauptknopf.

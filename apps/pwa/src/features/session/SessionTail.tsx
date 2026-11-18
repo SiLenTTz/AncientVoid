@@ -85,6 +85,42 @@ export interface TileContext {
   only?: ViewTab;
 }
 
+/** Symbole der Zustellwahl (ADR-0085, Nachtrag 18.11.): Linienzeichen statt Emoji —
+ *  das Emoji ⏳/⚡ wurde geräteabhängig farbig und wirkte neben dem Formknopf wie ein
+ *  Rest aus Chat-Apps. Linienbreite und Strichenden folgen dem Zeichen-Idiom des
+ *  Composers (siehe features/composer/Composer.tsx). */
+const CHOICE_GLYPH = {
+  viewBox: "0 0 24 24",
+  width: 18,
+  height: 18,
+  fill: "none",
+  stroke: "currentColor",
+  "stroke-width": 1.8,
+  "stroke-linecap": "round",
+  "stroke-linejoin": "round",
+  "aria-hidden": true,
+} as const;
+
+/** Warte-Zeit: die Meldung geht am Zugende raus. Uhrlinien (Kreis + Zeiger) sind bei 16 px
+ *  eindeutiger als eine Sanduhr — die gefuellte Sanduhr las sich im Screenshot wie ein Pokal. */
+function WaitGlyph() {
+  return (
+    <svg {...CHOICE_GLYPH}>
+      <circle cx="12" cy="12" r="8.2" />
+      <path d="M12 7.3V12l3.3 2" />
+    </svg>
+  );
+}
+
+/** Blitz: die Meldung lenkt jetzt in den laufenden Zug. */
+function BoltGlyph() {
+  return (
+    <svg {...CHOICE_GLYPH}>
+      <path d="M13 3 6.5 13h4L9.5 21 17 10.5h-4.2L13 3Z" />
+    </svg>
+  );
+}
+
 function fitSessionMenu(menu: HTMLDetailsElement | null): void {
   if (!menu?.open) return;
   const items = menu.querySelector<HTMLElement>(".session-menu-items");
@@ -1455,23 +1491,10 @@ export function SessionTail({
                     {running ? (
                       // Läuft ein Zug, ersetzt die Zustellwahl den Senden-Knopf — kein zweiter
                       // Knopf daneben (BUG-0053: im Querformat ist neben der Eingabe kein Platz).
-                      // ADR-0085: der Chip links daneben wählt, was der Knopf tut.
+                      // ADR-0085: der Chip wählt, was der Knopf tut. Er steht rechts vom
+                      // Hauptknopf (Zuerst die Handlung, dann die Art) und ist der Baustein
+                      // `Chip` mit Linienzeichen — Nutzerfund 18.11.: das Emoji wirkte billig.
                       <>
-                        {midTurnInput && (
-                          /* Der Name ohne das Wort "vormerken": der Hauptknopf heißt so, und
-                              die Rollensuche findet Teilzeichenketten — sonst zählt eine Spec zwei Knöpfe. */
-                          <button
-                            class="delivery-chip"
-                            type="button"
-                            data-testid="delivery-toggle"
-                            aria-pressed={delivery === "now"}
-                            aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: warten bis zum Zugende"}
-                            title={delivery === "now" ? "Jetzt lenken — Klick stellt auf Warten bis zum Zugende" : "Warten bis der Zug endet — Klick stellt auf jetzt lenken"}
-                            onClick={() => chooseDelivery(delivery === "now" ? "queue" : "now")}
-                          >
-                            {delivery === "now" ? "⚡ lenken" : "⏳ am Zugende"}
-                          </button>
-                        )}
                         <Button
                           aria-busy={replyBusy}
                           data-testid={delivery === "now" ? "send-now" : "send-queue"}
@@ -1482,6 +1505,21 @@ export function SessionTail({
                         >
                           {replyBusy ? "lädt…" : delivery === "now" ? "Jetzt lenken" : "Vormerken"}
                         </Button>
+                        {midTurnInput && (
+                          /* Der Name ohne das Wort "vormerken": der Hauptknopf heißt so, und
+                              die Rollensuche findet Teilzeichenketten — sonst zählt eine Spec zwei Knöpfe. */
+                          <Chip
+                            class="delivery-choice"
+                            data-testid="delivery-toggle"
+                            active={delivery === "now"}
+                            aria-label={delivery === "now" ? "Zustellung: lenken, jetzt" : "Zustellung: warten bis zum Zugende"}
+                            title={delivery === "now" ? "Jetzt lenken — Klick stellt auf Warten bis zum Zugende" : "Warten bis der Zug endet — Klick stellt auf jetzt lenken"}
+                            onClick={() => chooseDelivery(delivery === "now" ? "queue" : "now")}
+                          >
+                            {delivery === "now" ? <BoltGlyph /> : <WaitGlyph />}
+                            {delivery === "now" ? "lenken" : "am Zugende"}
+                          </Chip>
+                        )}
                       </>
                     ) : (
                       <Button
