@@ -66,6 +66,7 @@ Regeln:
 | feature:attachments | Attach files to prompts | attachments |
 | feature:automations | Automation plans: create, activate, history | automations |
 | feature:browser | Hosted browser workspace for testing | browser-workspace |
+| feature:clipboard | Multi-level clipboard shelf: six pasteable stages, tokens excluded | clipboard-shelf |
 | feature:code | Code search, actions and file open with anchors | code |
 | feature:commands | Slash commands with scope-filtered autocomplete | befehle |
 | feature:composer | Prompt composer: enhance, recommend, skills | workspace |

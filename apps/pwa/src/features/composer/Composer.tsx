@@ -384,9 +384,9 @@ export function Composer({
             <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
           </span>
         )}
-        <button
-          type="button"
-          class={shelfCount > 0 ? "btn icon-btn composer-shelf has-items" : "btn icon-btn composer-shelf"}
+        <Button
+          icon
+          class={shelfCount > 0 ? "composer-shelf has-items" : "composer-shelf"}
           data-testid="clipboard-open"
           onClick={openClipboardShelf}
           aria-label={shelfCount > 0 ? `Ablage öffnen, ${shelfCount} Stufen` : "Ablage öffnen, noch leer"}
@@ -394,7 +394,7 @@ export function Composer({
         >
           <ShelfGlyph />
           {shelfCount > 0 && <span class="shelf-badge" aria-hidden="true">{shelfCount > 9 ? "9+" : shelfCount}</span>}
-        </button>
+        </Button>
         <Button
           aria-pressed={expanded}
           aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}
