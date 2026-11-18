@@ -23,19 +23,40 @@ describe("P56 T56.1b Tool-Fakten", () => {
     ]);
   });
 
-  it("lehnt Replay-Doppelungen und Korrelationsbrüche ab, statt sie mitzuzählen", () => {
-    expect(() => deriveToolCallFacts([
+  it("zählt Replay-Doppelungen und Korrelationsbrüche ehrlich, statt die Seite zu killen", () => {
+    // BUG-0213: Journals enthalten legitimerweise beides — K5-ausgelagerte
+    // tool_result-Payloads (truncated, ohne inline toolUseId) und Replay-
+    // Blöcke nach Resume (dieselbe Call-Id nochmal, seq bleibt monoton).
+    // Wer daraus einen Wurf macht, legt die ganze Statistik-Seite lahm.
+    const facts = deriveToolCallFacts([
+      // Replay: derselbe Aufruf nochmal — zählt nicht doppelt.
       event(1, { payload: { id: "t1", name: "Bash" } }),
       event(2, { payload: { id: "t1", name: "Bash" } }),
-    ], { sessionId: "s1" })).toThrow(/Doppelte Tool-Call-Id/i);
-    expect(() => deriveToolCallFacts([
-      event(1, { type: "tool_result", payload: { toolUseId: "t9", isError: false } }),
-    ], { sessionId: "s1" })).toThrow(/ohne zusammengehörigen Aufruf/i);
-    expect(() => deriveToolCallFacts([
-      event(1, { payload: { id: "t1", name: "Bash" } }),
-      event(2, { type: "tool_result", payload: { toolUseId: "t1", isError: false } }),
       event(3, { type: "tool_result", payload: { toolUseId: "t1", isError: false } }),
-    ], { sessionId: "s1" })).toThrow(/Doppeltes Ergebnis/i);
+      // Replay des Ergebnisses: ebenfalls schon gezählt.
+      event(4, { type: "tool_result", payload: { toolUseId: "t1", isError: false } }),
+    ], { sessionId: "s1" });
+    expect(facts).toEqual([
+      { sessionId: "s1", tool: "Bash", result: "ok" },
+    ]);
+
+    // K5: ausgelagerter Payload — Zuordnung und isError liegen im Blob.
+    const truncated = deriveToolCallFacts([
+      event(1, { payload: { id: "t1", name: "Bash" } }),
+      event(2, { type: "tool_result", payload: { truncated: true, bytes: 30703, preview: "…" } }),
+    ], { sessionId: "s1" });
+    expect(truncated).toEqual([
+      { sessionId: "s1", tool: "Bash", result: null },
+      { sessionId: "s1", tool: null, result: "unknown" },
+    ]);
+
+    // Ergebnis mit Id, deren Aufruf nicht im Journal steht: zählen, nicht werfen.
+    const orphan = deriveToolCallFacts([
+      event(1, { type: "tool_result", payload: { toolUseId: "t9", isError: true } }),
+    ], { sessionId: "s1" });
+    expect(orphan).toEqual([
+      { sessionId: "s1", tool: null, result: "failed" },
+    ]);
   });
 });
 
