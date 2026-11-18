@@ -12,6 +12,7 @@ import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeBaseChoice, WorktreeManager } from "../workspace/index.ts";
 import { MainSyncEngine, resolveMainBranch, fetchMainBranch, classifyFetchError } from "../workspace/index.ts";
+import type { MainSyncCandidate } from "../workspace/index.ts";
 import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, CheckoutLeaseStore, canonicalCheckout, checkoutState, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
@@ -1157,6 +1158,21 @@ export class SessionManager {
     return !openWork && (session.record.status === "idle" || session.record.status === "parked" || session.record.status === "interrupted");
   }
 
+  /** EPIC-P67 T67.5: Live-Sessions mit Worktree-Isolation als Sync-Kandidaten — der Scheduler fragt das je Takt ab. */
+  mainSyncCandidates(): MainSyncCandidate[] {
+    const out: MainSyncCandidate[] = [];
+    for (const session of this.live.values()) {
+      if (!session.worktreeIsolated || session.record.workspaceMode !== "worktree") continue;
+      out.push({
+        sessionId: session.record.id,
+        projectPath: session.record.project,
+        workdir: session.workdir,
+        waiting: this.mainSyncSessionWaiting(session),
+      });
+    }
+    return out;
+  }
+
   private async mainSyncSettingsFor(project: string): Promise<MainSyncSettings> {
     return this.mainSyncSettings?.(project) ?? MAIN_SYNC_DEFAULTS;
   }
@@ -1218,7 +1234,7 @@ export class SessionManager {
    * abgebrochen (Worktree unverändert, AC-P67-7). Ergebnis als Event im
    * Verlauf; der nächste Zug sieht den neuen Stand (kein Prompt-Eingriff).
    */
-  async mainSyncApply(sessionId: string): Promise<MainSyncApplyResult> {
+  async mainSyncApply(sessionId: string, opts: { skipFetch?: boolean } = {}): Promise<MainSyncApplyResult> {
     const targets = this.mainSyncTargets(sessionId);
     if ("error" in targets) throw new Error(targets.error);
     const { session } = targets;
@@ -1230,13 +1246,15 @@ export class SessionManager {
     const settings = await this.mainSyncSettingsFor(session.record.project);
     const branch = await resolveMainBranch(session.record.project, settings);
     const engine = new MainSyncEngine();
-    try {
-      await fetchMainBranch(session.record.project, branch, settings.fetchTimeoutSec);
-    } catch (err) {
-      const failure = classifyFetchError(err);
-      const failed = { outcome: "failed" as const, reason: failure.reason, ...(failure.detail ? { detail: failure.detail } : {}) };
-      await this.emitSystem(session, "workspace.main_sync_failed", { reason: failed.reason, ...(failed.detail ? { detail: failed.detail } : {}) });
-      return failed;
+    if (!opts.skipFetch) {
+      try {
+        await fetchMainBranch(session.record.project, branch, settings.fetchTimeoutSec);
+      } catch (err) {
+        const failure = classifyFetchError(err);
+        const failed = { outcome: "failed" as const, reason: failure.reason, ...(failure.detail ? { detail: failure.detail } : {}) };
+        await this.emitSystem(session, "workspace.main_sync_failed", { reason: failed.reason, ...(failed.detail ? { detail: failed.detail } : {}) });
+        return failed;
+      }
     }
     let result: MainSyncApplyResult;
     try {

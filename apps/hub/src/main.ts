@@ -61,6 +61,7 @@ import {
   piFamilyDiscoverySource,
   type HubConfig,
   MainSyncSettingsService,
+  MainSyncScheduler,
 } from "@ancientvoid/core";
 import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
@@ -465,6 +466,24 @@ async function main(): Promise<void> {
   await app.listen({ port: config.server.port, host: listen });
   automations.start();
   aimetrics?.start();
+  // EPIC-P67 T67.5: laufende Main-Synchronisation — ein Fetch je Projekt je
+  // Takt (K8). Meldungen gehen ins Log, bis T67.6 sie als Benachrichtigungen
+  // sichtbar macht; Events landen über mainSyncApply in den Sessions.
+  const mainSyncScheduler = new MainSyncScheduler({
+    settingsFor: (projectPath) => mainSyncService.effective(projectPath),
+    candidates: () => sessions.mainSyncCandidates(),
+    apply: (sessionId) => sessions.mainSyncApply(sessionId, { skipFetch: true }),
+    notice: (n) =>
+      logger.info("main-sync", {
+        kind: n.kind,
+        sessionId: "sessionId" in n ? n.sessionId : undefined,
+        project: n.projectPath,
+        ...("behind" in n ? { behind: n.behind } : {}),
+        ...("reason" in n ? { reason: n.reason } : {}),
+      }),
+  });
+  mainSyncScheduler.start();
+  void mainSyncScheduler.tick(); // Nachholen beim Start (§3.4) — kein persistenter Timer-Zustand (K7)
   logger.info("listening", { host: config.server.host, port: config.server.port, dataDir });
   const resumed = media?.resume() ?? 0;
   if (resumed) logger.info("media jobs resumed", { count: resumed });
@@ -475,6 +494,7 @@ async function main(): Promise<void> {
   const shutdown = async (sig: string) => {
     automations.stop();
     aimetrics?.stop();
+    mainSyncScheduler.stop();
     logger.info("shutting down", { signal: sig });
     // tmux workers outlive the hub: a planned restart keeps them running and
     // the next start takes them over instead of stopping every session.
