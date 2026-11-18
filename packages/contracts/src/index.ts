@@ -54,3 +54,4 @@ export * from "./aimetrics/aimetrics.ts";
 export * from "./statistics/statistics.ts";
 export * from "./terminal/terminal.ts";
 export * from "./prompts/prompts.ts";
+export * from "./release-notes/release-notes.ts";

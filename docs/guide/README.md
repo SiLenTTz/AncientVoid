@@ -151,6 +151,17 @@ manual shell without leaving AncientVoid (ADR-0087).
 
 Spec: [terminal.spec.ts](../../e2e/specs/terminal.spec.ts)
 
+### page:releasenotes — Release notes
+
+`#/releasenotes`. Merged pull requests of a project, straight from the local
+git history (no network, ADR-0089): each PR as one line — risk, intent,
+area and summary from the commit notation, PR number, date, files and
+±lines. Expand for the why (PR description) and the what (branch commits
+with their own notation and reasoning, changed files). Subjects without
+notation stay visible, raw and marked.
+
+Spec: [release-notes.spec.ts](../../e2e/specs/release-notes.spec.ts)
+
 ## Views
 
 ### view:list — The list shell
@@ -316,6 +327,10 @@ it from anywhere. Spec: [nyx-blatt.spec.ts](../../e2e/specs/nyx-blatt.spec.ts)
 ### feature:overview
 
 Overview lists and the view switch — see [page:dashboard](#pagedashboard--overview). Spec: [overview-shell.spec.ts](../../e2e/specs/overview-shell.spec.ts)
+
+### feature:release-notes
+
+Release notes list with per-PR collapsible details — see [page:releasenotes](#pagereleasenotes--release-notes). Spec: [release-notes.spec.ts](../../e2e/specs/release-notes.spec.ts)
 
 ### feature:search
 

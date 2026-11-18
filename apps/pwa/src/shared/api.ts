@@ -1,6 +1,6 @@
 import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine } from "@ancientvoid/contracts";
 export type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine };
-import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, ReleaseNotesDetail, ReleaseNotesListReport, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 export type { TerminalTarget };
 import { noteApprovalDecided } from "./first-run.ts";
 export interface SessionRecord {
@@ -1234,6 +1234,9 @@ function createHubApi(P: (path: string) => string) {
   graphDiagnose: (target: string) => api<GraphDiagnosis>(P(`/api/graph/diagnose?${target}`), { method: "POST", body: "{}" }),
   /** ADR-0071: Commit-DAG mit Branches/Parents/Dateien. */
   gitGraph: (target: string) => api<GitGraphReport>(P(`/api/git-graph?${target}`)),
+  releaseNotes: (target: string) => api<ReleaseNotesListReport>(P(`/api/release-notes?${target}`)),
+  releaseNotesDetail: (target: string, mergeSha: string) =>
+    api<ReleaseNotesDetail>(P(`/api/release-notes/detail?${target}&merge=${encodeURIComponent(mergeSha)}`)),
   /** EPIC-P49 (ADR-0063): Knowledge Vault — Menschenfläche, Agenten bekommen 403. */
   vaultState: () => api<VaultState>(P("/api/vault/state")),
   vaultBrowse: (path?: string) => api<VaultBrowse>(P(`/api/vault/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`)),
