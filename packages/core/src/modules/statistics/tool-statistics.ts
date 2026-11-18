@@ -27,8 +27,15 @@ const toolName = (payload: Record<string, unknown>): string | null => {
 
 /**
  * Korrelation `tool_use.payload.id` ↔ `tool_result.payload.toolUseId`.
- * Replay zählt nicht doppelt: dieselbe Call-Id wird abgelehnt, ein Ergebnis
- * ohne Aufruf ist ein Korrelationsbruch (Fail loud, nie still verwerfen).
+ * Replay zählt nicht doppelt: dieselbe Call-Id erneut im Journal ist der
+ * gleiche Aufruf (Resume-Blöcke hängen historische Paare nochmal an, seq
+ * bleibt monoton — BUG-0213), das erste Vorkommen gewinnt. Ein Ergebnis
+ * ohne zuordenbaren Aufruf wird gezählt (Tool-Name/unbelegt-Zeile, Status
+ * wie gemeldet), nie still verworfen und nie als Wurf: Ein einziges
+ * solches Ereignis legt sonst die ganze Statistik-Seite lahm. K5: ist der
+ * Ergebnis-Payload ausgelagert (`truncated`), steht die Call-Id nur im
+ * Blob — das Ergebnis zählt dann als Aufruf mit unbekanntem Namen und
+ * unbekanntem Fehlerstatus.
  * Tool-Name: `payload.tool` (opencode) oder `payload.name` (übrige Adapter);
  * fehlt beides, bleibt der Name unbekannt — nichts wird geraten.
  */
@@ -36,22 +43,32 @@ export function deriveToolCallFacts(events: readonly NormalizedEvent[], who: Ide
   const sorted = [...events].sort((a, b) => a.seq - b.seq);
   const calls = new Map<string, ToolCallFact>();
   const order: string[] = [];
+  const resultStatus = (payload: Record<string, unknown>): ToolCallResult => {
+    const flag = (payload as { isError?: unknown }).isError;
+    return flag === true ? "failed" : flag === false ? "ok" : "unknown";
+  };
   for (const e of sorted) {
     if (e.type === "tool_use") {
       const id = callId(e.payload);
+      if (id !== null && calls.has(id)) continue;
       const key = id ?? `seq:${e.seq}`;
-      if (id !== null && calls.has(id)) throw new Error("Doppelte Tool-Call-Id im Journal.");
       calls.set(key, { sessionId: who.sessionId, tool: toolName(e.payload), result: null });
       order.push(key);
       continue;
     }
     if (e.type === "tool_result") {
       const id = callId(e.payload);
-      if (id === null || !calls.has(id)) throw new Error("Tool-Ergebnis ohne zusammengehörigen Aufruf.");
+      const status = resultStatus(e.payload);
+      // Ohne Id (K5-ausgelagert) oder ohne Aufruf im Journal: als eigener
+      // Fakt zählen — das Tool lief, nur die Zuordnung fehlt.
+      if (id === null || !calls.has(id)) {
+        const key = `res:${e.seq}`;
+        calls.set(key, { sessionId: who.sessionId, tool: null, result: status });
+        order.push(key);
+        continue;
+      }
       const call = calls.get(id)!;
-      if (call.result !== null) throw new Error("Doppeltes Ergebnis für denselben Tool-Aufruf.");
-      const flag = (e.payload as { isError?: unknown }).isError;
-      call.result = flag === true ? "failed" : flag === false ? "ok" : "unknown";
+      if (call.result === null) call.result = status;
     }
   }
   return order.map(key => calls.get(key)!);
