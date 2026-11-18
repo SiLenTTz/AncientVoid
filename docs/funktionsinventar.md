@@ -196,6 +196,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S76 | Installierter Stand: Modus, Fenster-Ausrichtung, Winkel, Manifest, Worker-Stufe; dreht das Gerät nicht, erzwingt die App Querformat oder nennt die Abweisung | Einstellungen → Geräte | BUG-0186 | spec:installations-stand.spec.ts |
 | S77 | Ein langes Gespräch bleibt bis zu seinem Anfang lesbar: hochscrollen (oder der Knopf „frühere Einträge“) holt die früheren, die Lesestelle hält ihre Position | Session → Chat oder Verlauf → nach oben scrollen | BUG-0211 | spec:chat-aeltere-laden.spec.ts |
 | S78 | Kopiertes bleibt greifbar: die Ablage hält sechs sichtbare Stufen (Diktat, Markierung, Befehl, Eintrag, Kennung) und fügt sie wieder ein — Token bleiben draußen | Composer → Ablage-Knopf; oder Text markieren/kopieren | ADR-0090 | spec:clipboard-shelf.spec.ts |
+| S79 | Die Diktat-Aufnahme bleibt auf dem Gerät liegen (drei neueste, höchstens 12 MB) und lässt sich neu erkennen — auch nach einem Ausfall der eigenen Erkennung; ersetzt wird nur ein unveränderter Text | Nyx-FAB → „Aufnahme gemerkt — neu erkennen“ | ADR-0092 | spec:voice-local.spec.ts |
 
 ## PC-Arbeitsfläche
 
