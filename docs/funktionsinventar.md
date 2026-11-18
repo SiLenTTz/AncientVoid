@@ -152,7 +152,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S33 | Browser-Arbeitsplatz | „Mehr“ → „Browser“ | T43.4 | inventar |
 | S34 | Graph in eigenes Fenster (nur PC) | Reiter „Graph“ → „⧉ Eigenes Fenster“ | T43.7 | inventar |
 | S35 | Pause und „Weiter“ | Taste im Kopf, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
-| S36 | Vormerken, Zustellung wählen (⏳ am Zugende / ⚡ lenken), Warteschlange nachträglich ändern (✎ Text, ↑↓ Reihe), „Jetzt senden“, Streichen | Composer, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
+| S36 | Vormerken, Zustellung wählen (Uhr „am Zugende“ / Blitz „lenken“, Chip rechts vom Hauptknopf), Warteschlange nachträglich ändern (✎ Text, ↑↓ Reihe), „Jetzt senden“, Streichen | Composer, während ein Zug läuft | T43.4 | spec:pause-queue.spec.ts |
 | S37 | Planfortschritt und To-do-Liste des Agenten | Laufleiste, Antippen klappt auf | T43.4 | spec:progress.spec.ts |
 | S38 | Freigabekarte mit Laya-Einschätzung und „Regeln“ | Session, bei offener Freigabe | T43.3 | spec:harness.spec.ts |
 | S39 | Rückfrage des Agenten mit Optionen beantworten | Session, bei offener Frage | T43.8 | spec:harness.spec.ts |
