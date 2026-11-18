@@ -94,7 +94,7 @@ export function ReleaseNotesPage() {
         <EmptyState icon="▤" text="Wähle ein Projekt — seine gemergten PRs erscheinen hier chronologisch." />
       )}
       {project && error && <EmptyState icon="⚠" text={`Release-Notes nicht lesbar: ${error}`} />}
-      {project && !error && !report && <div class="empty">lade…</div>}
+      {project && !error && !report && <EmptyState icon="▤" text="Release-Notes werden geladen…" />}
       {project && report?.error && <EmptyState icon="▤" text={report.error} />}
       {project && report && !report.error && report.entries.length === 0 && (
         <EmptyState icon="▤" text="Keine gemergten Pull-Requests im Verlauf." />
@@ -126,8 +126,8 @@ export function ReleaseNotesPage() {
 }
 
 function PrDetail({ detail }: { detail: ReleaseNotesDetail | string | undefined }) {
-  if (detail === undefined) return <div class="rn-detail empty">lade…</div>;
-  if (typeof detail === "string") return <div class="rn-detail empty">{detail}</div>;
+  if (detail === undefined) return <div class="rn-detail"><p class="rn-wait">lade…</p></div>;
+  if (typeof detail === "string") return <div class="rn-detail"><p class="rn-wait">{detail}</p></div>;
   return (
     <div class="rn-detail" data-testid="rn-detail">
       <h3>Warum</h3>

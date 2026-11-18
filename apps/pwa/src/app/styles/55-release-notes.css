@@ -67,7 +67,7 @@
 
 .rn-pr {
   flex: none;
-  font-family: var(--mono);
+  font-family: var(--font-mono);
   color: var(--fg-dim);
 }
 
@@ -108,7 +108,7 @@
 
 .rn-detail h3 {
   margin: 4px 0 0;
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
   color: var(--fg-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -148,7 +148,7 @@
 }
 
 .rn-commit-body {
-  font-size: var(--text-s);
+  font-size: var(--text-sm);
 }
 
 .rn-files summary {
@@ -162,4 +162,18 @@
 
 .rn-file-status[data-status="D"] {
   color: var(--err);
+}
+
+.rn-date {
+  white-space: nowrap;
+}
+
+.rn-stats {
+  color: var(--fg-dim);
+}
+
+.rn-wait {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
 }
