@@ -93,6 +93,22 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     expect(at("Rückfrage")).toBeLessThan(at("Zug fertig"));
   });
 
+  test("die Sound-Taste sitzt direkt links neben ✕ im Panel-Kopf (BUG-0207)", async ({ app }) => {
+    await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    const head = app.locator(".notif-panel-head");
+    const sound = (await head.locator('[data-testid="notif-sound-toggle"]').boundingBox())!;
+    const close = (await head.getByRole("button", { name: "✕" }).boundingBox())!;
+    expect(sound, "Sound-Taste vorhanden").toBeTruthy();
+    expect(close, "✕ vorhanden").toBeTruthy();
+    // Gleiche Zeile: beide Zentren liegen auf der Kopfzeile.
+    expect(Math.abs(sound.y + sound.height / 2 - (close.y + close.height / 2))).toBeLessThanOrEqual(4);
+    // Direkt benachbart: zwischen beiden Tasten liegt Knopfabstand, keine Lücke
+    // (vor dem Fix rückte space-between die Sound-Taste fast in die Panel-Mitte).
+    const gap = close.x - (sound.x + sound.width);
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap, `Spalt ${gap} px zwischen Sound-Taste und ✕`).toBeLessThanOrEqual(12);
+  });
+
   test("Hub weg und wieder da wird gemeldet", async ({ app, hub }) => {
     await hub.kill("SIGKILL");
     await expect(app.locator(".toast.warning").filter({ hasText: "Hub nicht erreichbar" })).toBeVisible({ timeout: 15_000 });
