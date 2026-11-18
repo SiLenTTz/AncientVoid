@@ -27,7 +27,6 @@ import { rememberSession } from "../features/shell/last-session.ts";
 import { FilesLayer } from "../features/files/FilesLayer.tsx";
 import { BrowserLayer } from "../features/browser/BrowserLayer.tsx";
 import { DeviceLayer } from "../features/devices/DeviceLayer.tsx";
-import { GitLayer } from "../features/git-graph/GitLayer.tsx";
 import { RestoreBar } from "../features/windows/RestoreBar.tsx";
 import { SessionStrip } from "../features/overview/SessionStrip.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
@@ -492,7 +491,6 @@ function Main() {
           <FilesLayer wide focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
           <BrowserLayer focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
           <DeviceLayer focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
-          <GitLayer wide focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
           <StatusBar focused={visibleTiles(ws)[ws.focus] ?? null} onOpenApprovals={() => (location.hash = pageHash("approvals"))} />
         </div>
       ) : route.view === "list" ? (
@@ -527,7 +525,6 @@ function Main() {
       {!wide && <FilesLayer wide={false} focusedSessionId={route.view === "tail" ? route.session.id : null} />}
       {!wide && <BrowserLayer focusedSessionId={route.view === "tail" ? route.session.id : null} />}
       {!wide && <DeviceLayer focusedSessionId={route.view === "tail" ? route.session.id : null} />}
-      {!wide && <GitLayer wide={false} focusedSessionId={route.view === "tail" ? route.session.id : null} />}
       <NyxFab />
     </>
   );

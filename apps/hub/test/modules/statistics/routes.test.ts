@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, rm } from "node:fs/promises";
+import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { AdapterRegistry, EventStore, HubDatabase, SessionManager, TokenService } from "@ancientvoid/core";
@@ -86,6 +86,32 @@ describe("GET /api/statistics (EPIC-P56)", () => {
     const res = await app.inject({ method: "GET", url: "/api/statistics?since=gestern", headers: { authorization: `Bearer ${token}` } });
     expect(res.statusCode).toBe(400);
     expect(res.json().error).toContain("ungültig");
+  });
+
+  it("übersteht K5-ausgelagerte Tool-Ergebnisse im Journal (BUG-0213)", async () => {
+    // Live-Befund 18.11.2026: /api/statistics → 500 „Tool-Ergebnis ohne
+    // zusammengehörigen Aufruf", weil der EventStore große tool_result-
+    // Payloads auslagert (truncated) und die Korrelations-Id dann nur im
+    // Blob steht. Die Seite muss trotzdem antworten und das nicht
+    // zuordenbare Ergebnis zählen.
+    const record = await sessions.create({ adapter: "dummy", project: dir, prompt: "zähl mir alles auf" });
+    await expect
+      .poll(async () => (await sessions.get(record.id))?.status, { timeout: 15_000 })
+      .toBe("idle");
+    const journal = join(dir, "sessions", record.id, "events.jsonl");
+    const lines = [
+      { seq: 90_001, ts: new Date().toISOString(), sessionId: record.id, type: "tool_use", summary: "fixture", payload: { id: "toolu_k5", name: "Read" } },
+      { seq: 90_002, ts: new Date().toISOString(), sessionId: record.id, type: "tool_result", summary: "fixture", payload: { truncated: true, bytes: 30_703, preview: "{\"toolUseId\":\"toolu_k5" } },
+    ].map((e) => JSON.stringify(e));
+    await appendFile(journal, lines.join("\n") + "\n");
+
+    const res = await app.inject({ method: "GET", url: "/api/statistics", headers: { authorization: `Bearer ${token}` } });
+    expect(res.statusCode).toBe(200);
+    const report = StatisticsReport.parse(res.json());
+    // Das nicht zuordenbare Ergebnis ist sichtbar gezählt (unbelegter Name,
+    // Fehlerstatus unbekannt) — nicht weggeworfen und kein 500 mehr.
+    expect(report.tools).toContainEqual(expect.objectContaining({ tool: null, errorStatusUnknown: expect.any(Number) }));
+    expect(report.tools.find(t => t.tool === null)?.errorStatusUnknown).toBeGreaterThanOrEqual(1);
   });
 
   it("schneidet nach Zeitraum: seit morgen liegt keine Session", async () => {

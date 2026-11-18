@@ -1,5 +1,5 @@
 ---
-id: BUG-0213
+id: BUG-0215
 slug: live-woerter-enden-nach-einer-minute
 status: open
 severity: S2
@@ -12,7 +12,7 @@ created: 2026-11-18
 reporter: Agent (am laufenden Hub nachgemessen)
 ---
 
-# BUG-0213 — lange Diktate verlieren nach 60 Sekunden die Live-Wörter
+# BUG-0215 — lange Diktate verlieren nach 60 Sekunden die Live-Wörter
 
 ## Gesehen
 

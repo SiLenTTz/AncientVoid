@@ -150,14 +150,14 @@ describe("local speech-to-text route (T10.2)", () => {
     expect(oversizedCode).toBe(1011);
   });
 
-  // BUG-0213: ein Diktat von ein, zwei Minuten ist ueblich — die Live-Woerter durften
+  // BUG-0215: ein Diktat von ein, zwei Minuten ist ueblich — die Live-Woerter durften
   // nicht nach einer Minute ausgehen, und die Meldung muss die echte Grenze nennen.
-  // BUG-0213: ein Mehr-Satz-Diktat ueberlebt die fruehere Ein-Minuten-Grenze. Der Test
+  // BUG-0215: ein Mehr-Satz-Diktat ueberlebt die fruehere Ein-Minuten-Grenze. Der Test
   // sendet 61 Sekunden Rohaudio — knapp ueber der alten Grenze — in 0,25-s-Rahmen mit
   // Pausen, damit nicht die Pufferbremse (64 KB ungetrunkene Bytes) den Abbruch bewirkt.
   // Alle Waarten sind zeitlich begrenzt und die Socket-Codierung laeuft im finally: ein
   // haengender Test waere ein schlechter Beleg.
-  it("einundsechzig Sekunden Diktat behalten ihre Live-Woerter (BUG-0213)", { timeout: 90_000 }, async () => {
+  it("einundsechzig Sekunden Diktat behalten ihre Live-Woerter (BUG-0215)", { timeout: 90_000 }, async () => {
     await build(true, true);
     // Der vorangehende Fall hintert die Teiltext-Groesse auf 5000 Zeichen; ohne das zurueck
     // zu setzen, wuerde hier die TEXTgrenze ausloesen — nicht die Dauer, um die es geht.

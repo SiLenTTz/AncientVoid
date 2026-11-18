@@ -18,6 +18,15 @@ export interface FocusedSession {
 
 const GIT_MARK: Record<NonNullable<TreeEntry["git"]>, string> = { modified: "M", added: "A", deleted: "D", untracked: "U", ignored: "I", conflict: "!" };
 
+/** Tooltip-Text je Statuspunkt-Kategorie (ADR-0089: blocked braucht den Menschen). */
+const EPIC_DOT_LABEL: Record<NonNullable<TreeEntry["epic"]>, string> = {
+  done: "abgeschlossen",
+  code: "Code steht, Abnahme/Exit offen",
+  wip: "in Umsetzung",
+  open: "offen",
+  blocked: "blockiert — braucht Menschen (Entscheid/Abnahme)",
+};
+
 /** Kinder eines geöffneten Ordners, seitenweise nachgeladen — nie rekursiv (ADR-0058 §2). */
 function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePath }: { hostId: string | null; target: string; path: string; depth: number; showIgnored: boolean; onOpenFile: (path: string) => void; activePath: string | null }) {
   const [pages, setPages] = useState<TreeListing[]>([]);
@@ -74,8 +83,10 @@ function Folder({ hostId, target, path, depth, showIgnored, onOpenFile, activePa
                 <span
                   class={`epic-dot epic-${e.epic}`}
                   aria-hidden="true"
-                  title={`${/^bug-\d/i.test(e.name) ? "Bug" : "Epic"}: ${e.epic === "done" ? "abgeschlossen" : e.epic === "code" ? "Code steht, Abnahme/Exit offen" : e.epic === "wip" ? "in Umsetzung" : "offen/gesperrt"} — ${e.epicStatus ?? ""}`}
-                />
+                  title={`${/^bug-\d/i.test(e.name) ? "Bug" : "Epic"}: ${EPIC_DOT_LABEL[e.epic] ?? e.epic} — ${e.epicStatus ?? ""}`}
+                >
+                  {e.epic === "blocked" ? "H" : ""}
+                </span>
               )}
               <span class="files-name">{e.name}</span>
               {e.blocked && <span class="dim files-why">{e.blocked}</span>}

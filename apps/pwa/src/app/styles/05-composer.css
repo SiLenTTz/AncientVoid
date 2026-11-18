@@ -117,6 +117,71 @@
   flex: 1;
 }
 
+/* EPIC-P68 T68.6: Engine-Hinweis und Skill-Pflege in der Empfehlungskarte */
+.enhance-skipped {
+  color: var(--warn);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+.recommend-meta {
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.recommend-desc {
+  color: var(--fg-dim);
+  font-size: var(--text-sm);
+}
+
+.recommend-name {
+  display: grid;
+  gap: 2px;
+}
+
+.recommend-name-input,
+.recommend-editor {
+  background: var(--bg);
+  border: 1px solid var(--fg-dim);
+  color: var(--fg);
+  border-radius: var(--radius);
+  padding: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.recommend-name-input {
+  font: inherit;
+}
+
+.recommend-name-input[aria-invalid="true"] {
+  border-color: var(--err);
+}
+
+.recommend-editor {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  resize: vertical;
+  min-height: 160px;
+  max-height: min(26rem, 60vh);
+}
+
+.recommend-current summary {
+  cursor: pointer;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.recommend-content {
+  margin: 6px 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
 .reply-error {
   color: var(--err);
   font-size: var(--text-sm);

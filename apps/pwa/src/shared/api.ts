@@ -1,3 +1,5 @@
+import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine } from "@ancientvoid/contracts";
+export type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine };
 import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 export type { TerminalTarget };
 import { noteApprovalDecided } from "./first-run.ts";
@@ -583,15 +585,6 @@ export interface SkillOrAgent {
   description: string;
 }
 
-export interface PromptRecommendation {
-  mode: "match" | "create";
-  kind: "skill" | "agent" | "workflow";
-  name: string;
-  description: string;
-  reason: string;
-  draft: string | null;
-}
-
 /** EPIC-P11 — mirrors `@ancientvoid/contracts`'s desktop types (ADR-0031). */
 interface DesktopFocus {
   id: string;
@@ -741,6 +734,9 @@ interface EnhanceResult {
   enhanced: string;
   costUsd?: number;
   latencyMs: number;
+  /** Absent on hubs before EPIC-P68. */
+  engine?: RewriteEngine;
+  skipped?: SkippedEngine[];
 }
 
 const TOKEN_KEY = "ancientvoid.token";
@@ -996,6 +992,15 @@ function createHubApi(P: (path: string) => string) {
     api<PromptRecommendation | null>(P("/api/prompt-recommendation"), { method: "POST", body: JSON.stringify({ project, text }) }),
   saveArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; description: string; draft: string }) =>
     api<{ path: string }>(P("/api/skills"), { method: "POST", body: JSON.stringify(body) }),
+  skillArtifact: (project: string, kind: PromptRecommendation["kind"], name: string) =>
+    api<SkillArtifact>(P(`/api/skills/artifact?project=${encodeURIComponent(project)}&kind=${kind}&name=${encodeURIComponent(name)}`)),
+  updateArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; draft: string; baseHash: string }) =>
+    api<{ path: string; hash: string }>(P("/api/skills"), { method: "PUT", body: JSON.stringify(body) }),
+  reviseArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; prompt: string; adapter: string }) =>
+    api<{ draft: string; baseHash: string; engine: RewriteEngine; skipped: SkippedEngine[]; costUsd?: number; latencyMs: number }>(P("/api/skills/revise"), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   enhancePrompt: (adapter: string, project: string, text: string) =>
     api<EnhanceResult>(P("/api/prompt-enhance"), { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   /** T3.9 (Learning-Loop, lokal, "niemals Cloud, niemals Telemetrie"): one
@@ -1011,6 +1016,7 @@ function createHubApi(P: (path: string) => string) {
     decision: "accepted" | "rejected";
     costUsd?: number;
     latencyMs: number;
+    engine?: string;
   }) => api<{ ok: boolean }>(P("/api/prompt-optimizer/feedback"), { method: "POST", body: JSON.stringify(entry) }),
   sessions: () => api<SessionRecord[]>(P("/api/sessions")),
   session: (id: string) => api<SessionRecord>(P(`/api/sessions/${id}`)),

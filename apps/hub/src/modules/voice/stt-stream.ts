@@ -84,7 +84,7 @@ export function registerSttStreamRoutes(app: FastifyInstance, config: SttStreami
     let transcriptBytes = 0;
     let finished = false;
     let cleaned = false;
-    // Hard backstop for the whole utterance (BUG-0213): not an inactivity timer —
+    // Hard backstop for the whole utterance (BUG-0215): not an inactivity timer —
     // it fires while audio is still flowing, so it must match the byte bound below.
     let hardStop: ReturnType<typeof setTimeout> | undefined;
     const cleanup = (): void => {

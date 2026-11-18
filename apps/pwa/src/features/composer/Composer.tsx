@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { registerField, touchField, type FieldId } from "../../shared/command-context.ts";
 import { useApi } from "../../shared/api-context.ts";
 import type { ComponentChildren } from "preact";
-import { type PromptRecommendation } from "../../shared/api.ts";
+import { type PromptRecommendation, type RewriteEngine, type SkippedEngine } from "../../shared/api.ts";
+import { SkillRecommendCard } from "./SkillRecommendCard.tsx";
+import { engineLabel, skippedNote } from "./engine-label.ts";
 import { saveSelectedSkill, saveSelectedWorkflow } from "./SkillOverlay.tsx";
 import { applySuggestion, commandsForScope, slashNotice, slashSuggestions, type SlashCommand } from "./slash.ts";
 import { AttachmentPicker } from "../attachments/Attachments.tsx";
@@ -45,9 +47,8 @@ export function Composer({
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
-  /** Which adapter's own subscription pays for an enhance call (§3.4
-   * decision: reuse the already-logged-in adapter, not a separate model
-   * — see enhance.ts for the real measurements behind that choice). */
+  /** EPIC-P68 (ADR-0089): the local model rewrites first; this adapter's
+   * own one-shot is the fallback when it is busy or absent. */
   adapter: string;
   /** The enhance call's cwd — found necessary via a real test: without
    * it, the rewrite reflected the hub server's own repo, not whatever
@@ -124,9 +125,14 @@ export function Composer({
   const enhanceSupported = adapterEnhance ?? ENHANCE_SUPPORTED_ADAPTERS.has(adapter);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState("");
-  const [preview, setPreview] = useState<{ original: string; enhanced: string; costUsd?: number; latencyMs: number } | null>(
-    null,
-  );
+  const [preview, setPreview] = useState<{
+    original: string;
+    enhanced: string;
+    costUsd?: number;
+    latencyMs: number;
+    engine?: RewriteEngine;
+    skipped?: SkippedEngine[];
+  } | null>(null);
   const [recommendation, setRecommendation] = useState<PromptRecommendation | null>(null);
   const [recommendError, setRecommendError] = useState("");
   const [recommendBusy, setRecommendBusy] = useState(false);
@@ -140,7 +146,14 @@ export function Composer({
       // T1.5-8: only on explicit request, never automatic — this is the
       // one and only call site.
       const result = await api.enhancePrompt(adapter, project, value);
-      setPreview({ original: value, enhanced: result.enhanced, costUsd: result.costUsd, latencyMs: result.latencyMs });
+      setPreview({
+        original: value,
+        enhanced: result.enhanced,
+        costUsd: result.costUsd,
+        latencyMs: result.latencyMs,
+        ...(result.engine ? { engine: result.engine } : {}),
+        ...(result.skipped ? { skipped: result.skipped } : {}),
+      });
       setRecommendation(null);
       try {
         setRecommendation(await api.recommendPrompt(project, result.enhanced));
@@ -168,6 +181,7 @@ export function Composer({
         decision,
         ...(preview.costUsd !== undefined ? { costUsd: preview.costUsd } : {}),
         latencyMs: preview.latencyMs,
+        ...(preview.engine ? { engine: preview.engine.kind === "local" ? "local" : preview.engine.id } : {}),
       })
       .catch(() => undefined);
   };
@@ -184,7 +198,8 @@ export function Composer({
     setRecommendation(null);
   };
 
-  const applyRecommendation = async (persist: boolean) => {
+  const applyRecommendation = async (persist: boolean, chosen: PromptRecommendation | null = recommendation) => {
+    const recommendation = chosen;
     if (!recommendation) return;
     setRecommendError("");
     setRecommendBusy(true);
@@ -231,15 +246,14 @@ export function Composer({
     }
   };
 
-  const kindLabel = recommendation?.kind === "agent" ? "Agent" : recommendation?.kind === "workflow" ? "Workflow" : "Skill";
-  const recommendNote =
-    recommendation?.kind === "workflow"
+  const recommendNote = (item: PromptRecommendation) =>
+    item.kind === "workflow"
       ? "Workflows haben keinen Adapter-Aufruf. Der Name kommt in den Prompt."
       : adapter !== "claude"
         ? "Dieser Adapter übernimmt den Eintrag nicht direkt. Der Name kommt in den Prompt."
-        : recommendation?.mode === "create"
-          ? "Nutzen legt die Datei an und nimmt sie für diesen Prompt. Speichern merkt sie als Standard."
-          : "Nutzen gilt für diesen Prompt. Speichern merkt sie als Standard für das Projekt.";
+        : item.mode === "create"
+          ? "Nutzen legt die Datei an und nimmt sie für diesen Prompt. Als Standard merkt sie fürs Projekt."
+          : "Nutzen gilt für diesen Prompt. Als Standard merkt sie fürs Projekt.";
 
   return (
     // EPIC-P43 T43.4: einzeilig, solange niemand schreibt; Fokus oder Text klappt die Eingabe auf.
@@ -321,9 +335,11 @@ export function Composer({
           <div >
             <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
               Verbessert
+              {preview.engine ? ` · ${engineLabel(preview.engine)}` : ""}
               {preview.costUsd !== undefined ? ` · $${preview.costUsd.toFixed(4)}` : ""} ·{" "}
               {(preview.latencyMs / 1000).toFixed(1)}s
             </div>
+            {skippedNote(preview.skipped) && <div class="enhance-skipped">{skippedNote(preview.skipped)}</div>}
             <div class="enhance-preview-text">{preview.enhanced}</div>
           </div>
           <div class="row" style="gap: 8px">
@@ -338,35 +354,18 @@ export function Composer({
       )}
 
       {recommendation && (
-        <div class="recommend-card">
-          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">
-            {recommendation.mode === "match" ? `Empfehlung · ${kindLabel}` : `Vorschlag · ${kindLabel} anlegen`}
-          </div>
-          <strong>{recommendation.name}</strong>
-          <div class="dim" style="font-size: calc(12px * var(--font-scale, 1))">{recommendation.description}</div>
-          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{recommendation.reason}</div>
-          <div class="dim" style="font-size: calc(11px * var(--font-scale, 1))">{recommendNote}</div>
-          {recommendError && <div class="composer-notice err">{recommendError}</div>}
-          <div class="row">
-            <Button disabled={recommendBusy} onClick={() => setRecommendation(null)}>
-              Verwerfen
-            </Button>
-            <Button
-              aria-busy={recommendBusy}
-              disabled={recommendBusy}
-              onClick={() => void applyRecommendation(false)}
-             class={recommendBusy ? "busy" : undefined}>
-              {recommendBusy ? "lädt…" : "Nutzen"}
-            </Button>
-            <Button
-              aria-busy={recommendBusy}
-              disabled={recommendBusy}
-              onClick={() => void applyRecommendation(true)}
-             variant="primary" class={recommendBusy ? "busy" : undefined}>
-              {recommendBusy ? "lädt…" : "Speichern"}
-            </Button>
-          </div>
-        </div>
+        <SkillRecommendCard
+          key={`${recommendation.mode}:${recommendation.kind}:${recommendation.name}`}
+          recommendation={recommendation}
+          project={project}
+          adapter={adapter}
+          prompt={preview?.enhanced ?? value}
+          busy={recommendBusy}
+          noteFor={recommendNote}
+          error={recommendError}
+          onDismiss={() => setRecommendation(null)}
+          onUse={(persist, next) => void applyRecommendation(persist, next)}
+        />
       )}
 
       {/* T8.5: the paperclip sits in the button row; chips get their own
@@ -395,7 +394,7 @@ export function Composer({
           aria-label={enhancing ? "lädt…" : "Verbessern"}
           onClick={enhance}
           disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
-          title={enhanceSupported ? "Prompt verbessern (kostet echtes Kontingent)" : "Für diesen Adapter nicht verfügbar"}
+          title={enhanceSupported ? "Prompt verbessern (lokales Modell zuerst, sonst Kontingent des Adapters)" : "Für diesen Adapter nicht verfügbar"}
          icon class={enhancing ? "icon-btn composer-more busy" : "icon-btn composer-more"}>
           {enhancing ? "…" : <WandGlyph />}
         </Button>
