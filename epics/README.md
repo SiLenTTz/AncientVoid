@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P67)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P68)
 
 **On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
 im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
@@ -302,6 +302,7 @@ ADR vor der ersten Contract-Änderung).
 | [P65 — Status-Sounds: akustische Rückmeldung ohne VoidWarden](EPIC-P65-status-sounds.md) | `shared/audio.ts` (WebAudio-Synthese, kein Asset, Autoplay-Unlock, Rate-Limit je Kategorie 10 s), je Status ein eigener Sound aus 3–4 wählbaren Varianten bei neu ankommenden Notifications (Fehler/offene Frage/Lauf beendet/Info, gleiche Taxonomie wie P64-Glow, kein Replay beim Laden), Settings-Abschnitt „Töne“ (Master; je Kategorie an/aus, Varianten-Auswahl mit Vorschau, Lautstärke), Lautsprecher-Stumm-Knopf im Benachrichtigungs-Panel, Vibration am Handy, offline (K10), VoidWarden-Nutzer schalten einfach ab — **Planungsentwurf** | keine fachliche offene (Quer-Epic); nach P64 empfohlen (beide berühren `Notifications.tsx`) | ≤1 |
 | [P66 — Metrik-Konsolidierung: alles an einem Ort, aufgeräumt und klappbar](EPIC-P66-metrik-konsolidierung-refinement.md) | `#/statistik` wird die eine Metrik-Zentrale: System- und KI-Server-Sektionen aus dem unveränderten `GET /api/aimetrics`-Report (keine zweite Wahrheit), klappbare Sektionen mit Reload-stabilem Zustand, Filter-Dauerhaftigkeit + Zurücksetzen, Design-System-Ratchets grün; EUR (P31)/Compression (P55)/Input-Output-Token-Split (unbelegt) bleiben draußen — **in Umsetzung seit 17.11.2026** | EPIC-P56 grün (T56.1a–T56.4, PR #123; T56.6-Abnahme parallel); EPIC-P59 grün | 0,5–1 |
 | [P67 — Main-Sync: frischer Main beim Start, laufende Synchronisation, einstellbar](EPIC-P67-main-sync.md) | Stufe 1: neue Session startet auf `origin/<Hauptbranch>` (Fetch mit Timeout, Fallback + sichtbares Event, nur auf dem Hauptbranch); Stufe 2: Sync-Engine (hinter/vor, Probelauf per `merge-tree`, Merge mit Abbruch, nur bei wartender Session) und Scheduler (ein Fetch je Projekt) mit Modi `notify`/`ask`/`auto`; Stufe 3: Einstellungen global + je Projekt (Takt, autonom/mit Bestätigung, Auto-Merge), PWA-Indikator „N hinter main“, `hubctl main-sync`; Hub-Checkout selbst aktualisieren bleibt Out — **Planungsentwurf** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 2–3 |
+| [P68 — Prompt verbessern: lokales Modell zuerst, Projektkontext, Skill-Vorschläge pflegen](EPIC-P68-prompt-enhance-lokal-skill-pflege.md) | Engine-Kette lokal (`assistant.model`, Auslastung via `/slots`/503) → gewählter Adapter → OpenCode mit sichtbarem Grund je Stufe; gerahmter Projektkontext (Leitfaden, README, Manifest, Skills; ≤ 6 000 Zeichen); Skill-Empfehlung zeigt vorhandene Einträge (`mode: update`), Anpassen/Modell-Vorschlag/Speichern mit Hash-Sperre statt Dubletten (ADR-0089) — **in Umsetzung seit 18.11.2026** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 1 |
 
 ## Reihenfolge & Gating
 
@@ -315,8 +316,7 @@ wenn alle Exit-Kriterien des Vorgängers grün sind (Eval-Frage-Regel aus PRD §
 `e2e`) auf dem Abschluss-PR grün ist (seit 16.11.2026; Rot allein wegen der
 Umgebung wird benannt, nie als Pass gezählt — `docs/ci-runbook.md`). Ältere
 Epic-DoDs, die „Pipeline-Job `e2e` auf dem Abschluss-MR“ nennen, meinen
-seitdem diesen GitHub-Lauf;
-lokale Tests, E2Es und echte Geräte-/Provider-Abnahmen bleiben unverändert.
+seitdem diesen GitHub-Lauf; lokale Tests, E2Es und echte Geräte-/Provider-Abnahmen bleiben unverändert.
 Jede im Epic gebaute UI-Funktion und jeder Ablauf hat
 einen Spec in `e2e/specs/`. Offene Lücken stehen als `test.fixme` mit Task-
 oder Bug-ID im Gate, nie als gelöschter Test. Details:
