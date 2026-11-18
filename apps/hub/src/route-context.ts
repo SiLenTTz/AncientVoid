@@ -1,7 +1,7 @@
 import type { HubTeam } from "./modules/team/index.ts";
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore, MainSyncSettingsService } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
@@ -18,6 +18,8 @@ export interface RouteDeps {
   attachments?: AttachmentStore;
   /** ADR-0060: Hub-Einstellungen (Register eigener Modelle). */
   settings?: SettingsStore;
+  /** EPIC-P67 T67.3: Main-Sync-Einstellungen (config-Tabelle) — fehlt in Tests vor T7.10 → 501. */
+  mainSync?: MainSyncSettingsService;
   sessions: SessionManager;
   tokens: TokenService;
   registry: AdapterRegistry;

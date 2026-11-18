@@ -10,8 +10,7 @@ import { createHubTeam } from "./modules/team/index.ts";
 import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { homedir, hostname, loadavg, cpus, totalmem, freemem } from "node:os";
-import { toHostId, readMainSyncSettings } from "@ancientvoid/contracts";
-import type { MainSyncSettings } from "@ancientvoid/contracts";
+import { toHostId } from "@ancientvoid/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@ancientvoid/contracts";
 import {
@@ -61,6 +60,7 @@ import {
   opencodeDiscoverySource,
   piFamilyDiscoverySource,
   type HubConfig,
+  MainSyncSettingsService,
 } from "@ancientvoid/core";
 import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
@@ -190,6 +190,10 @@ async function main(): Promise<void> {
   // ADR-0011 Erweiterung: mirror sessions read the same store the
   // discovery scan uses — one resolved path, two features.
   const opencodeDataDir = config.discovery.opencodeDataDir ? resolve(config.discovery.opencodeDataDir) : defaultOpencodeDataDir();
+  // T7.10 + EPIC-P67 T67.3: Settings müssen vor dem SessionManager stehen —
+  // dessen Main-Sync-Resolver (Stufe 1, ADR-0088) liest sie je Session-Start.
+  const settings = new SettingsStore(db);
+  const mainSyncService = new MainSyncSettingsService(settings);
   const sessions = new SessionManager(
     db,
     store,
@@ -204,21 +208,9 @@ async function main(): Promise<void> {
     { logger: logger.child({ component: "sessions" }), metrics, autoResumeInterrupted: config.autoResumeInterrupted, steerWaitMs: config.steerWaitMs },
     opencodeDataDir,
     config.defaultPermissionMode,
-    // EPIC-P67 Stufe 1: Basis neuer Worktrees ist origin/<Hauptbranch>. Liest
-    // den globalen Eintrag aus der config-Tabelle (T67.3 ergänzt Projekt-Overrides
-    // und die API); fehlt er, gelten die Defaults (fetch-base, ADR-0088).
-    (projectPath: string): MainSyncSettings => {
-      const raw = settings.get("mainSync.global");
-      let parsed: unknown = null;
-      try {
-        parsed = raw === null ? null : (JSON.parse(raw) as unknown);
-      } catch {
-        // unlesbarer Eintrag: parsed bleibt null → readMainSyncSettings fällt auf Defaults
-      }
-      const read = readMainSyncSettings(parsed);
-      if (read.fallback === "invalid") logger.warn("mainSync.global unlesbar — Defaults aktiv", { projectPath });
-      return read.value;
-    },
+    // EPIC-P67 Stufe 1: Basis neuer Worktrees ist origin/<Hauptbranch>, nach
+    // effektiven Einstellungen (global + Projekt-Override, ADR-0088).
+    mainSyncService.resolver(),
   );
   // EPIC-P29 / ADR-0051 §2: die Manifest-Freigabe braucht die Queue IMMER —
   // `requireStepApprovals` steuert nur das steer.prompt-Gate, nicht ob ein
@@ -254,7 +246,6 @@ async function main(): Promise<void> {
 
   // T7.10 (ADR-0022): uploaded files, local extraction first, Gemini only
   // with a key the user set in the PWA settings.
-  const settings = new SettingsStore(db);
   // T8.3 (ADR-0026): Web Push — off until a person turns it on.
   const push = new PushService(db, settings, { hostId: config.hostId ?? toHostId(hostname()), subject: config.push.subject });
   sessions.onNotification((n) => push.notify(n));
@@ -439,6 +430,7 @@ async function main(): Promise<void> {
     approvals,
     attachments,
     settings,
+    mainSync: mainSyncService,
     push,
     dataDir,
     workerRunnerKind: runner.kind,
