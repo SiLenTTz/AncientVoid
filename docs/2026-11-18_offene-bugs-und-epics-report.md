@@ -8,8 +8,8 @@ Empfehlungen sind Vorschläge; der Report löst nichts automatisch.
 
 ## 1. Kurzbilanz
 
-- **Bugs:** 214 Dateien — 187 `done`, 2 `fixed` (Fix liegt, Verify durch Menschen
-  ausstehend), 1 `wont-fix` (Entscheid gefallen), 10 `open` (+1 Template).
+- **Bugs:** 215 Dateien — 189 `done`, 2 `fixed` (Fix liegt, Verify durch Menschen
+  ausstehend), 1 `wont-fix` (Entscheid gefallen), 11 `open` (+1 Template).
   Blockiert im Sinne „kann nicht ohne Menschen weiter“: die zwei `fixed`-Bugs
   (Verify) und BUG-0170 (Windows-Unterstützung ist eine Produktentscheidung).
   Alle übrigen `open`-Bugs sind agentisch behebbar — kein Blocker, nur Arbeit.
@@ -36,6 +36,7 @@ Empfehlungen sind Vorschläge; der Report löst nichts automatisch.
 | BUG-0207 | open | Live-Strom rollt nicht mit (Handy) | weiterlaufen (agentisch) |
 | BUG-0208 | open | Nach Stromende steht die Spitze am Ende statt am Nachrichtenanfang | weiterlaufen (agentisch) |
 | BUG-0211 | open | Lange Gespräche: Hochscrollen endet nach 500 Einträgen | weiterlaufen (agentisch) |
+| BUG-0214 | open | STT-Verfügbarkeit geschwindelt, kein Browser-Fallback | weiterlaufen (agentisch) |
 
 ## 3. Epics mit Entscheidungs-Blocker (Mensch muss Go/No-Go sprechen)
 
@@ -110,9 +111,9 @@ formal schließen; der Zähler meldet sie nur konservativ (S2/C1):
 | P56 | Grundlage T56.1a beauftragt und umgesetzt | weiterlaufen; P31-/P55-Anbindungen bleiben gesperrt |
 | P66 | Startauftrag 17.11. | weiterlaufen |
 
-(P36, P58, P60, P63 sowie P5–P14, P17, P22–P28, P39, P45, P50, P53, P57 sind
-abgeschlossen bzw. nur mit delegierten/restlichen Nachweisen offen, die bereits
-im P35-Block mitlaufen — nichts nachzusteuern.)
+(Die übrigen 27 Epic-Dateien des Zählers sind abgeschlossen — P5–P11, P13, P14,
+P17, P22–P24, P27, P28, P36, P39, P43 (Exit grün, nur geparkte Gerätewege siehe oben),
+P43.5, P45, P50, P53, P57, P58, P60, P63 — nichts nachzusteuern.)
 
 ## 6. Was jetzt zu tun wäre (priorisiert, Vorschlag)
 

@@ -6,7 +6,9 @@ Stand 2026-11-18 (Frischhalte-Review nach P67/P68 und Explorer-blocked): Wizard-
 (`./setup.sh --yes --adapter=dummy`), Device-Token und `/api/ready` unverändert;
 die PWA-Oberfläche nutzt die Bausteine aus [`design-system.md`](design-system.md),
 der Ablauf dieses Tutorials bleibt derselbe. Main-Sync und Prompt-Verbessern
-ändern den Erststart nicht.
+ändern den Erststart nicht. Neu für Erstnutzer: Sessions starten
+auf dem aktuellen `origin/main` ([`main-sync.md`](main-sync.md)), und der
+Dateibaum zeigt Statuspunkte für Epics und Bugs ([`epic-status.md`](epic-status.md)).
 
 Ziel: Du hast einen laufenden Hub, dein Handy zeigt ihn an, und du hast von
 dort aus eine Nachricht an eine laufende Agent-Session geschickt. Wir nehmen
@@ -89,7 +91,8 @@ Danach findest du in „Neue Session“ dein Repo als Projekt.
 tippe **Verbinden**. Die Übersicht zeigt den Einstieg für den Erststart. Tippe
 auf **Probe-Session (dummy)** — oder unten im Dock auf **Neue Session**, wähle
 den Adapter `dummy` und dein Projekt und tippe **Starten**. Die Session
-erscheint in der Übersicht und füllt sich mit Ereignissen.
+startet auf dem aktuellen `origin/main` und erscheint in der Übersicht; sie
+füllt sich mit Ereignissen.
 
 ```bash tutorial-step
 node apps/hubctl/src/cli.ts sessions
