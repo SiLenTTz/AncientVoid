@@ -73,6 +73,10 @@ Vorbild: [`epics/EPIC-P3-adapter-flotte-sprachsuche.md`](../../../epics/EPIC-P3-
    `EPIC-000-testsuite-fuer-menschen.md` (Eintragsformat dort, §3); das
    Epic schließt mit Code + automatisierten Tests und trägt nur noch den
    Delegationsvermerk „nach P000 verschoben“. P000 selbst öffnet nie.
+8. **Issue-Verknüpfung als Teil der DoD (seit EPIC-P71):** Jeder Defekt-Task-PR
+   trägt `Fixes #<nr>` im Body (auch Epic-Task-PRs), die Epic-Statuszeile führt
+   ihre Tracker-Issue, und vor dem Abschluss werden alle Issues des Epics
+   gesichtet/ggf. geschlossen — Lebenszyklus: `docs/issues.md`.
 
 ## Output-Format
 

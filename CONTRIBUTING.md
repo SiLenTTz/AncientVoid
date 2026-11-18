@@ -159,6 +159,9 @@ typecheck. Never bypass hooks (`--no-verify`).
 - Branch names: `feat/<scope>-<slug>`, `fix/<problem>`, `docs/<scope>`,
   `test/<scope>`, `ops/<scope>`. One branch = one task = one PR, target `main`.
 - One topic per PR; fill in the PR template (gates, tests, security impact).
+- Every PR that fixes a defect with a tracker issue says **`Fixes #<nr>`** in
+  its body — including epic-task PRs; GitHub closes the issue on merge. Issue
+  lifecycle (triage, auto-close, re-open): [`docs/issues.md`](docs/issues.md).
 - **No force-push** to shared branches, no rewriting of published history.
 - Maintainers merge via GitHub only (merge commit titled with the PR title,
   e.g. `gh pr merge --merge --delete-branch`); never merge locally into

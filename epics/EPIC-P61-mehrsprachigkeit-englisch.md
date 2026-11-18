@@ -1,6 +1,6 @@
 # EPIC-P61 — Mehrsprachigkeit: Oberfläche auf Englisch oder per Spracheinstellung
 
-**Status:** offen (Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026) · **Issue:** [#6](https://github.com/SiLenTTz/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
+**Status:** offen (Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026) · **Issue:** [#6](https://github.com/securesight-ai/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53/P58–P60; Vorgänger P60 umgesetzt 14.11.2026). Berührt P33 (englische Einstiegsdoku, „vertagt") nur an der Grenze: P33 = Doku, P61 = Produktoberfläche.
 
 Quelle: Nutzerauftrag vom 15.11.2026 im Zuge der Veröffentlichung

@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "f5fbed08"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/73"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/73"
 epic: ""
 created: 2026-11-17
 reporter: "Nutzerbeobachtung Git-Struktur"

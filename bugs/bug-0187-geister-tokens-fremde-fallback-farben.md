@@ -6,7 +6,7 @@ severity: S3
 area: pwa
 instance: dev
 commit: "08c492a0"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/84"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/84"
 created: 2026-11-16
 reporter: "UI-Styling-Audit 2026-11-16"
 ---
