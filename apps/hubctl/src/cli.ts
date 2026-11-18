@@ -66,6 +66,9 @@ Usage:
   hubctl workspace logs <sessionId> <serviceId>     Service-Logs (gekürzter Schwanz)
   hubctl workspace retry <sessionId>                menschlicher Retry nach fehlgeschlagenem Setup
   hubctl workspace preview <sessionId> <serviceId>  Preview-URL mit 5-Minuten-Ticket
+  hubctl main-sync <sessionId> [--check|--apply]    Messung/Probelauf oder origin/main einmischen (EPIC-P67)
+  hubctl main-sync --project <pfad> [--check|--apply]   alle Worktree-Sessions des Projekts
+  hubctl main-sync --settings                       Main-Sync-Einstellungen (global + Overrides)
   hubctl browser <sessionId>                        Browser-Status/Ziele/Console (EPIC-P39, nur Lesen)
   hubctl browser tests <sessionId>                  Testläufe mit Status (EPIC-P39)
   hubctl devices                                    Android-Geräte: SDK/KVM, Inventar, AVDs, Leases (EPIC-P42, nur Lesen)
@@ -338,6 +341,11 @@ async function main(): Promise<void> {
     case "workspace": {
       const { runWorkspace } = await import("./workspace.ts");
       await runWorkspace(args);
+      break;
+    }
+    case "main-sync": {
+      const { runMainSync } = await import("./main-sync.ts");
+      await runMainSync(args);
       break;
     }
     case "browser": {

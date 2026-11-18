@@ -50,6 +50,7 @@ import {
   type HarnessFeatures,
   type RunEstimate,
   type SessionTokenTotals,
+  type MainSyncCheckDto,
 } from "../../shared/api.ts";
 import {
   connectTail,
@@ -237,6 +238,23 @@ export function SessionTail({
   // EPIC-P6: every call of this view goes to the session's own host.
   const api = useMemo(() => hostApi(session.hostId), [session.hostId]);
   const [events, setEvents] = useState<NormalizedEvent[]>([]);
+  // EPIC-P67 T67.8: Main-Sync-Stand der Session (N hinter main). null = kein
+  // Stand (noch nicht geladen, kein Git/Remote oder direkter Modus) — dann
+  // gibt es weder Hinweis noch Menüpunkte, still und ehrlich.
+  const [mainSync, setMainSync] = useState<MainSyncCheckDto | null>(null);
+  const [mainSyncBusy, setMainSyncBusy] = useState(false);
+  const [mainSyncResult, setMainSyncResult] = useState<string | null>(null);
+  const refreshMainSync = async (): Promise<void> => {
+    try {
+      setMainSync(await api.mainSyncCheck(session.id));
+    } catch {
+      setMainSync(null);
+    }
+  };
+  useEffect(() => {
+    void refreshMainSync();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.id]);
   /** ADR-0083: Teiltexte des Adapters, bis der dauerhafte Block eintrifft. Kein
    * Nacherzählen: was hier steht, ist wirklich schon uebertragen worden. */
   const [liveText, setLiveText] = useState<{
@@ -1623,6 +1641,14 @@ export function SessionTail({
                 </div>
               )}
               <div class="dim session-top-meta">
+                {mainSync && mainSync.behind > 0 && (
+                  <>
+                    <span class="mainsync-badge" data-testid="mainsync-behind" title="Hauptbranch ist vorgerückt — Aktionen im Menü (⋯)">
+                      {mainSync.behind} hinter main
+                    </span>
+                    {" · "}
+                  </>
+                )}
                 {projectName(session.project)} ·{" "}
                 {loopView ? (
                   <LoopBadge adapter={session.adapter} view={loopView} />
@@ -1674,6 +1700,70 @@ export function SessionTail({
                 </summary>
                 <div class="session-menu-items">
                   <StatusNote sessionId={session.id} />
+                  {mainSync && (
+                    <div class="mainsync-menu" data-testid="mainsync-menu">
+                      <button
+                        type="button"
+                        disabled={mainSyncBusy}
+                        onClick={() =>
+                          void (async () => {
+                            setMainSyncBusy(true);
+                            setMainSyncResult(null);
+                            try {
+                              const check = await api.mainSyncCheck(session.id);
+                              setMainSync(check);
+                              setMainSyncResult(
+                                check.behind === 0
+                                  ? `Aktuell — kein Rückstand auf origin/${check.branch}.`
+                                  : check.conflicts && check.conflicts.length > 0
+                                    ? `${check.behind} hinter origin/${check.branch} · Konflikt in ${check.conflicts.join(", ")} — in der Session lösen.`
+                                    : `${check.behind} hinter origin/${check.branch} · Probelauf sauber.`,
+                              );
+                            } catch {
+                              setMainSyncResult("Prüfen gescheitert — Remote nicht erreichbar?");
+                            } finally {
+                              setMainSyncBusy(false);
+                            }
+                          })()
+                        }
+                      >
+                        Main prüfen
+                      </button>
+                      <button
+                        type="button"
+                        disabled={mainSyncBusy || (mainSync.behind === 0 && mainSync.conflicts === null && !mainSyncResult)}
+                        onClick={() =>
+                          void (async () => {
+                            setMainSyncBusy(true);
+                            setMainSyncResult(null);
+                            try {
+                              const result = await api.mainSyncApply(session.id);
+                              if (result.outcome === "applied") setMainSyncResult(`origin/main eingemischt (${result.to}).`);
+                              else if (result.outcome === "conflict") setMainSyncResult(`Konflikt in ${(result.files ?? []).join(", ")} — nichts verändert.`);
+                              else if (result.outcome === "failed") setMainSyncResult(`Gescheitert (${result.reason}).`);
+                              else setMainSyncResult(`Übersprungen (${result.reason}${result.detail ? `: ${result.detail}` : ""}).`);
+                              const check = await api.mainSyncCheck(session.id);
+                              setMainSync(check);
+                            } catch {
+                              setMainSyncResult("Einmischen gescheitert — Remote nicht erreichbar?");
+                            } finally {
+                              setMainSyncBusy(false);
+                            }
+                          })()
+                        }
+                      >
+                        Main einmischen
+                      </button>
+                      <span class="dim mainsync-last">
+                        zuletzt abgeglichen: {mainSync.lastSyncedAt ? new Date(mainSync.lastSyncedAt).toLocaleTimeString() : "nie"}
+                      </span>
+                      {mainSyncResult && (
+                        <p class="dim mainsync-result" role="status" data-testid="mainsync-result">
+                          {mainSyncResult}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="button"
                     onClick={() =>

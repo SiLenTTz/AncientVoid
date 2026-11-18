@@ -1,6 +1,6 @@
 # EPIC-P67 — Main-Sync: frischer Main beim Start, laufende Synchronisation, einstellbar
 
-**Status:** offen (Planungsentwurf 2026-11-18) · **Phase:** P67 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P66; P63 abgeschlossen, P29 Workspace-Manifest umgesetzt); P30/P31 bleiben On hold und sind unberührt
+**Status:** umgesetzt (T67.1–T67.9 auf main, PRs #149/#151/#152/#153/#154/#155/#157/#158, alle mit grünem `verify`) · **T67.10 Abnahme offen (Nutzeraufgabe)** · **Phase:** P67 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P66; P63 abgeschlossen, P29 Workspace-Manifest umgesetzt); P30/P31 bleiben On hold und sind unberührt
 
 Quelle: Nutzerauftrag vom 18.11.2026 (Folge der Qwen-Nacht, BUG-0209). Der
 Haupt-Checkout stand 178 Commits hinter `origin/main`; jede neue Session
@@ -181,16 +181,16 @@ Contract-Test.
 
 ## 4. Aufgaben (Checkliste T67.m)
 
-- [ ] **T67.1** ADR (nächste freie Nummer) + Contract `MainSyncSettings` und Event-Payloads (Zod, additiv, Contract-Test). Messlatte K5/K7.
-- [ ] **T67.2** Stufe 1: Basis-Ermittlung (Hauptbranch, nur-auf-Hauptbranch-Regel), `fetch` mit Timeout/`GIT_TERMINAL_PROMPT=0`, `create()` auf `origin/<main>`, Fehlerpfad + Events. Tests gegen echtes Tmp-Repo mit lokalem Bare-„origin“ (veraltet, offline, Feature-Branch ausgecheckt). K10.
-- [ ] **T67.3** Einstellungs-Speicher, API und Policy (global + Projekt-Override, Defaults, Validierung). Recovery-Test (K7).
-- [ ] **T67.4** Sync-Engine: Messung, Probelauf (`merge-tree`), Anwenden mit Abbruch, Gating „Session wartet“, Journal-Events. Tests: sauber, Konflikt, dirty Worktree, laufender Zug (kein Merge), Hub-Restart-Faltung.
-- [ ] **T67.5** Scheduler: ein Fetch je Projekt, Intervall, Nachholen beim Start, Modi `notify`/`ask`/`auto`, Entprellen der Benachrichtigungen. Test mit 20 Sessions ⇒ 1 Fetch (K8).
-- [ ] **T67.6** Benachrichtigungen + Aktionsknopf (Taxonomie P64/P65), Anbindung an Policy.
-- [ ] **T67.7** PWA-Einstellungsabschnitt (global + Projekt-Override) mit Spec `e2e/specs/main-sync-settings.spec.ts`.
-- [ ] **T67.8** PWA-Session-Indikator + Menü (Prüfen/Aktualisieren/Konflikte) mit Spec `e2e/specs/main-sync-session.spec.ts`; Layout-Nachweis mobil (Skill `layout-beweis`).
-- [ ] **T67.9** `hubctl main-sync` + Eintrag in `docs/funktionsinventar.md`, Bedienhinweis, `docs/main-sync.md` (flach in `docs/`).
-- [ ] **T67.10** Abnahme am echten Remote (Nutzeraufgabe): veralteter Haupt-Checkout, neue Session startet frisch; `ask`-Ablauf am Handy; Konfliktfall echt provoziert.
+- [x] **T67.1** ADR-0088 + Contract `MainSyncSettings` und Event-Payloads (Zod, additiv, Contract-Test). Messlatte K5/K7. — **PR #149** (ADR-0088; `main-sync.ts` mit 20 Contract-Tests, additives Lesen beidseitig belegt).
+- [x] **T67.2** Stufe 1: Basis-Ermittlung, `fetch` mit Timeout/`GIT_TERMINAL_PROMPT=0`, `create()` auf `origin/<main>`, Fehlerpfad + Events. — **PR #151** (12 Tests gegen echte Tmp-Repos mit Bare-„origin“: veraltet/offline/Timeout/Feature-Branch/no-remote/origin-HEAD/Override + SessionManager mit `worktreeSha`- und Event-Beleg).
+- [x] **T67.3** Einstellungs-Speicher, API und Policy (global + Projekt-Override, Defaults, Validierung). Recovery-Test (K7). — **PR #152** (`MainSyncSettingsService` auf config-Tabelle, `GET/PUT /api/settings/main-sync`, 9+6 Tests inkl. K7-Recovery und 400/403/501).
+- [x] **T67.4** Sync-Engine: Messung, Probelauf (`merge-tree`), Anwenden mit Abbruch, Gating, Journal-Events. — **PR #153** (11 Tests: sauber/FF/Merge mit Notation/Hash-Gleichheit nach Abbruch/dirty/up-to-date + SessionManager-Gating AC-P67-6 + K7-Faltung `lastSyncedAt`).
+- [x] **T67.5** Scheduler: ein Fetch je Projekt, Intervall, Nachholen beim Start, Modi, Entprellen. K8-Test. — **PR #154** (8 Tests; 20 Sessions ⇒ **1 Fetch**; Intervall/aus; Debounce je Stand; realer Auto-Merge ohne zweiten Fetch; busy ⇒ kein `apply`).
+- [x] **T67.6** Benachrichtigungen + Aktionsknopf (Taxonomie P64/P65), Anbindung an Policy. — **PR #155** (`NotificationAction` additiv + Migration 38; `pushNotification`; `GET/POST /api/sessions/:id/main-sync`; Policy `main-sync.apply` = Menschenfläche — Invariante „agent never writes directly“ per Nachtrag 29563e83; Glow/Sound action bei Rückfrage/Konflikt).
+- [x] **T67.7** PWA-Einstellungsabschnitt (global + Projekt-Override) mit Spec. — **PR #155** (zweiter Commit; `main-sync-settings.spec.ts` 3 Tests gegen API gelesen; daneben `settings-layout.spec.ts` repariert, die seit P65 auf main rot war).
+- [x] **T67.8** PWA-Session-Indikator + Menü (Prüfen/Aktualisieren/Konflikte) mit Spec; Layout-Nachweis mobil. — **PR #157** (`main-sync-session.spec.ts` 2 Tests gegen echtes Bare-„origin“: voller Ablauf inkl. live gespielter AC-P67-6-Verweigerung; Geometrie-Beweis 390 px, `elementFromPoint`).
+- [x] **T67.9** `hubctl main-sync` + Eintrag in `docs/funktionsinventar.md`, Bedienhinweis, `docs/main-sync.md`. — **PR #158** (hubctl check/apply/--project/--settings, 4 Format-Tests; G75; how-to-Seite gelistet; Referenz regeneriert).
+- [ ] **T67.10** Abnahme am echten Remote (Nutzeraufgabe): veralteter Haupt-Checkout, neue Session startet frisch; `ask`-Ablauf am Handy; Konfliktfall echt provoziert. — **Offen, Kai** — Schritte unten im Abschluss-Block.
 
 Reihenfolge: T67.1 → T67.2 (Stufe 1 einzeln auslieferbar) → T67.3 → T67.4 →
 T67.5/T67.6 → T67.7/T67.8 → T67.9 → T67.10. Je Aufgabe eigener Branch/PR.
@@ -264,3 +264,53 @@ Einstellungen erreichbar und dokumentiert (`docs/main-sync.md`). K5/K7/K8/K10
 nachweislich erfüllt; kein TODO ohne Epic-Bezug. T67.10 (Abnahme am echten
 Remote) ist Nutzeraufgabe und steht im Abschluss-Block, nie als Pass
 vorweggenommen.
+
+## 8. Abschluss-Block (T67.1–T67.9, 2026-11-18)
+
+**AC-Bilanz** (Belege in den genannten PRs; jede AC hat einen Test, der sie
+ohne den Fix nicht bestanden hätte):
+
+| AC | Beleg |
+|---|---|
+| AC-P67-1 | `worktree-main-sync.test.ts` „veralteter Checkout“: `baseSha` = origin/main (SHA + Datei des nachgeschobenen Commits im Worktree); `record.worktreeSha` identisch, Manifest liest den SHA weiter (#151) |
+| AC-P67-2 | Offline/Timeout: lokaler HEAD + klassifiziertes `main_sync_failed`-Event, Start nie blockiert (K10; Timeout-Test mit nicht routbarem Remote, hart abgebrochen) (#151/#153) |
+| AC-P67-3 | Feature-Branch: `not-main-branch` mit Branchname im Detail (#151), SessionManager-Event (#153) |
+| AC-P67-4 | 20 Sessions ⇒ **genau 1 Fetch** je Takt (K8, Zähl-Test) (#154) |
+| AC-P67-5 | Modi: notify/ask/auto je Test; Benachrichtigung je Session und Stand einmal, Fetch-Fehler entprellt (#154/#155) |
+| AC-P67-6 | `session-busy`: kein Merge auf `working` — Unit (#153) **und** live durch die PWA gespielt (#157, zuerst abgewiesen, nach idle angewendet) |
+| AC-P67-7 | Konflikt: Probelauf nennt Datei, `--abort`, Hash vorher = nachher, `status --porcelain` leer; Event + Benachrichtigung (#153/#154) |
+| AC-P67-8 | Settings überleben Restart (K7-Recovery-Test: neue Instanz, derselbe Speicher); additives Lesen beidseitig (Contract-Tests) (#149/#152) |
+| AC-P67-9 | `lastSyncedAt` faltet aus JSONL-Events, nicht aus Speicher (#153) |
+| AC-P67-10 | PWA-Abschnitt + Indikator + Menü mobil ohne Überlappung (Geometrie- + `elementFromPoint`-Beweis, 390 px); Funktionsinventar **G75** (#155/#157/#158) |
+| AC-P67-11 | Merge-Nachricht notation-konform (`. a worktree: origin/main eingemischt`), Fast-Forward bleibt Fast-Forward — kein Hook-Bypass (#153) |
+
+**Gates:** jeder Merge-PR mit grünem GitHub-`verify` (Schneller Kern inkl.
+Lint/Typecheck/Build); Nightly (`ci/full-suite`) fährt die volle Messlatte
+inkl. K8 und E2E auf main — nach Nutzerentscheid 16.11.2026 laufen breite
+Lokalläufe nicht im Arbeitsloop. Zwei Läufe waren rot und wurden behoben/
+benannt: Runner-Flake `prompts-in-chat` (#149, einmal neu gestartet, grün) und
+die echte Policy-Invarianten-Verletzung (#155, Nachtrag-Commit — Agenten
+schreiben nie direkt).
+
+**Abgrenzt (Out, unverändert):** Hub-Checkout selbst aktualisieren/neu
+starten; Rebase/Force-Push; Konfliktlösung durch den Hub; Merge/Push nach
+main; Fleet-übergreifender Sync.
+
+## 9. T67.10 — Abnahme am echten Remote (Nutzeraufgabe, Kai)
+
+1. **Frischer Start:** Haupt-Checkout eines Projekts absichtlich hinter
+   `origin/main` lassen (z. B. einen Commit nicht pullen), im Handy eine neue
+   Session starten → Kopf zeigt keinen Rückstand; `show`/Events enthalten
+   kein `main_sync_failed`; `record.worktreeSha` (GET `/api/sessions/:id`)
+   ist der origin-Stand, nicht der lokale.
+2. **ask-Ablauf:** Einstellungen → Main-Synchronisation → „Bei Rückstand:
+   fragen“, Takt 5 min; origin per Push vorrücken → Glocke: „N Commits hinter
+   main" mit Knopf **„Jetzt aktualisieren"** → Knopf drücken → Session steht
+   auf neuem Stand, „zuletzt abgeglichen" gesetzt.
+3. **Konflikt echt:** in der Session eine Datei ändern und committen, die
+   auch auf main geändert wurde; „Main einmischen" im ⋯-Menü → Ergebnis
+   „Konflikt in <Datei> — nichts verändert", Worktree unverändert; Datei in
+   der Session lösen, danach erneut einmischen.
+4. **Offline-Fall (K10):** Netz/Remote kurz unerreichbar machen, neue Session
+   starten → startet trotzdem (lokaler Stand), Verlauf nennt
+   `workspace.main_sync_failed` mit Grund.

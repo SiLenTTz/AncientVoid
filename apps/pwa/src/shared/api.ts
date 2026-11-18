@@ -395,6 +395,18 @@ export interface MainSyncSettingsDto {
   onlyWhenIdle: true;
 }
 
+/** EPIC-P67 T67.8: Messung + Probelauf einer Session (GET /api/sessions/:id/main-sync). */
+export interface MainSyncCheckDto {
+  sessionId: string;
+  branch: string;
+  behind: number;
+  ahead: number;
+  clean: boolean;
+  conflicts: string[] | null;
+  checkedAt: string;
+  lastSyncedAt: string | null;
+}
+
 /** ADR-0011 — one session found by the hub or a read-only provider scan. */
 export interface DiscoveredSession {
   hubSessionId: string | null;
@@ -1064,6 +1076,11 @@ function createHubApi(P: (path: string) => string) {
       method: "PUT",
       body: JSON.stringify(body),
     }),
+  /** EPIC-P67 T67.8: Messung + Probelauf je Session (K10-Stand: lastSyncedAt offline lesbar). */
+  mainSyncCheck: (sessionId: string) =>
+    api<MainSyncCheckDto>(P(`/api/sessions/${encodeURIComponent(sessionId)}/main-sync`)),
+  mainSyncApply: (sessionId: string) =>
+    api<{ outcome: string; reason?: string; detail?: string; from?: string; to?: string; files?: string[] }>(P(`/api/sessions/${encodeURIComponent(sessionId)}/main-sync`), { method: "POST", body: "{}" }),
   sessionDiff: (id: string) => api<SessionDiffResult>(P(`/api/sessions/${id}/diff`)),
   /** EPIC-P36: Review-Notizen zur Diff-Ansicht (ADR-0055). */
   /** EPIC-P37: Forge (GitLab) im Session-Kontext. */

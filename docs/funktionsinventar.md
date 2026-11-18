@@ -107,6 +107,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G72 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 | G73 | Terminal: Shell auf Allowlist-Zielen (SSH-Alias oder Hub-Host), manuelle Befehle aus der PWA | Dock „Mehr“ → „Terminal“ | ADR-0087 | spec:terminal.spec.ts |
 | G74 | Töne: Master, Kategorien an/aus, Variante und Lautstärke mit Vorschau, Panel-Knopf stumm/laut | Einstellungen → Töne | EPIC-P65 | spec:sounds.spec.ts |
+| G75 | Main-Sync: neue Sessions starten auf origin/Hauptbranch (Fetch mit hartem Timeout, Fallback + sichtbares Event); laufende Prüfung je Projekt mit Modi melden/fragen/automatisch; Session-Hinweis „N hinter main“ mit Prüfen/Einmischen im ⋯-Menü; Benachrichtigung mit Aktionsknopf | Einstellungen → Main-Synchronisation · Session ⋯-Menü · `hubctl main-sync` | EPIC-P67 / ADR-0088 | spec:main-sync-settings.spec.ts, spec:main-sync-session.spec.ts |
 
 ## Session
 

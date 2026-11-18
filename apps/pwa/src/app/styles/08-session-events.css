@@ -287,3 +287,29 @@
 
 /* EPIC-P48: Herauslösen-Werkzeugzeile im Graph-/Datei-Tab der Session. */
 .graph-pane-tools { display: flex; justify-content: flex-end; gap: 6px; padding: 2px 6px; }
+
+/* EPIC-P67 T67.8: Hinweis „N hinter main“ im Session-Kopf + Menüpunkte.
+ * Der Hinweis steht am Zeilenanfang (vor dem Projektellipsis) und ist rein
+ * anzeigend — Aktionen liegen im ⋯-Menü (44-px-Ziel, P63). */
+.mainsync-badge {
+  display: inline-block;
+  border: 1px solid var(--warn);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+.mainsync-menu {
+  display: grid;
+  gap: 4px;
+  border-bottom: 1px solid var(--bg-chip);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.mainsync-last,
+.mainsync-result {
+  font-size: var(--text-sm);
+  margin: 0;
+}
