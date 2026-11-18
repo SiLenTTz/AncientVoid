@@ -178,23 +178,41 @@
   gap: 6px;
 }
 
-/* ADR-0085: Zustellwahl im Dock (vormerken oder lenken). Bewusst ein kleiner Chip statt
- * zweier Knöpfe: im niedrigen Querformat ist neben der Eingabe kein Platz für mehr
- * (BUG-0053), und der Hauptknopf behält seine eine Stelle. */
-.delivery-chip {
-  align-self: center;
-  padding: 4px 8px;
-  border: 1px solid var(--bg-chip);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--fg-dim);
-  font-size: var(--text-sm);
+/* ADR-0085 (Nachtrag 18.11.): Zustellwahl im Dock — Baustein `Chip` mit Linienzeichen,
+ * rechts vom Hauptknopf. Bewusst keine zwei Knöpfe: im niedrigen Querformat ist neben der
+ * Eingabe kein Platz (BUG-0053), und der Hauptknopf behält seine eine Stelle. Die Höhe folgt
+ * --target, damit der Chip mit dem Formknopf eine Zeile bildet; der gewählte Zustand ist
+ * angetönt statt ausgefüllt — ausgefüllt bleibt der Hauptknopf allein. */
+.delivery-choice {
+  flex: none;
+  /* 44 px wie der Druckknopf-Baustein (.ui-button) — Chip und Hauptknopf bilden eine Zeile. */
+  min-height: 44px;
+  padding: 9px 12px;
+  gap: 6px;
+  border-color: var(--fg-dim);
+  color: var(--fg);
+  font-size: var(--text-md);
   letter-spacing: var(--tracking-label);
   white-space: nowrap;
 }
-.delivery-chip[aria-pressed="true"] {
+/* Auf dem Handy teilt der Chip die Zeile mit Clip, Vollbild, Hauptknopf und sich — bei
+   360 px bliebe sonst nichts uebrig (gemessen: 119 px Platz, Chip 129 px). */
+@media (max-width: 639px) {
+  .delivery-choice {
+    padding: 8px 8px;
+    gap: 4px;
+    font-size: var(--text-sm);
+  }
+  .delivery-choice svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+.delivery-choice.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--bg-elev));
   border-color: var(--accent);
   color: var(--fg);
+  font-weight: 400;
 }
 
 .icon-action {

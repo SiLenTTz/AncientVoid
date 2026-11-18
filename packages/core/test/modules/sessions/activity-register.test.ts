@@ -63,6 +63,33 @@ function openTurnAdapter(withActivity: boolean): Adapter {
   };
 }
 
+/** BUG-0209: ein Adapter, dessen Zug endet, während eine Provider-Aktivität offen ist
+ * (ACP: ein Werkzeugaufruf bekommt nie sein terminales Update). */
+function endsWithOpenActivity(id: string, kind: "tool" | "agent", out: { ctx?: Parameters<Adapter["start"]>[1] } = {}): Adapter {
+  return {
+    id: "open-activity",
+    version: "0.0.1",
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+    async start(_spec, ctx) {
+      out.ctx = ctx;
+      ctx.turn?.("working");
+      ctx.activity?.({ id, kind, state: "running", label: "hängt" });
+      ctx.turn?.("idle");
+      return { sessionId: ctx.sessionId };
+    },
+    async recover(sessionId) {
+      return { sessionId };
+    },
+    async steer() {
+      return { ok: true };
+    },
+    async status() {
+      return { state: "healthy" };
+    },
+    async stop() {},
+  };
+}
+
 async function waitFor(check: () => boolean, what: string): Promise<void> {
   const deadline = Date.now() + 5000;
   while (!check()) {
@@ -299,6 +326,74 @@ describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
       expect(typeof beginId).toBe("string");
       expect(await manager2.endActivity(record!.id, beginId!, 0)).toBe(true);
       expect(manager2.get(record!.id)?.status).toBe("interrupted");
+    } finally {
+      await manager2.shutdown();
+      db2.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("BUG-0209: ein beim Zugende offener Werkzeugaufruf hält die Session nicht auf working", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("open-activity", () => endsWithOpenActivity("tool:call_1", "tool"));
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "open-activity", project: dir, prompt: "start" });
+      await waitFor(() => manager.get(record.id)?.status === "idle", "idle trotz offenem Werkzeugaufruf");
+      const all = await kinds(manager, record.id);
+      expect(all).toContain("session.activity_end");
+      expect(all).toContain("session.turn_end");
+      expect(all).not.toContain("session.activity_pending");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("BUG-0209: ein beim Zugende offener Subagent bleibt dagegen Arbeit (ADR-0074)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("open-activity", () => endsWithOpenActivity("task:sub_1", "agent"));
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "open-activity", project: dir, prompt: "start" });
+      await waitFor(() => manager.get(record.id) !== undefined, "Session da");
+      for (let i = 0; i < 100 && !(await kinds(manager, record.id)).includes("session.activity_pending"); i++) await new Promise((r) => setTimeout(r, 20));
+      expect(manager.get(record.id)?.status).toBe("working");
+      expect(await kinds(manager, record.id)).toContain("session.activity_pending");
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("BUG-0209: Recovery schließt einen nach dem Hauptzug verwaisten Werkzeugaufruf und setzt idle", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    const out: { ctx?: Parameters<Adapter["start"]>[1] } = {};
+    registry.register("open-activity", () => endsWithOpenActivity("tool:call_0", "tool", out));
+    const dbPath = join(dir, "hub.db");
+    const store = new EventStore(dir);
+    {
+      const db = new HubDatabase(dbPath);
+      const manager = new SessionManager(db, store, registry, new ProcessRunner());
+      const record = await manager.create({ adapter: "open-activity", project: dir, prompt: "start" });
+      await waitFor(() => manager.get(record.id)?.status === "idle", "idle");
+      // Spätes Update nach dem Zugende — niemand meldet je sein Ende (Journal von 976960bb).
+      out.ctx!.activity?.({ id: "tool:late", kind: "tool", state: "running", label: "spät" });
+      await waitFor(() => manager.get(record.id)?.status === "working", "working durch spätes Werkzeug");
+      db.close(); // Hard-Kill
+    }
+    const db2 = new HubDatabase(dbPath);
+    const manager2 = new SessionManager(db2, store, registry, new ProcessRunner());
+    try {
+      await manager2.recoverAll();
+      const [record] = manager2.list();
+      expect(record?.status).toBe("idle");
+      expect(await kinds(manager2, record!.id)).toContain("session.turn_end");
     } finally {
       await manager2.shutdown();
       db2.close();

@@ -172,11 +172,15 @@
   z-index: var(--z-base);
   background: var(--bg-elev);
   margin: -8px -8px 0;
-  padding: 12px 12px 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 4px;
+  display: flex;
+  align-items: center;
+}
+/* BUG-0210: space-between verteilte Titel, Sound-Taste und ✕ auf die ganze
+ * Breite — die Sound-Taste (EPIC-P65 T65.4) rutschte damit fast in die
+ * Panel-Mitte. Der Titel füllt den Rest, beide Tasten liegen rechts benachbart. */
+.notif-panel-head > strong {
+  flex: 1;
 }
 /* Nutzerfund 2026-11-15: Fehler und offene Fragen angepinnt oben — jeder
  * Abschnitt nutzt die Überschrift der Übersicht (.section-title). */

@@ -242,11 +242,12 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0206](bug-0206-terminal-css-bricht-token-ratchet.md) | Terminal-CSS aus PR #125 bricht den css-tokens-Ratchet (3 Farbliterale, 2 var-Fallbacks, Phantom-Token `--danger`) — main stand rot | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0207](bug-0207-live-strom-rollt-nicht-mit.md) | beim Live-Strom waechst der Text unter der Lesespitze weg, die Liste rollt nicht mit (Harness: Blase 911 px bzw. 891 px unter dem Rand) — Follow hing an Ereignissen, nicht an Frames | open | S3 | pwa | — |
 | [BUG-0208](bug-0208-nach-strom-ende-auf-nachrichtenanfang-scrollen.md) | nach dem fertigen Strom steht die Spitze am ENDE der Nachricht, ihr Anfang bleibt oberhalb (Harness: −12 355 px, Liste klebt am Fuss) | open | S3 | pwa | — |
-Die nächste freie Nummer ist **0209** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0209](bug-0209-session-bleibt-working-nach-abschluss.md) | Sessions bleiben nach fertigem Zug auf „arbeitet“ (pi: recover ohne adoptWorker; ACP: Werkzeugaufruf ohne terminales Update hält das Register offen) | done | S2 | core | — |
+| [BUG-0210](bug-0210-sound-taste-schwebt-mittig-im-panel-kopf.md) | die Sound-Taste im Benachrichtigungs-Panel-Kopf schwebt fast mittig statt neben ✕ (`space-between` mit drei Kindern, Spalt 82 px gemessen) — Titel füllt jetzt den Rest, Tasten liegen benachbart | done | S4 | pwa | [#146](https://github.com/securesight-ai/AncientVoid/issues/146) |
+Die nächste freie Nummer ist **0211** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
 aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage;
 0189–0191 sind Dateibaum-Bugfarben und Git-Historie-Lesbarkeit/Blob-Sprung;
-0192 Slash-Commands; 0202 ist Cursor `interaction_query` unsichtbar im Chat; 0203 der Eltern-loser Commit im Aenderungsdiff; 0204 der uebergrosse Aenderungsdiff, der wegen maxBuffer komplett rausfaellt; 0207/0208 sind die Live-Strom-Scrolldefekte (Mitrollen an Frames statt Ereignissen, Sprung an den Nachrichtenanfang).
-
+0192 Slash-Commands; 0202 ist Cursor `interaction_query` unsichtbar im Chat; 0203 der Eltern-loser Commit im Aenderungsdiff; 0204 der uebergrosse Aenderungsdiff, der wegen maxBuffer komplett rausfaellt; 0207/0208 sind die Live-Strom-Scrolldefekte (Mitrollen an Frames statt Ereignissen, Sprung an den Nachrichtenanfang); 0209 Sessions bleiben auf working (PR #144); 0210 ist die Sound-Taste im Panel-Kopf (PR #147 — dort zunaechst als BUG-0207 gefuehrt, nach Kollision mit der aelteren Belegung durch PR #142 umnummeriert).
