@@ -5,12 +5,12 @@ import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings } from "@ancientvoid/contracts";
 import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
-import type { WorktreeManager } from "../workspace/index.ts";
+import type { WorktreeBaseChoice, WorktreeManager } from "../workspace/index.ts";
 import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, CheckoutLeaseStore, canonicalCheckout, checkoutState, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
@@ -140,6 +140,8 @@ export class SessionManager {
   private readonly recoveryBudgetMs: number;
   private readonly mirrorDataDir: string;
   private readonly defaultPermissionMode: string | null;
+  /** EPIC-P67 Stufe 1: liefert effektive Main-Sync-Einstellungen je Projekt — undefined = altes Verhalten. */
+  private readonly mainSyncSettings: ((projectPath: string) => MainSyncSettings) | undefined;
   private readonly queue: SessionQueue;
   private readonly turnMetricStore: TurnMetricStore;
   private titleModel: PlannerModelConfig | undefined;
@@ -179,6 +181,10 @@ export class SessionManager {
     mirrorDataDir: string = defaultOpencodeDataDir(),
     /** ADR-0033: the mode new sessions start in, where the adapter offers it. */
     defaultPermissionMode: string | null = null,
+    /** EPIC-P67 / ADR-0088 Stufe 1: effektive Main-Sync-Einstellungen für
+     * ein Projekt (global + Projekt-Override, vom Aufrufer aufgelöst).
+     * Weglassen = exakt das Vor-P67-Verhalten: Basis ist der lokale HEAD. */
+    mainSyncSettings?: (projectPath: string) => MainSyncSettings,
   ) {
     this.autoResumeInterrupted = observability.autoResumeInterrupted ?? true;
     this.activityTracker = new SessionActivities({
@@ -210,6 +216,7 @@ export class SessionManager {
       },
     });
     this.defaultPermissionMode = defaultPermissionMode;
+    this.mainSyncSettings = mainSyncSettings;
     this.queue = new SessionQueue(db);
     this.turnMetricStore = new TurnMetricStore(db);
     this.mirrorDataDir = mirrorDataDir;
@@ -722,16 +729,19 @@ export class SessionManager {
     // EPIC-P19: ein Loop arbeitet im Projekt des Loop-Systems selbst, eine Hub-Kopie davon wäre die falsche Stelle.
     // ADR-0041: die Übernahme der Originalsession (ohne Kopie) läuft dort weiter, wo sie entstand — omp bricht
     // `session/load` aus einem anderen Verzeichnis ab, und die Session gehört ohnehin diesem Projekt.
-    let worktreeCreated: { path: string; baseSha: string } | null = null;
+    let worktreeCreated: { path: string; baseSha: string; base: WorktreeBaseChoice } | null = null;
     if (this.worktrees && place.mode === "worktree" && !isLoopAdapter(record.adapter)) {
       try {
-        const created = await this.worktrees.create(record.id, record.project);
+        const created = await this.worktrees.create(record.id, record.project, {
+          mainSync: this.mainSyncSettings?.(record.project),
+        });
         if (created) {
           worktreeCreated = created;
           session.workdir = created.path;
           session.worktreeIsolated = true;
           record.worktreeSha = created.baseSha;
           this.persist(record);
+          await this.emitMainSyncBaseEvent(session, created.base);
         }
       } catch (err) {
         await this.emitSystem(session, "session.worktree_failed", {
@@ -1340,12 +1350,15 @@ export class SessionManager {
     if (!this.worktrees || existsSync(session.workdir)) return false;
     let recreated = false;
     try {
-      const created = await this.worktrees.create(session.record.id, session.record.project);
+      const created = await this.worktrees.create(session.record.id, session.record.project, {
+        mainSync: this.mainSyncSettings?.(session.record.project),
+      });
       if (created) {
         session.workdir = created.path;
         session.worktreeIsolated = true;
         session.record.worktreeSha = created.baseSha;
         recreated = true;
+        await this.emitMainSyncBaseEvent(session, created.base);
       } else {
         session.workdir = session.record.project;
         session.worktreeIsolated = false;
@@ -2970,6 +2983,24 @@ export class SessionManager {
       this.persist(session.record);
       await this.emitSystem(session, "session.titled", { title, source: "ai" });
     })().catch((err) => this.logger.warn("ai title failed", { sessionId: session.record.id, err: err instanceof Error ? err.message : String(err) }));
+  }
+
+  /**
+   * EPIC-P67 / ADR-0088 Stufe 1: die Basiswahl sichtbar machen. Skip/Fetch-
+   * Fehler werden als Event laut benannt (Regel 6, K10) — ein Erfolg auf
+   * `origin/<Hauptbranch>` braucht keins: die Basis-SHA steht im Record
+   * (`worktreeSha`) und belegt sie. `off` ist Nutzerauswahl, kein Defekt.
+   */
+  private async emitMainSyncBaseEvent(session: LiveSession, base: WorktreeBaseChoice): Promise<void> {
+    if (base.source === "origin" || base.reason === "off") return;
+    if (base.reason === "not-main-branch") {
+      await this.emitSystem(session, "workspace.main_sync_skipped", { reason: base.reason, ...(base.detail ? { detail: base.detail } : {}) });
+      return;
+    }
+    await this.emitSystem(session, "workspace.main_sync_failed", {
+      reason: base.reason === "no-remote" ? "no-remote" : base.fetchReason,
+      ...(base.detail ? { detail: base.detail } : {}),
+    });
   }
 
   private async emitSystem(session: LiveSession, kind: string, payload: Record<string, unknown>): Promise<void> {

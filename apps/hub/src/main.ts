@@ -10,7 +10,8 @@ import { createHubTeam } from "./modules/team/index.ts";
 import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { homedir, hostname, loadavg, cpus, totalmem, freemem } from "node:os";
-import { toHostId } from "@ancientvoid/contracts";
+import { toHostId, readMainSyncSettings } from "@ancientvoid/contracts";
+import type { MainSyncSettings } from "@ancientvoid/contracts";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@ancientvoid/contracts";
 import {
@@ -203,6 +204,21 @@ async function main(): Promise<void> {
     { logger: logger.child({ component: "sessions" }), metrics, autoResumeInterrupted: config.autoResumeInterrupted, steerWaitMs: config.steerWaitMs },
     opencodeDataDir,
     config.defaultPermissionMode,
+    // EPIC-P67 Stufe 1: Basis neuer Worktrees ist origin/<Hauptbranch>. Liest
+    // den globalen Eintrag aus der config-Tabelle (T67.3 ergänzt Projekt-Overrides
+    // und die API); fehlt er, gelten die Defaults (fetch-base, ADR-0088).
+    (projectPath: string): MainSyncSettings => {
+      const raw = settings.get("mainSync.global");
+      let parsed: unknown = null;
+      try {
+        parsed = raw === null ? null : (JSON.parse(raw) as unknown);
+      } catch {
+        // unlesbarer Eintrag: parsed bleibt null → readMainSyncSettings fällt auf Defaults
+      }
+      const read = readMainSyncSettings(parsed);
+      if (read.fallback === "invalid") logger.warn("mainSync.global unlesbar — Defaults aktiv", { projectPath });
+      return read.value;
+    },
   );
   // EPIC-P29 / ADR-0051 §2: die Manifest-Freigabe braucht die Queue IMMER —
   // `requireStepApprovals` steuert nur das steer.prompt-Gate, nicht ob ein
