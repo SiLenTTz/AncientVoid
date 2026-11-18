@@ -380,6 +380,8 @@ export interface HubNotification {
   detail: string | null;
   kind: string;
   createdAt: string;
+  /** EPIC-P67 T67.6: optionaler Aktionsknopf (z. B. „Jetzt aktualisieren“ beim Main-Sync). */
+  action?: { label: string; method: "POST"; path: string } | null;
 }
 
 /** ADR-0011 — one session found by the hub or a read-only provider scan. */
@@ -1002,6 +1004,10 @@ function createHubApi(P: (path: string) => string) {
   fleetRemovePeer: (hostId: string) =>
     api<{ ok: boolean }>(P(`/api/fleet/peers/${encodeURIComponent(hostId)}`), { method: "DELETE", body: "{}" }),
   notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}`)),
+  /** EPIC-P67 T67.6: Aktionsknopf einer Benachrichtigung — ruft genau den
+   * mitgelieferten Hub-Pfad (gleicher Endpunkt wie das Session-Menü). */
+  runNotificationAction: (path: string) =>
+    api<{ outcome: string; reason?: string; detail?: string }>(P(path), { method: "POST", body: "{}" }),
   sessionDiff: (id: string) => api<SessionDiffResult>(P(`/api/sessions/${id}/diff`)),
   /** EPIC-P36: Review-Notizen zur Diff-Ansicht (ADR-0055). */
   /** EPIC-P37: Forge (GitLab) im Session-Kontext. */

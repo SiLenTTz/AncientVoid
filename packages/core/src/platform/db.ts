@@ -603,6 +603,15 @@ export const MIGRATIONS: Migration[] = [
       ALTER TABLE team_stat_facts ADD COLUMN created_at TEXT NOT NULL DEFAULT '';
     `,
   },
+  {
+    id: 38,
+    name: "notification-action",
+    // EPIC-P67 T67.6 / ADR-0088: Benachrichtigungen tragen optional einen
+    // Aktionsknopf (JSON aus NotificationAction) — erstmalig gebraucht für
+    // „Jetzt aktualisieren“ beim Main-Sync (ask-Modus). NULL = keine Aktion,
+    // Bestand vor der Migration bleibt unverändert.
+    sql: `ALTER TABLE notifications ADD COLUMN action TEXT;`,
+  },
 ];
 
 export class HubDatabase {

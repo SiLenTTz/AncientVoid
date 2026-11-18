@@ -1,2 +1,2 @@
 /** Public API of this module (ADR-0020). Other modules import only from here. */
-export { notificationFor, projectName, type NotificationDraft } from "./notifications.ts";
+export { notificationFor, projectName, parseNotificationAction, type NotificationDraft } from "./notifications.ts";

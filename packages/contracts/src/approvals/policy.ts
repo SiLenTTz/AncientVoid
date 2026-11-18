@@ -56,6 +56,10 @@ export const POLICY_OPERATIONS = [
   "workspace.retry",
   /** EPIC-P29 T29.6: Preview-Ticket für einen registrierten Service — das Handy des Menschen (auch via Fleet). */
   "workspace.preview",
+  /** EPIC-P67 / ADR-0088: origin/Hauptbranch in eine Session einmischen —
+   * Menschen (PWA-Knopf, Aktionsknopf der Benachrichtigung) und Agenten
+   * (hubctl main-sync --apply, T67.9); History-Umschreibung gibt es nicht. */
+  "main-sync.apply",
   "approvals.decide",
   "tokens.manage",
   "fleet.manage",
@@ -117,6 +121,7 @@ export const POLICY: Readonly<Record<PolicyOperation, Readonly<Record<ActorKind,
   "sessions.archive": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   /** T29.6/ADR-0051 §3: „Retry nur menschlich" — keine zweite Ausführung durch Agenten, Displays oder die Fleet. */
   "workspace.retry": { human: HUMAN, fleet: "deny", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
+  "main-sync.apply": { human: HUMAN, fleet: "deny", agent: "allow", bridge: "deny", companion: "allow", display: "deny" },
   /** T29.6/ADR-0051 §6: Preview eines registrierten Service — ein Mensch (ggf. über den Heim-Hub), sonst niemand. */
   "workspace.preview": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "deny" },
   "approvals.decide": { human: HUMAN, fleet: "allow", agent: "deny", bridge: "deny", companion: "deny", display: "allow" },
