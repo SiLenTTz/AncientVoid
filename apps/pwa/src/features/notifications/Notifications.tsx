@@ -5,6 +5,7 @@ import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
 import { hasApprovalCandidates, urgencyOf } from "./urgency.ts";
+import { SECTION_KEYS, defaultExpanded, sectionOf, type SectionKey } from "./sections.ts";
 import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
 import { soundCategoryOf } from "./sound-category.ts";
 
@@ -75,11 +76,15 @@ const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pend
 /** `corner`: the list column is folded away, so bell and gear sit in the window corner.
  * EPIC-P64 T64.4: `flow` — am PC mit sichtbarer Liste sitzt die Glocke als
  * Flusselement im Kopf der Listenspalte (App-Topbar), nicht als Overlay. */
+export const SECTION_LABEL: Record<SectionKey, string> = { errors: "Fehler", questions: "Offene Fragen", rest: "Übrige Meldungen" };
 export function NotificationCenter({ corner = false, flow = false }: { corner?: boolean; flow?: boolean }) {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [open, setOpen] = useState(false);
   const [read, setRead] = useState(readMarks);
+  /** Nutzerwunsch 2026-11-18: einklappbare Abschnitte — Vorgabe beim Öffnen
+   * (und bei Neuankünften im offenen Panel): nur Ungesehenes steht offen. */
+  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ errors: true, questions: true, rest: true });
   /** Sessions mit noch offener Freigabe/Frage — live geprüft, damit eine
    * beantwortete Frage aus dem angepinnten Abschnitt verschwindet. */
   const [pendingApprovals, setPendingApprovals] = useState<ReadonlySet<string>>(new Set());
@@ -107,6 +112,25 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+  // Neu Angelangtes und frisch geladene Freigaben klappen Abschnitte auf,
+  // solange das Panel offen ist — Ungesehenes und offene Fragen sollen nicht
+  // hinter einem zugeklappten Kopf warten. Ein manueller Griff des Nutzers an
+  // einen Kopf bleibt davon unberührt (aufgeklappt wird nur, nie zu).
+  useEffect(() => {
+    if (!open) return;
+    setExpanded((prev) => {
+      const want = defaultExpanded(items, read, pendingApprovals);
+      const next: Record<SectionKey, boolean> = { ...prev };
+      let changed = false;
+      for (const key of SECTION_KEYS) {
+        if (want[key] && !prev[key]) {
+          next[key] = true;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [items, open, read, pendingApprovals]);
   useEffect(() => {
     if (!open) return;
     return registerShortcut("notifications.close", (e) => {
@@ -234,11 +258,14 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   /** EPIC-P64 T64.2: höchste offene Dringlichkeit steuert den Glow der Glocke. */
   const urgency = urgencyOf(items, read, pendingApprovals);
 
-  const isOpenQuestion = (n: FleetNotification) =>
-    APPROVAL_KINDS.has(n.kind) && pendingApprovals.has(`${n.hostId ?? ""}#${n.sessionId}`);
-  const errors = items.filter((n) => n.level === "error");
-  const questions = items.filter((n) => n.level !== "error" && isOpenQuestion(n));
-  const rest = items.filter((n) => n.level !== "error" && !isOpenQuestion(n));
+  const sections: Record<SectionKey, FleetNotification[]> = { errors: [], questions: [], rest: [] };
+  for (const n of items) sections[sectionOf(n, pendingApprovals)].push(n);
+  const toggleSection = (key: SectionKey) =>
+    setExpanded((prev) => {
+      const next: Record<SectionKey, boolean> = { ...prev };
+      next[key] = !prev[key];
+      return next;
+    });
 
   const row = (n: FleetNotification) => (
     <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
@@ -273,6 +300,9 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       }
     }
     refreshPending();
+    // Nutzerwunsch 2026-11-18: Einklapp-Vorgabe aus dem Ungesehenen ableiten —
+    // zwingend vor dem Setzen der Read-Marks, danach wäre alles gesehen.
+    setExpanded(defaultExpanded(items, read, pendingApprovals));
     const marks = { ...read };
     for (const n of items) marks[n.hostId ?? ""] = Math.max(marks[n.hostId ?? ""] ?? 0, n.id);
     saveReadMarks(marks);
@@ -343,24 +373,23 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
             <div class="ui-empty">noch keine Meldungen</div>
           ) : (
             <>
-              {errors.length > 0 && (
-                <section class="notif-section" aria-label="Fehler">
-                  <h3 class="section-title">Fehler</h3>
-                  {errors.map(row)}
-                </section>
-              )}
-              {questions.length > 0 && (
-                <section class="notif-section" aria-label="Offene Fragen">
-                  <h3 class="section-title">Offene Fragen</h3>
-                  {questions.map(row)}
-                </section>
-              )}
-              {rest.length > 0 && (
-                <section class="notif-section" aria-label="Übrige Meldungen">
-                  <h3 class="section-title">Übrige Meldungen</h3>
-                  {rest.map(row)}
-                </section>
-              )}
+              {SECTION_KEYS.map((key) => {
+                const list = sections[key];
+                if (list.length === 0) return null;
+                return (
+                  <section key={key} class="notif-section" aria-label={SECTION_LABEL[key]}>
+                    {/* Nutzerwunsch 2026-11-18: ganze Kopfzeile klappt den Abschnitt
+                     * (Muster .section-fold der Übersicht, EPIC-P43 T43.3). */}
+                    <h3 class="section-title">
+                      <button class="section-fold" type="button" aria-expanded={expanded[key]} onClick={() => toggleSection(key)}>
+                        <span class="section-fold-mark" aria-hidden="true" />
+                        {SECTION_LABEL[key]} <span class="dim num">{list.length}</span>
+                      </button>
+                    </h3>
+                    {expanded[key] && list.map(row)}
+                  </section>
+                );
+              })}
             </>
           )}
         </div>
