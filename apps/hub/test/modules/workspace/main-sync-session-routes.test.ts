@@ -112,10 +112,8 @@ describe("main-sync session routes", () => {
     expect(typeof after.body.lastSyncedAt).toBe("string");
   });
 
-  it("Policy main-sync.apply: Agenten-Token darf anwenden (kein 403)", async () => {
-    const res = await call("POST", `/api/sessions/${sessionId}/main-sync`, agent);
-    expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ outcome: "skipped", reason: "up-to-date" });
+  it("Policy main-sync.apply: Agenten-Token schreibt nicht (403) — Menschenfläche", async () => {
+    expect((await call("POST", `/api/sessions/${sessionId}/main-sync`, agent)).status).toBe(403);
   });
 
   it("409 ohne Worktree-Isolation (direkter Modus)", async () => {
