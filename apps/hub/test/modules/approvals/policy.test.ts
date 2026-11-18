@@ -18,7 +18,7 @@ describe("actor policy (T7.4)", () => {
   let display: string;
   let approvals: ApprovalService;
 
-  async function call(method: "GET" | "POST" | "DELETE", url: string, token: string, payload?: unknown) {
+  async function call(method: "GET" | "POST" | "PUT" | "DELETE", url: string, token: string, payload?: unknown) {
     const res = await app.inject({ method, url, headers: { authorization: `Bearer ${token}` }, ...(payload !== undefined ? { payload: payload as object } : {}) });
     return { status: res.statusCode, body: res.json() as Record<string, unknown> };
   }
@@ -111,6 +111,8 @@ describe("actor policy (T7.4)", () => {
       ["DELETE", "/api/tokens/pixel"],
       ["POST", "/api/fleet/invites"],
       ["POST", "/api/skills"],
+      ["PUT", "/api/skills"],
+      ["POST", "/api/skills/revise"],
     ] as const) {
       expect((await call(method, url, agent, {})).status, `${method} ${url}`).toBe(403);
     }
