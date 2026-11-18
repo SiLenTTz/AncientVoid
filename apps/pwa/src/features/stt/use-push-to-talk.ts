@@ -147,7 +147,7 @@ export function usePushToTalk() {
       if (t.text) await applyText(t.text, `lokal · ${t.engine} · ${(t.k6Ms / 1000).toFixed(1)} s${streamNotice ? " · Live-Vorschau nicht verfügbar" : ""}`);
       else setError("Nichts erkannt — nochmal versuchen.");
     } catch (err) {
-      // BUG-0212: nach einem Ausfall der eigenen Erkennung die Auskunft neu holen — sonst
+      // BUG-0214: nach einem Ausfall der eigenen Erkennung die Auskunft neu holen — sonst
       // hält die App für den Rest der Sitzung an einem toten Weg fest.
       const fresh = await refreshSttStatus().catch(() => ({ available: false as const }));
       setLocalStt(fresh);

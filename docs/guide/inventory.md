@@ -56,7 +56,6 @@ Regeln:
 | layer:files | Files layer: project file quick access and viewers | Session-Layer `files` | file-viewers |
 | layer:browser | Browser layer: hosted Chromium test workspace | Session-Layer `browser` | browser-workspace |
 | layer:devices | Devices layer: connected devices | Session-Layer `devices` | auth |
-| layer:git | Git layer: branches and commits | Session-Layer `git` | git-struktur |
 
 ## Features (`apps/pwa/src/features/`)
 

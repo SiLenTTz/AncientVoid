@@ -1,7 +1,7 @@
 import { test, expect } from "../support/fixtures.ts";
 
 /**
- * BUG-0212 (Kais Nachfrage, am laufenden Hub nachgemessen): whisper.cpp abgeschaltet —
+ * BUG-0214 (Kais Nachfrage, am laufenden Hub nachgemessen): whisper.cpp abgeschaltet —
  * `GET /api/stt` meldete trotzdem `available:true`, weil die Auskunft allein aus der
  * Konfiguration kommt. Die App hält dadurch an einem toten lokalen Weg fest, statt auf die
  * Browser-Erkennung umzuschalten. Diese Spec verlangt Ehrlichkeit vom Hub.
@@ -10,7 +10,7 @@ import { test, expect } from "../support/fixtures.ts";
  * Web-Speech-API) — deshalb prüft diese Spec die Entscheidungsvorlage (Hub-Auskunft), der
  * Umschaltmechanismus der App steht unitseitig in apps/pwa/test/stt-rueckfall.test.ts.
  */
-test.describe("Diktat ohne eigene Erkennung (BUG-0212)", () => {
+test.describe("Diktat ohne eigene Erkennung (BUG-0214)", () => {
   test.use({ hubOptions: { sttUrl: "http://127.0.0.1:9/inference", sttStreamingUrl: "ws://127.0.0.1:9/realtime" } });
 
   test("der Hub behauptet keine Erkennung, die er nicht erreicht", async ({ hub }) => {

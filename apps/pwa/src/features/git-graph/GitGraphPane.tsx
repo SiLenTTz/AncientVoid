@@ -20,7 +20,7 @@ export function GitGraphPane({
 }: {
   target: string;
   hostId?: string | null;
-  /** Projekt-Target (globale Git-Struktur-Ebene): null — Dateiklicks haben dann keinen Session-Explorer. */
+  /** Projekt-Target (früher globale Git-Struktur-Ebene): null — Dateiklicks haben dann keinen Session-Explorer. */
   sessionId: string | null;
 }) {
   const api = useMemo(() => hostApi(hostId), [hostId]);

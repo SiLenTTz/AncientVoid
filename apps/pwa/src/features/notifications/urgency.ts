@@ -13,6 +13,10 @@
 /** Kinds, die eine Freigabe/Frage anzeigen (Single Source, auch für Notifications.tsx). */
 export const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
 
+/** EPIC-P67 T67.6: Kinds des Main-Sync, die eine Entscheidung wollen —
+ * Rückfrage (ask-Modus, Aktionsknopf) und Konflikt glühen wie offene Fragen. */
+export const MAIN_SYNC_ACTION_KINDS = new Set(["mainsync.behind_ask", "mainsync.conflict"]);
+
 export type Urgency = "error" | "action" | "done";
 
 export interface UrgencyItem {
@@ -43,6 +47,7 @@ export function urgencyOf(items: readonly UrgencyItem[], read: Record<string, nu
     let u: Urgency | null = null;
     if (n.level === "error" && unread) u = "error";
     else if (APPROVAL_KINDS.has(n.kind) && n.sessionId !== null && pending.has(`${host}#${n.sessionId}`)) u = "action";
+    else if (MAIN_SYNC_ACTION_KINDS.has(n.kind) && unread) u = "action";
     else if (n.kind === "session.turn_end" && unread) u = "done";
     if (u !== null && (worst === null || RANK[u] < RANK[worst])) worst = u;
   }

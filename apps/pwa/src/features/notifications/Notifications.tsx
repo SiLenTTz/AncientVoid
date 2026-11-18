@@ -4,7 +4,7 @@ import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
-import { hasApprovalCandidates, urgencyOf } from "./urgency.ts";
+import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS } from "./urgency.ts";
 import { SECTION_KEYS, defaultExpanded, sectionOf, type SectionKey } from "./sections.ts";
 import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
 import { soundCategoryOf } from "./sound-category.ts";
@@ -31,7 +31,7 @@ interface Toast {
 }
 
 /** A notification with the host it came from (null = this hub). */
-type FleetNotification = HubNotification & { hostId: string | null; key: string };
+type FleetNotification = HubNotification & { hostId: string | null; key: string; actionBusy?: boolean };
 
 function readMarks(): Record<string, number> {
   let peers: Record<string, number> = {};
@@ -267,12 +267,38 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       return next;
     });
 
+  const runAction = async (n: FleetNotification) => {
+    if (!n.action) return;
+    const item = itemsRef.current.find((i) => i.key === n.key);
+    if (item) item.actionBusy = true;
+    setItems([...itemsRef.current]);
+    try {
+      // EPIC-P67 T67.6: derselbe Endpunkt wie das Session-Menü — auf dem
+      // Host der Benachrichtigung (Fleet-Hosts haben eigene Sessions).
+      await hostApi(n.hostId).runNotificationAction(n.action.path);
+      goTo(n.sessionId, n.hostId);
+    } catch {
+      // laut genug: Toast-Text bleibt, der Knopf wird wieder frei
+    } finally {
+      const done = itemsRef.current.find((i) => i.key === n.key);
+      if (done) done.actionBusy = false;
+      setItems([...itemsRef.current]);
+    }
+  };
+
   const row = (n: FleetNotification) => (
-    <button key={n.key} class={`notif-item ${n.level}`} type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
-      <span >{n.title}</span>
-      {n.detail && <span class="notif-item-detail">{n.detail}</span>}
-      <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
-    </button>
+    <div key={n.key} class={`notif-item ${n.level}`}>
+      <button class="notif-item-main" type="button" onClick={() => goTo(n.sessionId, n.hostId)}>
+        <span>{n.title}</span>
+        {n.detail && <span class="notif-item-detail">{n.detail}</span>}
+        <span class="notif-item-time">{timeAgo(n.createdAt)}</span>
+      </button>
+      {n.action && (
+        <Button class="notif-item-action" disabled={n.actionBusy} onClick={() => void runAction(n)}>
+          {n.actionBusy ? "läuft…" : n.action.label}
+        </Button>
+      )}
+    </div>
   );
 
   const openPanel = () => {

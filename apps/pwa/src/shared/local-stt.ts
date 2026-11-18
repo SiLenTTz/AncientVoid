@@ -13,7 +13,7 @@ export function sttStatus(): Promise<{ available: boolean; engine?: string; stre
   return status;
 }
 
-/** BUG-0212: die Auskunft darf nicht für alle Zeiten gemerkt bleiben. Nach einem lokalen
+/** BUG-0214: die Auskunft darf nicht für alle Zeiten gemerkt bleiben. Nach einem lokalen
  *  Ausfall holt die App sie neu — das nächste Drücken nimmt dann von selbst die
  *  Browser-Erkennung, wenn die eigene nicht mehr erreichbar ist. */
 export function refreshSttStatus(): Promise<{ available: boolean; engine?: string; streaming?: boolean }> {

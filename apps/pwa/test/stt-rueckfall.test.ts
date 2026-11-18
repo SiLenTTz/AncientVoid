@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { sttMock } = vi.hoisted(() => ({ sttMock: vi.fn() }));
 vi.mock("../src/shared/api.ts", () => ({ hubApi: { stt: sttMock } }));
 
-/** BUG-0212: nach einem Ausfall der eigenen Erkennung muss die App ihre Auskunft erneuern
+/** BUG-0214: nach einem Ausfall der eigenen Erkennung muss die App ihre Auskunft erneuern
  *  können — sonst hält sie für den Rest der Sitzung an einem toten Weg fest. */
-describe("Auskunft über die eigene Erkennung erneuern (BUG-0212)", () => {
+describe("Auskunft über die eigene Erkennung erneuern (BUG-0214)", () => {
   beforeEach(() => {
     sttMock.mockReset();
   });

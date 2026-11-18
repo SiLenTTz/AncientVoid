@@ -8,7 +8,7 @@ import type { LayerKind } from "../src/shared/layers.ts";
 
 // EPIC-P62 T62.1: LayerKind-ausführlich — kompiliert nicht mehr, wenn der
 // Union-Typ wächst und diese Liste den neuen Kind vergisst.
-const LAYERS = ["files", "browser", "devices", "git"] as const satisfies readonly LayerKind[];
+const LAYERS = ["files", "browser", "devices"] as const satisfies readonly LayerKind[];
 type _MissingLayer = Exclude<LayerKind, (typeof LAYERS)[number]>;
 const _layerGuard: _MissingLayer extends never ? true : "LayerKind ohne Inventar-Liste" = true;
 void _layerGuard;

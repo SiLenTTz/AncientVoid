@@ -1,5 +1,5 @@
 ---
-id: BUG-0212
+id: BUG-0214
 slug: stt-verfuegbarkeit-geschwindelt-kein-browser-rueckfall
 status: open
 severity: S2
@@ -12,7 +12,7 @@ created: 2026-11-18
 reporter: Nutzer (Kai, Nachfrage) + Agent (am laufenden Hub nachgemessen)
 ---
 
-# BUG-0212 — ist die eigene Erkennung weg, meldet der Hub „verfügbar“, und die App fällt nicht auf die Browser-Erkennung zurück
+# BUG-0214 — ist die eigene Erkennung weg, meldet der Hub „verfügbar“, und die App fällt nicht auf die Browser-Erkennung zurück
 
 ## Gesehen
 

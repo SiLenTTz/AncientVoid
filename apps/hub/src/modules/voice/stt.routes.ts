@@ -55,7 +55,7 @@ export function projectVocabulary(paths: readonly string[]): string {
   return names.slice(0, 40).join(", ");
 }
 
-/** BUG-0212: whisper.cpp antwortet auf `/health` neben `/inference`; andere Erkennungen
+/** BUG-0214: whisper.cpp antwortet auf `/health` neben `/inference`; andere Erkennungen
  *  haben diesen Pfad nicht — dann reicht jede Antwort als Lebenszeichen. */
 export function sttHealthUrl(url: string): string {
   try {
@@ -70,7 +70,7 @@ export function sttHealthUrl(url: string): string {
 }
 
 /**
- * BUG-0212: die Auskunft darf nicht aus der Konfiguration alone Behauptung sein — wer
+ * BUG-0214: die Auskunft darf nicht aus der Konfiguration alone Behauptung sein — wer
  * `available:true` sagt, muss die eigene Spracherkennung erreicht haben. Kurz gecacht,
  * damit ein toter Dienst nicht jedes Druecken aufs Neue warten laesst, aber die App nach
  * einem Ausfall beim naechstenmal die Wahrheit bekommt.

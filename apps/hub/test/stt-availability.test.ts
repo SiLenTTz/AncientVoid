@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { makeSttProbe, sttHealthUrl } from "../src/modules/voice/stt.routes.ts";
 
-/** BUG-0212: „verfügbar“ darf keine Behauptung aus der Konfiguration sein. */
-describe("Erreichbarkeit der eigenen Spracherkennung (BUG-0212)", () => {
+/** BUG-0214: „verfügbar“ darf keine Behauptung aus der Konfiguration sein. */
+describe("Erreichbarkeit der eigenen Spracherkennung (BUG-0214)", () => {
   it("leitet aus der inference-URL den Gesundheitspfad desselben Dienstes ab", () => {
     expect(sttHealthUrl("http://127.0.0.1:8094/inference")).toBe("http://127.0.0.1:8094/health");
     expect(sttHealthUrl("http://100.64.0.10:8094/inference?x=1")).toBe("http://100.64.0.10:8094/health");

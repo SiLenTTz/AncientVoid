@@ -62,3 +62,15 @@ describe("urgencyOf — höchste offene Dringlichkeit (EPIC-P64)", () => {
     expect(urgencyOf([n], {}, new Set(["peer#s2"]))).toBe("action");
   });
 });
+
+describe("EPIC-P67 T67.6 — Main-Sync-Meldungen in der Dringlichkeit", () => {
+  it("mainsync.behind_ask (Rückfrage) und mainsync.conflict glühen als action, gelesene nicht", () => {
+    expect(urgencyOf([item({ id: 4, kind: "mainsync.behind_ask", level: "warning" })], {}, new Set())).toBe("action");
+    expect(urgencyOf([item({ id: 4, kind: "mainsync.conflict", level: "warning" })], {}, new Set())).toBe("action");
+    expect(urgencyOf([item({ id: 4, kind: "mainsync.behind_ask", level: "warning" })], { "": 4 }, new Set())).toBeNull();
+  });
+
+  it("mainsync.behind ohne Rückfrage bleibt ohne Glow (nur Beobachtung)", () => {
+    expect(urgencyOf([item({ id: 4, kind: "mainsync.behind", level: "warning" })], {}, new Set())).toBeNull();
+  });
+});

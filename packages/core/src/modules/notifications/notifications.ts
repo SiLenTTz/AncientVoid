@@ -1,5 +1,5 @@
 import { win32 } from "node:path";
-import type { NormalizedEvent, NotificationLevel } from "@ancientvoid/contracts";
+import type { NormalizedEvent, NotificationAction, NotificationLevel } from "@ancientvoid/contracts";
 
 export interface NotificationDraft {
   level: NotificationLevel;
@@ -16,6 +16,20 @@ export interface NotificationContext {
 /** Anzeigename eines Projektpfads. Ein Windows-Hub meldet `C:\…`; win32.basename trennt an / und \ (BUG-0196). */
 export function projectName(project: string): string {
   return win32.basename(project) || project;
+}
+
+/** EPIC-P67 T67.6: gespeicherten Aktionsknopf lesen — kaputter JSON-Stand gilt als "keine Aktion", nie als Absturz. */
+export function parseNotificationAction(raw: string | null | undefined): NotificationAction | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { label?: unknown; method?: unknown; path?: unknown };
+    if (typeof parsed.label === "string" && parsed.label !== "" && parsed.method === "POST" && typeof parsed.path === "string" && parsed.path.startsWith("/api/")) {
+      return { label: parsed.label, method: "POST", path: parsed.path };
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**

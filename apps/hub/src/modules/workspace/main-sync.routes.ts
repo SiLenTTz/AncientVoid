@@ -38,4 +38,35 @@ export function registerMainSyncSettingsRoutes(app: FastifyInstance, ctx: RouteC
     mainSync.setOverrides(body.data.projects);
     return { global: mainSync.global(), projects: mainSync.overrides() };
   });
+
+  // EPIC-P67 T67.6/T67.8: Messung + Probelauf (GET) und Anwenden (POST) je
+  // Session — derselbe Endpunkt für Menü, Benachrichtigungs-Knopf und hubctl.
+  // GET ist generisches `read`; POST fällt unter `main-sync.apply` (Mensch +
+  // Agent). Fehler sind ehrlich: 404 unbekannte Session, 409 ohne
+  // Worktree-Isolation, 502 Fetch nicht möglich.
+  app.get("/api/sessions/:id/main-sync", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    try {
+      const check = await deps.sessions.mainSyncCheck(id);
+      return reply.header("cache-control", "no-store").send(check);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/Isolation/.test(message)) return reply.code(409).send({ error: message });
+      return reply.code(502).send({ error: message });
+    }
+  });
+
+  app.post("/api/sessions/:id/main-sync", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    if (!deps.sessions.get(id)) return reply.code(404).send({ error: "unknown session" });
+    try {
+      const result = await deps.sessions.mainSyncApply(id);
+      return reply.header("cache-control", "no-store").send(result);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (/Isolation/.test(message)) return reply.code(409).send({ error: message });
+      return reply.code(502).send({ error: message });
+    }
+  });
 }

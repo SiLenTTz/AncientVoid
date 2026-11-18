@@ -107,6 +107,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G72 | Metrik-Seite: Auslastung des lokalen KI-Servers — jede Zahl mit Quelle und Alter, „nicht gemeldet“ ≠ 0, Offline behält letzte Daten | Dock „Mehr“ → „Metrik“ | P59 | spec:ki-server-metriken.spec.ts |
 | G73 | Terminal: Shell auf Allowlist-Zielen (SSH-Alias oder Hub-Host), manuelle Befehle aus der PWA | Dock „Mehr“ → „Terminal“ | ADR-0087 | spec:terminal.spec.ts |
 | G74 | Töne: Master, Kategorien an/aus, Variante und Lautstärke mit Vorschau, Panel-Knopf stumm/laut | Einstellungen → Töne | EPIC-P65 | spec:sounds.spec.ts |
+| G75 | Main-Sync: neue Sessions starten auf origin/Hauptbranch (Fetch mit hartem Timeout, Fallback + sichtbares Event); laufende Prüfung je Projekt mit Modi melden/fragen/automatisch; Session-Hinweis „N hinter main“ mit Prüfen/Einmischen im ⋯-Menü; Benachrichtigung mit Aktionsknopf | Einstellungen → Main-Synchronisation · Session ⋯-Menü · `hubctl main-sync` | EPIC-P67 / ADR-0088 | spec:main-sync-settings.spec.ts, spec:main-sync-session.spec.ts |
 
 ## Session
 
@@ -167,7 +168,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S48 | Anhänge hochladen und senden | Composer | — | spec:attachments.spec.ts |
 | S49 | Modus und Modell wechseln | über dem Composer | — | spec:modus-modell.spec.ts |
 | S50 | Slash-Command ausführen | Composer | — | spec:slash-commands.spec.ts |
-| S51 | Lokale Spracherkennung; ist die eigene Erkennung nicht erreichbar, meldet der Hub das ehrlich und die App nimmt beim nächsten Drücken die Browser-Erkennung | Composer → Mikrofon | BUG-0212 | spec:voice-local.spec.ts, spec:stt-ausfall-rueckfall.spec.ts |
+| S51 | Lokale Spracherkennung; ist die eigene Erkennung nicht erreichbar, meldet der Hub das ehrlich und die App nimmt beim nächsten Drücken die Browser-Erkennung | Composer → Mikrofon | BUG-0214 | spec:voice-local.spec.ts, spec:stt-ausfall-rueckfall.spec.ts |
 | S52 | „Neu seit deinem letzten Besuch“ | Chat, nach Abwesenheit | — | spec:qol.spec.ts |
 | S53 | Markieren kopiert in die Zwischenablage | Chat | — | spec:selection-copy.spec.ts |
 | S54 | Dateien ansehen (Quelltext, Markdown, Bild, Diagnosen) | Dateibaum bzw. Reiter „Datei“ | T43.5 | spec:file-viewers.spec.ts |
