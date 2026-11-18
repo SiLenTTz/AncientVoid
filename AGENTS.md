@@ -126,6 +126,7 @@ sie duplizieren nichts hier, sie wenden es an. Index: `.claude/skills/README.md`
 
 - Defekt: Skill `bugfix` (Reproduce → Fix → Re-verify → Finalize). Handoff an `pr-review`.
 - Neuer Bug ohne Fix: Skill `bug-report` → `bugs/bug-NNNN-slug.md`.
+- Issue-Lebenszyklus (Anlage-Klassen, Triage, `Fixes #`-Pflicht für Defekt-PRs, Auto-Close für CI-Bugs): [docs/issues.md](docs/issues.md).
 - Vor jedem PR: Skill `gates` (= `npm test && npm run lint && npm run typecheck`, betroffene Packages; bei UI-/Ablauf-Änderungen plus `npm run test:e2e`, vor Epic-Abschluss `npm run gate`) und danach `pr-review` (6 Dimensionen inkl. Future-Fragility: Contract-Bruch, K5/K7-Verletzung, Adapter-Isolation).
 - **Wohin neuer Code gehört** ([ADR-0020](docs/adr/0020-modular-monolith-structure.md)): Fachlogik in `packages/core/src/modules/<modul>/` (öffentlich nur über dessen `index.ts`), Verträge in `packages/contracts/src/<modul>/`, HTTP-Routen in `apps/hub/src/modules/<modul>/<modul>.routes.ts`, PWA-Ansichten in `apps/pwa/src/features/<feature>/`, Gemeinsames der PWA in `apps/pwa/src/shared/`, Adapter in `packages/adapters/<name>/`. `npm run check:arch` (im Gate) prüft die Grenzen.
 - Commit-Zusammenfassung und PR-Titel: **Commit-Notation** `<Risiko> <Absicht> <bereich>: <Satz>` (`^ F pwa: …`, `. d adr: …`, `! B core: …`) nach [`docs/commit-notation.md`](docs/commit-notation.md) — Risiko nach belegtem Gate/Testumfang, eine Verhaltensänderung pro Commit, PR-Titel nie `@`. Hook `.githooks/commit-msg` und `npm run check:commits` prüfen es.
