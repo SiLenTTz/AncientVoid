@@ -12,7 +12,7 @@ const FORWARD_TIMEOUT_MS = 10_000;
  * generic 10 s forward timeout killed them (observed 2026-10-24, gpubox via
  * fleet). Slow-path allowlist instead of raising the global limit. */
 const FORWARD_TIMEOUT_SLOW_MS = 90_000;
-const SLOW_PATHS = /^\/api\/(prompt-enhance|prompt-recommendation|prompt-optimizer|sessions\/[^/]+\/(steer|apply|stop|archive|budget|workspace\/retry))$/;
+const SLOW_PATHS = /^\/api\/(prompt-enhance|prompt-recommendation|prompt-optimizer|skills\/revise|sessions\/[^/]+\/(steer|apply|stop|archive|budget|workspace\/retry))$/;
 const MAX_FORWARD_BYTES = 16 * 1024 * 1024;
 
 interface Forwarded {

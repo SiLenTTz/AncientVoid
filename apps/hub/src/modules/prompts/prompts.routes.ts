@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { isProjectPathAllowed, recommendForPrompt, writeProjectArtifact } from "@ancientvoid/core";
-import { enhancePrompt, RewriteFailed, type LocalRewriteModel } from "./enhance.ts";
+import { isProjectPathAllowed, readProjectArtifact, recommendForPrompt, updateProjectArtifact, writeProjectArtifact } from "@ancientvoid/core";
+import { enhancePrompt, rewriteWithChain, RewriteFailed, type LocalRewriteModel } from "./enhance.ts";
 import { projectContext } from "./project-context.ts";
+import { applyVerdict, judgeRecommendation } from "./skill-judge.ts";
 import { appendOptimizerFeedback } from "./optimizer-feedback.ts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
@@ -24,7 +25,31 @@ const OptimizerFeedbackBody = z.object({
   latencyMs: z.number(),
 });
 
-/** Prompt enhancer, optimizer feedback, skills and recommendations (T1.5, T3.9, T5.10). */
+const ArtifactKind = z.enum(["skill", "agent", "workflow"]);
+const ArtifactName = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
+/** EPIC-P68 T68.5: the file is rewritten as a whole; frontmatter and name stay. */
+const REVISE_INSTRUCTION =
+  "You maintain a skill/agent/workflow file for coding agents. Revise the file below so it also serves the request. Keep the frontmatter block (between the --- lines) and its name exactly; adjust the description only if the scope changes. Keep what still applies, stay concise, use the project context only as background facts and never invent paths or commands. Output ONLY the complete new file content, no preamble, no code fences.";
+
+/** A model that drops the frontmatter must not cost the file its name. */
+export function keepFrontmatter(draft: string, current: string): string {
+  const head = current.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/)?.[0];
+  const text = draft.replace(/^\s*```[a-z]*\n([\s\S]*?)\n```\s*$/i, "$1").trim();
+  if (!head || text.startsWith("---")) return text;
+  return `${head.trimEnd()}\n\n${text}`;
+}
+
+const ARTIFACT_ERRORS: Record<string, number> = {
+  "invalid artifact name": 400,
+  "draft too large": 400,
+  "artifact name mismatch": 400,
+  "artifact not found": 404,
+  "artifact changed": 409,
+  "artifact already exists": 409,
+};
+
+/** Prompt enhancer, optimizer feedback, skills and recommendations (T1.5, T3.9, T5.10, EPIC-P68). */
 export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, projectRoots, skillsFor } = ctx;
   // EPIC-P68 (ADR-0089): same local model as text commands (T9.2), with
@@ -116,8 +141,84 @@ export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): 
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     // null = nothing worth suggesting; sent as JSON so clients can tell.
-    const recommendation = recommendForPrompt(parsed.data.text, await skillsFor(parsed.data.project));
-    return reply.type("application/json").send(JSON.stringify(recommendation));
+    const items = await skillsFor(parsed.data.project);
+    const heuristic = recommendForPrompt(parsed.data.text, items);
+    // EPIC-P68: a free local model refines it; busy/absent → heuristic alone.
+    const verdict = local ? await judgeRecommendation(local, parsed.data.text, items) : null;
+    return reply.type("application/json").send(JSON.stringify(applyVerdict(verdict, heuristic, items)));
+  });
+
+
+  app.get("/api/skills/artifact", async (req, reply) => {
+    // EPIC-P68: show what exists before anyone writes a near-duplicate.
+    const q = z.object({ project: z.string().min(1), kind: ArtifactKind, name: ArtifactName }).safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: "project, kind and name required" });
+    if (!(await isProjectPathAllowed(q.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    const own = await readProjectArtifact(q.data.project, q.data.kind, q.data.name);
+    if (own) return { kind: q.data.kind, name: q.data.name, ...own };
+    // A base skill is readable (it shapes the chain) but never written from here.
+    const root = await ctx.catalogRootFor(q.data.project);
+    const base = root && q.data.kind === "skill" ? await readProjectArtifact(root, "skill", q.data.name) : null;
+    if (base) return { kind: q.data.kind, name: q.data.name, ...base, layer: "base" };
+    return reply.code(404).send({ error: "artifact not found" });
+  });
+
+
+  app.put("/api/skills", async (req, reply) => {
+    const parsed = z
+      .object({ project: z.string().min(1), kind: ArtifactKind, name: ArtifactName, draft: z.string().min(1).max(8000), baseHash: z.string().regex(/^[0-9a-f]{64}$/) })
+      .safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid artifact update" });
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    try {
+      return await updateProjectArtifact(parsed.data.project, parsed.data, parsed.data.baseHash);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "artifact update failed";
+      const code = ARTIFACT_ERRORS[message];
+      if (code) return reply.code(code).send({ error: message });
+      throw err;
+    }
+  });
+
+
+  app.post("/api/skills/revise", async (req, reply) => {
+    // EPIC-P68 T68.5: a proposal only — nothing is written here; saving is
+    // the separate PUT above with the hash this answer carries.
+    const parsed = z
+      .object({ project: z.string().min(1), kind: ArtifactKind, name: ArtifactName, prompt: z.string().min(1).max(8000), adapter: z.string().min(1) })
+      .safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: "invalid revise request" });
+    if (!(await isProjectPathAllowed(parsed.data.project, projectRoots))) {
+      return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
+    }
+    const current = await readProjectArtifact(parsed.data.project, parsed.data.kind, parsed.data.name);
+    if (!current) return reply.code(404).send({ error: "artifact not found" });
+    try {
+      const context = await projectContext(parsed.data.project, await skillsFor(parsed.data.project));
+      const result = await rewriteWithChain(
+        parsed.data.adapter,
+        { instruction: REVISE_INSTRUCTION, context, user: `Anfrage:\n${parsed.data.prompt}\n\nAktuelle Datei (${current.path}):\n${current.content}` },
+        parsed.data.project,
+        { registration: registrationOf(parsed.data.adapter), ...(local ? { local } : {}) },
+      );
+      return {
+        draft: keepFrontmatter(result.text, current.content).slice(0, 8000),
+        baseHash: current.hash,
+        engine: result.engine,
+        skipped: result.skipped,
+        ...(result.costUsd !== undefined ? { costUsd: result.costUsd } : {}),
+        latencyMs: result.latencyMs,
+      };
+    } catch (err) {
+      return reply.code(502).send({
+        error: err instanceof Error ? err.message : "revise failed",
+        ...(err instanceof RewriteFailed ? { skipped: err.skipped } : {}),
+      });
+    }
   });
 
 

@@ -111,6 +111,8 @@ describe("actor policy (T7.4)", () => {
       ["DELETE", "/api/tokens/pixel"],
       ["POST", "/api/fleet/invites"],
       ["POST", "/api/skills"],
+      ["PUT", "/api/skills"],
+      ["POST", "/api/skills/revise"],
     ] as const) {
       expect((await call(method, url, agent, {})).status, `${method} ${url}`).toBe(403);
     }
