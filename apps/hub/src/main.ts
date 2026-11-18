@@ -10,7 +10,8 @@ import { createHubTeam } from "./modules/team/index.ts";
 import { chmodSync, mkdirSync, existsSync } from "node:fs";
 import { readFile, readdir } from "node:fs/promises";
 import { homedir, hostname, loadavg, cpus, totalmem, freemem } from "node:os";
-import { toHostId } from "@ancientvoid/contracts";
+import { toHostId, sessionMainSyncPath } from "@ancientvoid/contracts";
+import { projectName } from "@ancientvoid/core";
 import { resolve } from "node:path";
 import type { WorkerRunner, DiscoverySource } from "@ancientvoid/contracts";
 import {
@@ -466,21 +467,55 @@ async function main(): Promise<void> {
   await app.listen({ port: config.server.port, host: listen });
   automations.start();
   aimetrics?.start();
-  // EPIC-P67 T67.5: laufende Main-Synchronisation — ein Fetch je Projekt je
-  // Takt (K8). Meldungen gehen ins Log, bis T67.6 sie als Benachrichtigungen
-  // sichtbar macht; Events landen über mainSyncApply in den Sessions.
+  // EPIC-P67 T67.5/T67.6: laufende Main-Synchronisation — ein Fetch je Projekt
+  // je Takt (K8). Meldungen werden persistente Benachrichtigungen (mit
+  // Aktionsknopf im ask-Modus) und gehen über onNotification an Web-Push.
   const mainSyncScheduler = new MainSyncScheduler({
     settingsFor: (projectPath) => mainSyncService.effective(projectPath),
     candidates: () => sessions.mainSyncCandidates(),
     apply: (sessionId) => sessions.mainSyncApply(sessionId, { skipFetch: true }),
-    notice: (n) =>
-      logger.info("main-sync", {
-        kind: n.kind,
-        sessionId: "sessionId" in n ? n.sessionId : undefined,
-        project: n.projectPath,
-        ...("behind" in n ? { behind: n.behind } : {}),
-        ...("reason" in n ? { reason: n.reason } : {}),
-      }),
+    notice: (n) => {
+      if (n.kind === "behind") {
+        void (
+          sessions.pushNotification(
+            n.sessionId,
+            {
+              level: "warning",
+              title: `${projectName(n.projectPath)} · ${n.behind} ${n.behind === 1 ? "Commit" : "Commits"} hinter main`,
+              detail: `origin/${n.branch} ist vorgerückt — aktualisieren, wenn die Session wartet.`,
+              // ask-Modus = Rückfrage: eigener Kind, damit Glow/Sound die Aktions-Taxonomie trifft (P64/P65)
+              kind: n.mode === "ask" ? "mainsync.behind_ask" : "mainsync.behind",
+            },
+            n.mode === "ask" ? { label: "Jetzt aktualisieren", method: "POST", path: sessionMainSyncPath(n.sessionId) } : null,
+          ) ?? Promise.resolve(null)
+        );
+        return;
+      }
+      if (n.kind === "conflict") {
+        void sessions.pushNotification(n.sessionId, {
+          level: "warning",
+          title: `${projectName(n.projectPath)} · Main-Sync-Konflikt`,
+          detail: `Konflikt in ${n.files.join(", ") || "?"} — in der Session lösen, der Hub mischt nichts halb ein.`,
+          kind: "mainsync.conflict",
+        });
+        return;
+      }
+      if (n.kind === "applied") {
+        void sessions.pushNotification(n.sessionId, {
+          level: "success",
+          title: `${projectName(n.projectPath)} · main eingemischt`,
+          detail: `origin/main ist jetzt Teil der Session (${n.result.to}).`,
+          kind: "mainsync.applied",
+        });
+        return;
+      }
+      void sessions.pushNotification(n.sessionId, {
+        level: "error",
+        title: `${projectName(n.projectPath)} · Main-Sync gescheitert`,
+        detail: n.detail ?? n.reason,
+        kind: "mainsync.failed",
+      });
+    },
   });
   mainSyncScheduler.start();
   void mainSyncScheduler.tick(); // Nachholen beim Start (§3.4) — kein persistenter Timer-Zustand (K7)

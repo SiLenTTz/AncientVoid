@@ -5,6 +5,7 @@ import { ConnectionsSettings } from "./ConnectionsSettings.tsx";
 import { DevicesSettings } from "./DevicesSettings.tsx";
 import { FontSettings } from "./FontSettings.tsx";
 import { GeminiSettings } from "./GeminiSettings.tsx";
+import { MainSyncSettings } from "./MainSyncSettings.tsx";
 import { PreviewSettings } from "./PreviewSettings.tsx";
 import { PushSettings } from "./PushSettings.tsx";
 import { SecuritySettings } from "./SecuritySettings.tsx";
@@ -32,6 +33,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
           <DevicesSettings />
           <FleetSettings />
           <ConnectionsSettings />
+          <MainSyncSettings />
           <GeminiSettings />
           <SecuritySettings onSwitchToken={onSwitchToken} />
         </div>

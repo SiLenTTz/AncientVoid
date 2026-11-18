@@ -52,6 +52,8 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // EPIC-P29 T29.6: Workspace-Retry führt genehmigte argv erneut aus —
   // nur ein Mensch (ADR-0051 §3); Preview-Ticket ebenso an die Person gebunden.
   if (/^\/api\/sessions\/[^/]+\/workspace\/retry$/.test(path)) return "workspace.retry";
+  // EPIC-P67 T67.6: Main-Sync an einer Session anwenden (Mensch + Agent, Policy-Tabelle).
+  if (/^\/api\/sessions\/[^/]+\/main-sync$/.test(path) && method !== "GET" && method !== "HEAD") return "main-sync.apply";
   if (/^\/api\/sessions\/[^/]+\/workspace\/services\/[^/]+\/preview-ticket$/.test(path)) return "workspace.preview";
   if (/^\/api\/approvals\/[^/]+\/(decide|webauthn\/)/.test(path)) return "approvals.decide";
   if (path.startsWith("/api/tokens") || path.startsWith("/api/webauthn/register")) return "tokens.manage";

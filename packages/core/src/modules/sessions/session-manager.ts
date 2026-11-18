@@ -5,7 +5,7 @@ import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings, MainSyncApplyResult, MainSyncCheckResult } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, NotificationAction, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings, MainSyncApplyResult, MainSyncCheckResult } from "@ancientvoid/contracts";
 import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, MAIN_SYNC_DEFAULTS, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
@@ -25,6 +25,7 @@ import { createConsoleLogger } from "../../platform/index.ts";
 import { dedupeDiscovered, filterDiscovered, pageDiscovered } from "../discovery/index.ts";
 import { resolveSkillChain, withSkillChain } from "../skills/index.ts";
 import { notificationFor, projectName, type NotificationDraft } from "../notifications/index.ts";
+import { parseNotificationAction } from "../notifications/index.ts";
 import { deriveTurnMetrics, TurnMetricStore } from "../runs/index.ts";
 import { buildHandoverPrompt, HANDOVER_PROMPT_MAX } from "../handover/index.ts";
 import { SessionQueue, type QueuedPrompt } from "./session-queue.ts";
@@ -2114,6 +2115,7 @@ export class SessionManager {
       detail: string | null;
       kind: string;
       created_at: string;
+      action: string | null;
     }[];
     const last = this.db.prepare("SELECT MAX(id) AS id FROM notifications").get() as { id: number | null };
     return {
@@ -2125,9 +2127,32 @@ export class SessionManager {
         detail: row.detail,
         kind: row.kind,
         createdAt: row.created_at,
+        // EPIC-P67 T67.6: Aktionsknopf — kaputter JSON-Stand gilt als "keine Aktion", nie als Absturz der Liste
+        action: parseNotificationAction(row.action),
       })),
       lastId: last.id ?? 0,
     };
+  }
+
+  /**
+   * EPIC-P67 T67.6: Benachrichtigung außerhalb eines Session-Events speichern
+   * (Main-Sync-Scheduler, später mehr) — gleiche Tabelle, gleiche Listener
+   * (Push), optionaler Aktionsknopf. Die Session muss existieren; der
+   * Rückgabewert ist die gespeicherte Meldung oder null bei unbekannter Session.
+   */
+  pushNotification(sessionId: string, draft: NotificationDraft, action?: NotificationAction | null): HubNotification | null {
+    if (!this.get(sessionId)) return null;
+    const ts = new Date().toISOString();
+    const res = this.db
+      .prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at, action) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .run(sessionId, draft.level, draft.title, draft.detail, draft.kind, ts, action ? JSON.stringify(action) : null);
+    const stored: HubNotification = { id: Number(res.lastInsertRowid), sessionId, level: draft.level, title: draft.title, detail: draft.detail, kind: draft.kind, createdAt: ts, ...(action ? { action } : {}) };
+    for (const listener of this.notificationListeners) {
+      void Promise.resolve()
+        .then(() => listener(stored))
+        .catch((err) => this.logger.warn("notification listener failed", { err: String(err) }));
+    }
+    return stored;
   }
 
   /** Records a delivered steer and, for a takeover, who handed over to whom. */

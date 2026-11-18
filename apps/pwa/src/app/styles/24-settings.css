@@ -511,3 +511,18 @@
   border-left: 2px solid var(--accent);
   color: var(--fg);
 }
+
+/* EPIC-P67 T67.7: Main-Synchronisation — Unterabschnitt Projekt-Überschreibungen. */
+.settings-subhead {
+  margin-top: 8px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--fg-dim);
+}
+.mainsync-override {
+  display: grid;
+  gap: 8px;
+  border: 1px solid var(--bg-chip);
+  border-radius: 8px;
+  padding: 8px 10px;
+}

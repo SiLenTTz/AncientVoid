@@ -29,3 +29,13 @@ describe("soundCategoryOf — Mapping neuer Meldungen (EPIC-P65)", () => {
     expect(soundCategoryOf({ level: "error", kind: "tool.permission_requested", pending: true })).toBe("error");
   });
 });
+
+describe("EPIC-P67 T67.6 — Main-Sync-Meldungen", () => {
+  it("Rückfrage und Konflikt klingen wie eine Frage (action), Erfolg bleibt info", () => {
+    expect(soundCategoryOf({ level: "warning", kind: "mainsync.behind_ask", pending: false })).toBe("action");
+    expect(soundCategoryOf({ level: "warning", kind: "mainsync.conflict", pending: false })).toBe("action");
+    expect(soundCategoryOf({ level: "success", kind: "mainsync.applied", pending: false })).toBe("info");
+    expect(soundCategoryOf({ level: "warning", kind: "mainsync.behind", pending: false })).toBe("info");
+    expect(soundCategoryOf({ level: "error", kind: "mainsync.failed", pending: false })).toBe("error");
+  });
+});

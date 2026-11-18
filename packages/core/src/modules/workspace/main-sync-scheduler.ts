@@ -21,7 +21,7 @@ interface SeenState {
 
 /** Was der Scheduler nach draußen meldet — T67.6 macht daraus Hub-Benachrichtigungen + Push. */
 export type MainSyncSchedulerNotice =
-  | { kind: "behind"; sessionId: string; projectPath: string; behind: number; branch: string }
+  | { kind: "behind"; sessionId: string; projectPath: string; behind: number; branch: string; mode: "notify" | "ask" }
   | { kind: "conflict"; sessionId: string; projectPath: string; files: string[] }
   | { kind: "applied"; sessionId: string; projectPath: string; result: Extract<MainSyncApplyResult, { outcome: "applied" }> }
   | { kind: "failed"; sessionId: string; projectPath: string; reason: string; detail?: string };
@@ -160,18 +160,13 @@ export class MainSyncScheduler {
       this.seen.delete(session.sessionId); // Stand aktuell — der nächste Rückstand meldet sich wieder
       return;
     }
-    const action = effectiveBehindAction(settings);
-    if (action !== "auto") {
-      this.notifyBehindOnce(session, branch, behind, previous);
+    const mode = resolveBehindMode(settings);
+    if (mode !== "auto-merge") {
+      this.notifyBehindOnce(session, branch, behind, previous, mode);
       return;
-    }
-    // auto: Mergen nur bei wartender Session und (im ersten Wurf) nur konfliktfrei
+    }    // auto-merge: Mergen nur bei wartender Session und (im ersten Wurf) nur konfliktfrei
     if (!session.waiting) {
-      this.notifyBehindOnce(session, branch, behind, previous);
-      return;
-    }
-    if (settings.autoMerge !== "clean-only") {
-      this.notifyBehindOnce(session, branch, behind, previous);
+      this.notifyBehindOnce(session, branch, behind, previous, "notify");
       return;
     }
     let clean: boolean;
@@ -197,20 +192,21 @@ export class MainSyncScheduler {
       this.deps.notice({ kind: "failed", sessionId: session.sessionId, projectPath: session.projectPath, reason: result.reason, ...(result.detail ? { detail: result.detail } : {}) });
     } else {
       // skipped/conflict (z. B. doch dirty geworden): beim nächsten Takt erneut bewerten
-      this.notifyBehindOnce(session, branch, behind, previous);
+      this.notifyBehindOnce(session, branch, behind, previous, "notify");
     }
   }
 
   /** Premortem 5: eine Meldung je Session und behind-Stand — nicht je Takt. */
-  private notifyBehindOnce(session: MainSyncCandidate, branch: string, behind: number, previous: SeenState | undefined): void {
+  private notifyBehindOnce(session: MainSyncCandidate, branch: string, behind: number, previous: SeenState | undefined, mode: "notify" | "ask"): void {
     if (previous && previous.behind === behind) return;
     this.seen.set(session.sessionId, { behind });
-    this.deps.notice({ kind: "behind", sessionId: session.sessionId, projectPath: session.projectPath, behind, branch });
+    this.deps.notice({ kind: "behind", sessionId: session.sessionId, projectPath: session.projectPath, behind, branch, mode });
   }
 }
 
-/** auto hinter `autoMerge` zurück: ohne ausdrückliches clean-only wird nichts autonom gemergt. */
-function effectiveBehindAction(settings: MainSyncSettings): "notify" | "auto" {
-  if (settings.behindAction === "auto" && settings.autoMerge === "clean-only") return "auto";
+/** auto hinter `autoMerge` zurück: ohne ausdrückliches clean-only wird nichts autonom gemergt; ask bleibt Rückfrage. */
+function resolveBehindMode(settings: MainSyncSettings): "notify" | "ask" | "auto-merge" {
+  if (settings.behindAction === "auto" && settings.autoMerge === "clean-only") return "auto-merge";
+  if (settings.behindAction === "ask" || (settings.behindAction === "auto" && settings.autoMerge === "ask")) return "ask";
   return "notify";
 }
