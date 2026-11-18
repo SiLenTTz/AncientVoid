@@ -168,7 +168,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S48 | Anhänge hochladen und senden | Composer | — | spec:attachments.spec.ts |
 | S49 | Modus und Modell wechseln | über dem Composer | — | spec:modus-modell.spec.ts |
 | S50 | Slash-Command ausführen | Composer | — | spec:slash-commands.spec.ts |
-| S51 | Lokale Spracherkennung | Composer → Mikrofon | — | spec:voice-local.spec.ts |
+| S51 | Lokale Spracherkennung; ist die eigene Erkennung nicht erreichbar, meldet der Hub das ehrlich und die App nimmt beim nächsten Drücken die Browser-Erkennung | Composer → Mikrofon | BUG-0214 | spec:voice-local.spec.ts, spec:stt-ausfall-rueckfall.spec.ts |
 | S52 | „Neu seit deinem letzten Besuch“ | Chat, nach Abwesenheit | — | spec:qol.spec.ts |
 | S53 | Markieren kopiert in die Zwischenablage | Chat | — | spec:selection-copy.spec.ts |
 | S54 | Dateien ansehen (Quelltext, Markdown, Bild, Diagnosen) | Dateibaum bzw. Reiter „Datei“ | T43.5 | spec:file-viewers.spec.ts |
