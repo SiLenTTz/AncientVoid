@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { STT_STREAM_MAX_ACTIVE, STT_STREAM_MAX_AUDIO_BYTES, STT_STREAM_MAX_BUFFERED_BYTES, STT_STREAM_MAX_EVENT_BYTES, STT_STREAM_MAX_PENDING_TICKETS, STT_STREAM_MAX_TEXT_BYTES, STT_STREAM_TICKET_TTL_MS, type SttStreamEvent, type SttStreamTicket } from "@ancientvoid/contracts";
+import { STT_STREAM_MAX_ACTIVE, STT_STREAM_MAX_AUDIO_BYTES, STT_STREAM_MAX_AUDIO_SECONDS, STT_STREAM_MAX_BUFFERED_BYTES, STT_STREAM_MAX_EVENT_BYTES, STT_STREAM_MAX_PENDING_TICKETS, STT_STREAM_MAX_TEXT_BYTES, STT_STREAM_TICKET_TTL_MS, type SttStreamEvent, type SttStreamTicket } from "@ancientvoid/contracts";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import WebSocket, { type RawData } from "ws";
 import { extractToken } from "../../platform/auth.ts";
@@ -84,12 +84,14 @@ export function registerSttStreamRoutes(app: FastifyInstance, config: SttStreami
     let transcriptBytes = 0;
     let finished = false;
     let cleaned = false;
-    let inactivity: ReturnType<typeof setTimeout> | undefined;
+    // Hard backstop for the whole utterance (BUG-0213): not an inactivity timer —
+    // it fires while audio is still flowing, so it must match the byte bound below.
+    let hardStop: ReturnType<typeof setTimeout> | undefined;
     const cleanup = (): void => {
       if (cleaned) return;
       cleaned = true;
       active = Math.max(0, active - 1);
-      clearTimeout(inactivity);
+      clearTimeout(hardStop);
       if (upstream && upstream.readyState !== WebSocket.CLOSED) upstream.close();
     };
     const fail = (message: string): void => {
@@ -142,7 +144,7 @@ export function registerSttStreamRoutes(app: FastifyInstance, config: SttStreami
         if (event.type === "session.created") return;
         if (event.type === "session.updated") {
           sttPreviewEvent(browser, { type: "ready" });
-          inactivity = setTimeout(() => fail("Sprachaufnahme dauerte länger als 60 Sekunden."), STT_STREAM_MAX_AUDIO_BYTES / 32);
+          hardStop = setTimeout(() => fail(`Sprachaufnahme dauerte länger als ${STT_STREAM_MAX_AUDIO_SECONDS} Sekunden.`), STT_STREAM_MAX_AUDIO_SECONDS * 1_000);
           return;
         }
         if (event.type === "conversation.item.input_audio_transcription.delta") {
@@ -179,7 +181,7 @@ export function registerSttStreamRoutes(app: FastifyInstance, config: SttStreami
         const chunk = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayBuffer);
         audioBytes += chunk.length;
         if (chunk.length === 0 || chunk.length % 2 !== 0 || audioBytes > STT_STREAM_MAX_AUDIO_BYTES || upstream.bufferedAmount + chunk.length > STT_STREAM_MAX_BUFFERED_BYTES) {
-          return fail("Sprachaufnahme überschritt die lokale Streamgrenze.");
+          return fail(`Sprachaufnahme überschritt die Streamgrenze von ${STT_STREAM_MAX_AUDIO_SECONDS} Sekunden.`);
         }
         upstream.send(chunk);
         return;
