@@ -195,10 +195,14 @@ export function SessionTail({
   /** BUG-0207: „hat sich weggelesen“ — der Leser hat die Spitze selbst verlassen. Unterdrueckt
    * erneutes Anheften, bis er selbst wieder unten ist oder ein neuer Strom beginnt. */
   const awayRef = useRef(false);
+  /** BUG-0208: Seq des Blocks, der einen Live-Strom eingeholt hat — an seinen Anfang rollen. */
+  const jumpSeqRef = useRef<number | null>(null);
   /** laeuft gerade ein Live-Strom? Gezählt wird nach turnId — ein Strom gilt erst mit
    * seinem final-Frame als beendet, sonst ueberlappen sich Bloecke und der gerade
    * gesetzte Sprung an den Nachrichtenanfang wird sofort wieder nach unten gezogen. */
   const openTurnsRef = useRef(new Set<string>());
+  /** Zeichenlaengen der laufenden Live-Texte (im WS-Callback ohne State-Lesen). */
+  const liveLensRef = useRef({ assistant: 0, thinking: 0 });
   // The tail ends exactly where the fixed controls start — measured, not
   // guessed: a taller composer (draft, recommendation, error) used to cover
   // the last message.
@@ -407,8 +411,18 @@ export function SessionTail({
             return tailWindow(merged, 500);
           });
           // ADR-0083: der Block hat den Teiltext eingeholt — die Live-Blase verschwindet.
-          if (batch.some((e) => e.type === "assistant")) setLiveText((p) => (p.assistant ? { ...p, assistant: "" } : p));
-          if (batch.some((e) => e.type === "thinking")) setLiveText((p) => (p.thinking ? { ...p, thinking: "" } : p));
+          const assistantBlocks = batch.filter((e) => e.type === "assistant");
+          if (assistantBlocks.length) {
+            // BUG-0208: die Nachricht ist fertig gestreamt — ihr Anfang wird vorgemerkt,
+            // damit die Ansicht dorthin rueckt statt am Strom-Ende stehenzubleiben.
+            if (liveLensRef.current.assistant > 0) jumpSeqRef.current = Math.min(...assistantBlocks.map((e) => e.seq));
+            liveLensRef.current.assistant = 0;
+            setLiveText((p) => (p.assistant ? { ...p, assistant: "" } : p));
+          }
+          if (batch.some((e) => e.type === "thinking")) {
+            liveLensRef.current.thinking = 0;
+            setLiveText((p) => (p.thinking ? { ...p, thinking: "" } : p));
+          }
         };
         flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
       },
@@ -427,6 +441,8 @@ export function SessionTail({
           if (f.stream === "assistant") assistantText += f.text;
           else thinkingText += f.text;
         }
+        liveLensRef.current.assistant += assistantText.length;
+        liveLensRef.current.thinking += thinkingText.length;
         if (!wasStreaming && open.size > 0 && !awayRef.current) stickRef.current = true;
         if (assistantText || thinkingText) {
           setLiveText((prev) => ({
@@ -526,6 +542,7 @@ export function SessionTail({
     const saved = readTailScroll(session.id, activeTab);
     stickRef.current = saved === null;
     awayRef.current = false;
+    jumpSeqRef.current = null;
     openTurnsRef.current.clear();
     if (saved === null) return;
     let done = false;
@@ -722,8 +739,32 @@ export function SessionTail({
     if (activeTab !== "chat" && activeTab !== "verlauf") return;
     const el = tailRef.current;
     if (!el) return;
+    const seq = jumpSeqRef.current;
+    if (seq !== null) {
+      let raf = 0;
+      let tries = 0;
+      const attempt = () => {
+        if (jumpSeqRef.current !== seq) return; // durch eine neuere Absicht ersetzt
+        const node = tailRef.current?.querySelector<HTMLElement>(`[data-seq="${seq}"]`) ?? null;
+        if (node) {
+          jumpSeqRef.current = null;
+          const box = tailRef.current?.getBoundingClientRect();
+          // Nur springen, wenn der Anfang oberhalb der Lesespitze liegt — ist die
+          // Nachricht ganz sichtbar, waere ein Sprung nur Flackern.
+          if (box && node.getBoundingClientRect().top < box.top - 8) {
+            stickRef.current = false;
+            node.scrollIntoView({ behavior: "auto", block: "start" });
+          }
+          return;
+        }
+        if (++tries < 120) raf = requestAnimationFrame(attempt);
+        else jumpSeqRef.current = null; // nie im DOM aufgetaucht — nicht ewig nachhalten
+      };
+      attempt();
+      return () => cancelAnimationFrame(raf);
+    }
     if (stickRef.current) el.scrollTo({ top: el.scrollHeight });
-  }, [events, liveText, activeTab, filter, session.id]);
+  }, [events, chat.events, liveText, activeTab, filter, session.id]);
   const lastPrompt = lastUserPrompt(shownEvents);
   const chatItems = useMemo(() => {
     const all = turnsOf(chat.events, live);
