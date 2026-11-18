@@ -39,6 +39,7 @@ Regeln:
 | page:aimetrics | Local AI server metrics (CPU/GPU, tokens/s) | `#/metriken` | ki-server-metriken |
 | page:statistics | Session, turn, gate, tool and team statistics from the rollup cache | `#/statistik` | statistik |
 | page:terminal | Allowlisted SSH/local shell in the PWA | `#/terminal` | terminal |
+| page:releasenotes | Release notes: merged PRs with what changed and why | `#/releasenotes` | release-notes |
 
 ## Views (Hauptansichten)
 
@@ -84,6 +85,7 @@ Regeln:
 | feature:notifications | Notification bell and center | notifications |
 | feature:nyx | Nyx assistant: sheet and FAB | nyx-blatt |
 | feature:overview | Overview lists and view switch (sessions/projects/hosts/discovery) | overview-shell |
+| feature:release-notes | Release notes list with per-PR collapsible details | release-notes |
 | feature:search | Quick search across inventory and files | schnellsuche |
 | feature:session | Session chat, steering, turns and tabs | session |
 | feature:settings | Settings views and choices | settings-layout |

@@ -1,0 +1,179 @@
+/* EPIC-P70 (ADR-0093): Release-Notes-Seite — PR-Karten mit Klapp-Details.
+ * Nur Tokens aus 00-tokens.css (EPIC-P63-Ratchet: kein neuer Hex-Wert). */
+
+.rn-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rn-head-page {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rn-head-page h2 {
+  margin: 0;
+}
+
+.rn-project {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.rn-project-label {
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.rn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rn-entry {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  overflow: hidden;
+}
+
+/* 44-px-Ziel (P63-Regel), ganzer Kopf klappt auf. */
+.rn-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rn-title-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.rn-pr {
+  flex: none;
+  font-family: var(--font-mono);
+  color: var(--fg-dim);
+}
+
+.rn-summary {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.rn-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.rn-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* Fail loud (AC-P70-3): Subject ohne Notation bleibt sichtbar und markiert. */
+.rn-unparsed {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.rn-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.rn-detail h3 {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rn-nobody,
+.rn-truncated {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.rn-commits {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rn-commit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+}
+
+.rn-commit-head {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.rn-commit-body {
+  font-size: var(--text-sm);
+}
+
+.rn-files summary {
+  cursor: pointer;
+  color: var(--fg-dim);
+}
+
+.rn-file-status[data-status="A"] {
+  color: var(--ok);
+}
+
+.rn-file-status[data-status="D"] {
+  color: var(--err);
+}
+
+.rn-date {
+  white-space: nowrap;
+}
+
+.rn-stats {
+  color: var(--fg-dim);
+}
+
+.rn-wait {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}

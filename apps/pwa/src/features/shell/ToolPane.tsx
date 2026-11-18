@@ -10,6 +10,7 @@ import { TeamsPane } from "../team/TeamsPane.tsx";
 import { AutomationsPane } from "../automations/AutomationsPane.tsx";
 import { AiMetricsPage } from "../aimetrics/AiMetricsPage.tsx";
 import { TerminalPage } from "../terminal/TerminalPage.tsx";
+import { ReleaseNotesPage } from "../release-notes/ReleaseNotesPage.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
@@ -22,6 +23,7 @@ const TITLES: Partial<Record<ListPage, string>> = {
   automationen: "Automationen",
   aimetrics: "Metrik",
   terminal: "Terminal",
+  releasenotes: "Release-Notes",
 };
 
 /**
@@ -93,6 +95,7 @@ export function ToolPane({
         {page === "automationen" && <AutomationsPane />}
         {page === "aimetrics" && <AiMetricsPage />}
         {page === "terminal" && <TerminalPage />}
+        {page === "releasenotes" && <ReleaseNotesPage />}
       </div>
     </section>
   );

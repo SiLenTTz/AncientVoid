@@ -36,3 +36,4 @@ export * from "./modules/automations/index.ts";
 export * from "./modules/team/index.ts";
 
 export * from "./modules/aimetrics/index.ts";
+export * from "./modules/release-notes/index.ts";

@@ -17,6 +17,7 @@ import { registerSearchRoutes } from "./modules/search/search.routes.ts";
 import { registerCodeRoutes } from "./modules/code/code.routes.ts";
 import { registerGraphRoutes } from "./modules/graph/graph.routes.ts";
 import { registerGitGraphRoutes } from "./modules/git-graph/git-graph.routes.ts";
+import { registerReleaseNotesRoutes } from "./modules/release-notes/release-notes.routes.ts";
 import { registerVaultRoutes } from "./modules/vault/vault.routes.ts";
 import { registerTeamRoutes } from "./modules/team/team.routes.ts";
 import { registerLoopsRoutes } from "./modules/loops/loops.routes.ts";
@@ -53,6 +54,7 @@ export function registerRoutes(app: FastifyInstance, deps: RouteDeps): void {
   registerCodeRoutes(app, ctx);
   registerGraphRoutes(app, ctx);
   registerGitGraphRoutes(app, ctx);
+  registerReleaseNotesRoutes(app, ctx);
   registerVaultRoutes(app, ctx);
   registerTeamRoutes(app, ctx);
   registerLoopsRoutes(app, ctx);
