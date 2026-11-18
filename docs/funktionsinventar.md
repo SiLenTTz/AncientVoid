@@ -141,7 +141,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S22 | Anhang | Composer → Büroklammer | T43.4 | inventar |
 | S23 | Eingabe maximieren | Composer → „⤢“ | T43.4 | inventar |
 | S24 | Spracheingabe | Composer → Mikrofon | T43.4 | inventar |
-| S25 | Prompt verbessern | Composer antippen → „Verbessern“ | T43.4 | inventar |
+| S25 | Prompt verbessern; vorhandenen Skill anzeigen/anpassen | Composer antippen → „Verbessern“: lokales Modell zuerst, Adapter-Fallback mit Grund, Projektkontext; Empfehlung → „Anpassen“ → Vorschlag oder Editor → „Datei speichern“ (Konfliktschutz) | T43.4, T68.2–T68.7 | inventar |
 | S26 | Slash-Commands | „/“ im Composer | — | inventar |
 | S27 | Antwortvorlagen (Schnellantworten) | über dem Composer | T43.4 | inventar |
 | S28 | Modus und Modell | über dem Composer | T43.4 | inventar |

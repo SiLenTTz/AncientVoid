@@ -1,4 +1,8 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import type { PromptRecommendation } from "@ancientvoid/contracts";
+export type { PromptRecommendation };
+import { createHash, randomUUID } from "node:crypto";
+import type { Dirent } from "node:fs";
+import { mkdir, readdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 
 /**
@@ -209,16 +213,6 @@ function slugify(value: string): string {
   return slug || "vorschlag";
 }
 
-export interface PromptRecommendation {
-  mode: "match" | "create";
-  kind: "skill" | "agent" | "workflow";
-  name: string;
-  description: string;
-  reason: string;
-  /** Markdown for a new file. Null when `mode` is `match`. */
-  draft: string | null;
-}
-
 function layerRank(item: SkillOrAgent): number {
   return item.layer === "base" ? 1 : 0;
 }
@@ -311,48 +305,71 @@ function draftFor(kind: SkillOrAgent["kind"], name: string, description: string,
 export function recommendForPrompt(text: string, items: readonly SkillOrAgent[]): PromptRecommendation | null {
   const folded = fold(text);
   const textTokens = tokens(text);
-  const ranked = items
-    .map((item) => {
-      const name = fold(item.name);
-      const nameParts = tokens(item.name.replaceAll("-", " "));
-      const described = new Set(tokens(`${item.name} ${item.description}`));
-      const hits: string[] = [];
-      let score = 0;
-      const named = name.length >= 3 && new RegExp(`(^|[^a-z0-9])${name.replace(/[^a-z0-9]/g, "[^a-z0-9]?")}([^a-z0-9]|$)`).test(folded);
-      if (named) {
-        score += 5;
-        hits.push(item.name);
+  const rows = items.map((item) => {
+    const name = fold(item.name);
+    const nameParts = tokens(item.name.replaceAll("-", " "));
+    const described = new Set(tokens(`${item.name} ${item.description}`));
+    const hits: string[] = [];
+    let score = 0;
+    const named = name.length >= 3 && new RegExp(`(^|[^a-z0-9])${name.replace(/[^a-z0-9]/g, "[^a-z0-9]?")}([^a-z0-9]|$)`).test(folded);
+    if (named) {
+      score += 5;
+      hits.push(item.name);
+    }
+    let nameHit = false;
+    for (const part of nameParts) {
+      if (textTokens.includes(part)) {
+        score += 3;
+        hits.push(part);
+        nameHit = true;
       }
-      for (const part of nameParts) {
-        if (textTokens.includes(part)) {
-          score += 3;
-          hits.push(part);
-        }
+    }
+    for (const token of textTokens) {
+      if (described.has(token) && !nameParts.includes(token)) {
+        score += 1;
+        hits.push(token);
       }
-      for (const token of textTokens) {
-        if (described.has(token) && !nameParts.includes(token)) {
-          score += 1;
-          hits.push(token);
-        }
-      }
-      // Long enhanced prompts share stray words with any description. Without
-      // the name: three distinct shared words, or two that cover at least
-      // half of a short description.
-      const descriptionWords = [...described].filter((token) => !nameParts.includes(token));
-      const covered = descriptionWords.filter((token) => textTokens.includes(token)).length;
-      const coverage = descriptionWords.length > 0 ? covered / descriptionWords.length : 0;
-      return { item, score, hits: [...new Set(hits)], named, coverage };
-    })
+    }
+    // Long enhanced prompts share stray words with any description. Without
+    // the name: three distinct shared words, or two that cover at least
+    // half of a short description.
+    const descriptionWords = [...described].filter((token) => !nameParts.includes(token));
+    const covered = descriptionWords.filter((token) => textTokens.includes(token)).length;
+    const coverage = descriptionWords.length > 0 ? covered / descriptionWords.length : 0;
+    return { item, score, hits: [...new Set(hits)], named, nameHit, coverage };
+  });
+  const byScore = (a: (typeof rows)[number], b: (typeof rows)[number]) =>
+    b.score - a.score ||
+    layerRank(a.item) - layerRank(b.item) ||
+    kindRank(a.item.kind) - kindRank(b.item.kind) ||
+    a.item.name.localeCompare(b.item.name);
+  const ranked = rows
     .filter((row) => row.named || row.hits.length >= 3 || (row.hits.length >= 2 && row.coverage >= 0.5))
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        layerRank(a.item) - layerRank(b.item) ||
-        kindRank(a.item.kind) - kindRank(b.item.kind) ||
-        a.item.name.localeCompare(b.item.name),
-    );
+    .sort(byScore);
+  const asks = asksForArtifact(text);
 
   const best = ranked[0];
+  if (asks) {
+    // EPIC-P68: a request to create something that already exists in the
+    // project gets the existing entry to adapt — not a near-duplicate. The
+    // bar is lower than for "use it": a shared name part or two shared words.
+    const kind = proposeKind(text);
+    const similar = rows
+      .filter((row) => row.item.layer !== "base" && (row.named || row.nameHit || row.hits.length >= 2))
+      .sort((a, b) => Number(b.item.kind === kind) - Number(a.item.kind === kind) || byScore(a, b))[0];
+    if (similar) {
+      const shown = similar.hits.slice(0, 3).join(", ");
+      return {
+        mode: "update",
+        kind: similar.item.kind,
+        name: similar.item.name,
+        description: similar.item.description,
+        reason: `Gibt es schon${shown ? ` (trifft ${shown})` : ""}. Anpassen statt neu anlegen.`,
+        draft: null,
+      };
+    }
+  }
+
   if (best && best.item.layer !== "base") {
     const shown = best.hits.slice(0, 3).join(", ");
     return {
@@ -365,7 +382,7 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
     };
   }
 
-  if (best && !asksForArtifact(text)) {
+  if (best && !asks) {
     const shown = best.hits.slice(0, 3).join(", ");
     return {
       mode: "match",
@@ -374,22 +391,17 @@ export function recommendForPrompt(text: string, items: readonly SkillOrAgent[])
       description: best.item.description,
       reason: `Basis-Skill, trifft ${shown}.`,
       draft: null,
+      layer: "base",
     };
   }
 
-  if (!asksForArtifact(text)) return null;
+  if (!asks) return null;
   const kind = proposeKind(text);
   const task = items.find((item) => item.layer === "base" && item.kind === "skill" && item.name === "task");
   if (task && kind === "skill") return extendBase(task, text, items);
   const ziel = text.match(/Ziel:\s*(.+)/i);
   const source = (ziel?.[1] ?? text).split("\n")[0] ?? text;
-  let name = slugify(nameTokens(source).join(" "));
-  const taken = new Set(items.map((item) => item.name));
-  if (taken.has(name)) {
-    let n = 2;
-    while (taken.has(`${name}-${n}`)) n += 1;
-    name = `${name}-${n}`;
-  }
+  const name = uniqueName(source, items);
   const description = oneLine(ziel?.[1] ?? text, 180);
   return {
     mode: "create",
@@ -437,6 +449,120 @@ export async function writeProjectArtifact(
     throw err;
   }
   return { path: relative };
+}
+
+function hashOf(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function dirFor(kind: SkillOrAgent["kind"]): string {
+  return kind === "skill" ? "skills" : kind === "agent" ? "agents" : "workflows";
+}
+
+/** The file of an entry. Its listed name is the frontmatter `name`, which
+ * may differ from the file name — then the directory is searched. */
+async function locateArtifact(root: string, kind: SkillOrAgent["kind"], name: string): Promise<string | null> {
+  if (!ARTIFACT_NAME.test(name)) throw new Error("invalid artifact name");
+  const direct = resolve(root, artifactRelative(kind, name));
+  const contained = async (file: string): Promise<string> => {
+    const [base, target] = await Promise.all([realpath(root), realpath(file)]);
+    if (!target.startsWith(base + sep)) throw new Error("artifact path escapes the project");
+    return file;
+  };
+  let directExists = false;
+  try {
+    await readFile(direct, "utf8");
+    directExists = true;
+  } catch {
+    // fall through to the frontmatter search
+  }
+  if (directExists) return contained(direct);
+  const dir = join(root, ".claude", dirFor(kind));
+  let entries: Dirent[];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  for (const entry of entries) {
+    const file = kind === "skill" ? (entry.isDirectory() ? join(dir, entry.name, "SKILL.md") : null) : entry.isFile() && entry.name.endsWith(".md") ? join(dir, entry.name) : null;
+    if (!file) continue;
+    const meta = await readFrontmatter(file);
+    if (meta?.name === name) return contained(file);
+  }
+  return null;
+}
+
+export interface ProjectArtifact {
+  /** Relative to the root it was read from. */
+  path: string;
+  content: string;
+  /** sha256 of `content` — the token an update has to present. */
+  hash: string;
+}
+
+/** EPIC-P68: one skill, agent or workflow file with its content hash. */
+export async function readProjectArtifact(root: string, kind: SkillOrAgent["kind"], name: string): Promise<ProjectArtifact | null> {
+  const base = resolve(root);
+  const file = await locateArtifact(base, kind, name);
+  if (!file) return null;
+  const content = await readFile(file, "utf8");
+  return { path: file.slice(base.length + 1), content, hash: hashOf(content) };
+}
+
+/**
+ * EPIC-P68: overwrites an existing entry only if it still has the content
+ * the person read (`baseHash`) — an agent may have edited it meanwhile; no
+ * last-write-wins. The frontmatter name must not change (a rename would
+ * orphan every saved selection).
+ */
+const artifactUpdates = new Map<string, Promise<void>>();
+
+export async function updateProjectArtifact(
+  projectPath: string,
+  item: { kind: SkillOrAgent["kind"]; name: string; draft: string },
+  baseHash: string,
+): Promise<{ path: string; hash: string }> {
+  const key = `${await realpath(projectPath)}:${item.kind}:${item.name}`;
+  const previous = artifactUpdates.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const pending = new Promise<void>((done) => { release = done; });
+  artifactUpdates.set(key, pending);
+  await previous;
+  try {
+    return await writeArtifactUpdate(projectPath, item, baseHash);
+  } finally {
+    release();
+    if (artifactUpdates.get(key) === pending) artifactUpdates.delete(key);
+  }
+}
+
+async function writeArtifactUpdate(
+  projectPath: string,
+  item: { kind: SkillOrAgent["kind"]; name: string; draft: string },
+  baseHash: string,
+): Promise<{ path: string; hash: string }> {
+  if (item.draft.length === 0 || item.draft.length > 8000) throw new Error("draft too large");
+  const root = resolve(projectPath);
+  const file = await locateArtifact(root, item.kind, item.name);
+  if (!file) throw new Error("artifact not found");
+  if (!file.startsWith(root + sep)) throw new Error("artifact path escapes the project");
+  const current = await readFile(file, "utf8");
+  if (hashOf(current) !== baseHash) throw new Error("artifact changed");
+  const before = parseFrontmatter(current)?.name;
+  const after = parseFrontmatter(item.draft)?.name;
+  if (before && after !== before) throw new Error("artifact name mismatch");
+  const content = item.draft.endsWith("\n") ? item.draft : `${item.draft}\n`;
+  const tmp = `${file}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(tmp, content, { flag: "wx" });
+    // Recheck after preparing the file: editors outside the Hub do not share its queue.
+    if (hashOf(await readFile(file, "utf8")) !== baseHash) throw new Error("artifact changed");
+    await rename(tmp, file);
+  } finally {
+    await rm(tmp, { force: true });
+  }
+  return { path: file.slice(root.length + 1), hash: hashOf(content) };
 }
 
 export interface ResolvedSkillChain {

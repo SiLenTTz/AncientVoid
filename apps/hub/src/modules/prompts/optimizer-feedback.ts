@@ -29,6 +29,8 @@ export interface OptimizerFeedbackEntry {
   decision: "accepted" | "rejected";
   costUsd?: number;
   latencyMs: number;
+  /** EPIC-P68: "local" or the adapter id that wrote the suggestion. */
+  engine?: string;
 }
 
 function feedbackPath(dataDir: string): string {

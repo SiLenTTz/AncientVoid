@@ -101,18 +101,27 @@ const EPIC_FILE = /^EPIC-[A-Za-z]?[0-9.]+.*\.md$/i;
 const EPIC_HEAD_BYTES = 4096;
 const BUG_FILE = /^bug-\d+.*\.md$/i;
 
-type StatusDot = { epic: "done" | "code" | "wip" | "open"; text: string };
+type StatusDot = { epic: "done" | "code" | "wip" | "open" | "blocked"; text: string };
+
+/* ADR-0089: blocked = „kann nicht weiter ohne Menschen“ (Abnahme/Entscheid).
+ * Bewusst enges Vokabular — wird vor den übrigen Regeln geprüft, weil auch
+ * abgeschlossene Formulierungen einen offenen Abnahme-Hinweis tragen können. */
+const BLOCKED_STATE = /\bon hold\b|\bgesperrt\b|\bblockiert\b|\bfestgefahren\b|\bwartet auf (den )?nutzer\b/i;
+const ACCEPTANCE_WORD = /\b((live|geräte|nutzer|handy|end)[ _-]?)?abnahmen?\b/i;
+const PENDING_MARK = /\boffen\b|steht aus|ausstehend|nicht erreichbar/i;
 
 /**
  * Nutzerauftrag 14.11.2026: Kategorie aus der Statuszeile einer EPIC-*.md.
  * Reihenfolge ist wichtig — „Code abgeschlossen“ enthält „abgeschlossen“,
  * „Umsetzung: gesperrt“ enthält „Umsetzung“. Der Klartext (`text`) geht mit
  * an die Oberfläche; die Kategorie ist Heuristik, kein Semantic-Parser.
+ * blocked (ADR-0089): Sperr-/Entscheid-Vokabular oder Abnahme-Wort + Offen-Marker.
  */
 export function epicStatusOf(head: string): StatusDot | null {
   const line = head.split("\n").find((l) => l.includes("**Status:**"));
   if (!line) return null;
   const text = line.replace(/\*\*Status:\*\*/, "").replace(/\*\*/g, "").trim().slice(0, 220);
+  if (BLOCKED_STATE.test(text) || (ACCEPTANCE_WORD.test(text) && PENDING_MARK.test(text))) return { epic: "blocked", text };
   if (/code abgeschlossen|teilweise umgesetzt|exit offen/i.test(text)) return { epic: "code", text };
   if (/abgeschlossen|exit grün|fertiggestellt/i.test(text)) return { epic: "done", text };
   if (/in umsetzung|umsetzung: freigegeben/i.test(text)) return { epic: "wip", text };
@@ -122,7 +131,10 @@ export function epicStatusOf(head: string): StatusDot | null {
 
 /**
  * BUG-0189: Frontmatter `status:` einer bug-*.md → dieselben Punkt-Kategorien
- * wie Epics (done/wip/open; `code` ungenutzt). Unbekannte Werte → open.
+ * wie Epics. Bekannt (bugs/README): done, in-progress, wont-fix.
+ * ADR-0089: fixed → code (Fix liegt, Abnahme steht aus); blocked/needs-human/
+ * needs-human-acceptance → blocked. Unbekanntes bleibt open (Fail-loud: nie
+ * still als geschlossen; wont-fix ist ein Entscheid, kein Done).
  */
 export function bugStatusOf(head: string): StatusDot | null {
   if (!head.startsWith("---")) return null;
@@ -135,6 +147,8 @@ export function bugStatusOf(head: string): StatusDot | null {
   const v = text.toLowerCase();
   if (v === "done") return { epic: "done", text };
   if (v === "in-progress" || v === "in arbeit" || v.startsWith("in arbeit")) return { epic: "wip", text };
+  if (v === "fixed") return { epic: "code", text };
+  if (v === "blocked" || v === "needs-human" || v === "needs-human-acceptance") return { epic: "blocked", text };
   return { epic: "open", text };
 }
 

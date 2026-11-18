@@ -30,8 +30,8 @@ export const TreeEntry = z.object({
   symlink: z.boolean().default(false),
   /** Sichtbar gesperrt statt „leer“: `.git`-Interna, Link nach außen, nicht lesbar. */
   blocked: z.string().nullable().default(null),
-  /** Statuspunkt aus EPIC-*.md (`**Status:**`) oder bug-*.md (Frontmatter `status:`, BUG-0189); sonst null. */
-  epic: z.enum(["done", "code", "wip", "open"]).nullable().default(null),
+  /** Statuspunkt aus EPIC-*.md (`**Status:**`) oder bug-*.md (Frontmatter `status:`); sonst null. */
+  epic: z.enum(["done", "code", "wip", "open", "blocked"]).nullable().default(null),
   /** Klartext der Statuszeile/des Frontmatter-Werts (gekürzt) — Tooltip statt erratener Bedeutung. */
   epicStatus: z.string().nullable().default(null),
 });
