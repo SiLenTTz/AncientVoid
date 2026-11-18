@@ -572,12 +572,36 @@ export interface SkillOrAgent {
 }
 
 export interface PromptRecommendation {
-  mode: "match" | "create";
+  /** EPIC-P68: `update` = exists already, adapt instead of a new file. */
+  mode: "match" | "update" | "create";
   kind: "skill" | "agent" | "workflow";
   name: string;
   description: string;
   reason: string;
   draft: string | null;
+  /** `base` = catalog skill next to the project; read-only here. */
+  layer?: "base";
+}
+
+/** EPIC-P68: one skill/agent/workflow file with the hash an update must present. */
+export interface SkillArtifact {
+  kind: PromptRecommendation["kind"];
+  name: string;
+  path: string;
+  content: string;
+  hash: string;
+  layer?: "base";
+}
+
+/** EPIC-P68 (ADR-0089): which stage rewrote the text, and what was skipped why. */
+export interface RewriteEngine {
+  kind: "local" | "adapter";
+  id: string;
+  model?: string;
+}
+export interface SkippedEngine {
+  engine: string;
+  reason: string;
 }
 
 /** EPIC-P11 — mirrors `@ancientvoid/contracts`'s desktop types (ADR-0031). */
@@ -729,6 +753,9 @@ interface EnhanceResult {
   enhanced: string;
   costUsd?: number;
   latencyMs: number;
+  /** Absent on hubs before EPIC-P68. */
+  engine?: RewriteEngine;
+  skipped?: SkippedEngine[];
 }
 
 const TOKEN_KEY = "ancientvoid.token";
@@ -984,6 +1011,15 @@ function createHubApi(P: (path: string) => string) {
     api<PromptRecommendation | null>(P("/api/prompt-recommendation"), { method: "POST", body: JSON.stringify({ project, text }) }),
   saveArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; description: string; draft: string }) =>
     api<{ path: string }>(P("/api/skills"), { method: "POST", body: JSON.stringify(body) }),
+  skillArtifact: (project: string, kind: PromptRecommendation["kind"], name: string) =>
+    api<SkillArtifact>(P(`/api/skills/artifact?project=${encodeURIComponent(project)}&kind=${kind}&name=${encodeURIComponent(name)}`)),
+  updateArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; draft: string; baseHash: string }) =>
+    api<{ path: string; hash: string }>(P("/api/skills"), { method: "PUT", body: JSON.stringify(body) }),
+  reviseArtifact: (body: { project: string; kind: PromptRecommendation["kind"]; name: string; prompt: string; adapter: string }) =>
+    api<{ draft: string; baseHash: string; engine: RewriteEngine; skipped: SkippedEngine[]; costUsd?: number; latencyMs: number }>(P("/api/skills/revise"), {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   enhancePrompt: (adapter: string, project: string, text: string) =>
     api<EnhanceResult>(P("/api/prompt-enhance"), { method: "POST", body: JSON.stringify({ adapter, project, text }) }),
   /** T3.9 (Learning-Loop, lokal, "niemals Cloud, niemals Telemetrie"): one
@@ -999,6 +1035,7 @@ function createHubApi(P: (path: string) => string) {
     decision: "accepted" | "rejected";
     costUsd?: number;
     latencyMs: number;
+    engine?: string;
   }) => api<{ ok: boolean }>(P("/api/prompt-optimizer/feedback"), { method: "POST", body: JSON.stringify(entry) }),
   sessions: () => api<SessionRecord[]>(P("/api/sessions")),
   session: (id: string) => api<SessionRecord>(P(`/api/sessions/${id}`)),
