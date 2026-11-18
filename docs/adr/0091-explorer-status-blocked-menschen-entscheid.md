@@ -1,4 +1,4 @@
-# ADR-0089: Explorer-Status `blocked` — Einträge, deren Abnahme/Entscheid ein Mensch braucht
+# ADR-0091: Explorer-Status `blocked` — Einträge, deren Abnahme/Entscheid ein Mensch braucht
 
 Status: akzeptiert (2026-11-18)
 

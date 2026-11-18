@@ -1,6 +1,6 @@
 # EPIC-P19 — Loop / Dark Factory: securesight-factory und aSPARK-Factory als wählbare Loops
 
-**Status:** Gebaut (2026-10-28, Auftrag von Jan): Contract, Core, beide Connectors (`packages/loops/*`), Auswahl, Kopf-Abzeichen und Loop-Panel.
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · Gebaut (2026-10-28, Auftrag von Jan): Contract, Core, beide Connectors (`packages/loops/*`), Auswahl, Kopf-Abzeichen und Loop-Panel.
 **Offen:** die manuelle Abnahme (echtes Repo mit Token, wartende Frage am Handy, K1 gesamt) → **EPIC-P35 (Endabnahme-Block) T35.16**; ein Loop ohne Eintrag in `loops[]` bleibt sichtbar, gesperrt und begründet ·
 **Phase:** P19 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** fachlich keine (baut auf P15 Modus-/Steuermuster,
 P17 Resume-Referenzen und Worker-Marker auf). Präzedenz wie P13/P14/P17: unabhängiges Epic neben offenen Abnahmen.

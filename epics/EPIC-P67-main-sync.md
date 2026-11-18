@@ -1,6 +1,6 @@
 # EPIC-P67 — Main-Sync: frischer Main beim Start, laufende Synchronisation, einstellbar
 
-**Status:** umgesetzt (T67.1–T67.9 auf main, PRs #149/#151/#152/#153/#154/#155/#157/#158, alle mit grünem `verify`) · **T67.10 Abnahme offen (Nutzeraufgabe)** · **Phase:** P67 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P66; P63 abgeschlossen, P29 Workspace-Manifest umgesetzt); P30/P31 bleiben On hold und sind unberührt
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · umgesetzt (T67.1–T67.9 auf main, PRs #149/#151/#152/#153/#154/#155/#157/#158, alle mit grünem `verify`) · **T67.10 Abnahme offen (Nutzeraufgabe)** · **Phase:** P67 · **Dauer:** 2–3 Agenten-Wochen · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P66; P63 abgeschlossen, P29 Workspace-Manifest umgesetzt); P30/P31 bleiben On hold und sind unberührt
 
 Quelle: Nutzerauftrag vom 18.11.2026 (Folge der Qwen-Nacht, BUG-0209). Der
 Haupt-Checkout stand 178 Commits hinter `origin/main`; jede neue Session
@@ -190,7 +190,7 @@ Contract-Test.
 - [x] **T67.7** PWA-Einstellungsabschnitt (global + Projekt-Override) mit Spec. — **PR #155** (zweiter Commit; `main-sync-settings.spec.ts` 3 Tests gegen API gelesen; daneben `settings-layout.spec.ts` repariert, die seit P65 auf main rot war).
 - [x] **T67.8** PWA-Session-Indikator + Menü (Prüfen/Aktualisieren/Konflikte) mit Spec; Layout-Nachweis mobil. — **PR #157** (`main-sync-session.spec.ts` 2 Tests gegen echtes Bare-„origin“: voller Ablauf inkl. live gespielter AC-P67-6-Verweigerung; Geometrie-Beweis 390 px, `elementFromPoint`).
 - [x] **T67.9** `hubctl main-sync` + Eintrag in `docs/funktionsinventar.md`, Bedienhinweis, `docs/main-sync.md`. — **PR #158** (hubctl check/apply/--project/--settings, 4 Format-Tests; G75; how-to-Seite gelistet; Referenz regeneriert).
-- [ ] **T67.10** Abnahme am echten Remote (Nutzeraufgabe): veralteter Haupt-Checkout, neue Session startet frisch; `ask`-Ablauf am Handy; Konfliktfall echt provoziert. — **Offen, Kai** — Schritte unten im Abschluss-Block.
+- [ ] **T67.10** Abnahme am echten Remote (Nutzeraufgabe): veralteter Haupt-Checkout, neue Session startet frisch; `ask`-Ablauf am Handy; Konfliktfall echt provoziert. — **Offen, Kai** — Schritte unten im Abschluss-Block. → nach P69 verschoben
 
 Reihenfolge: T67.1 → T67.2 (Stufe 1 einzeln auslieferbar) → T67.3 → T67.4 →
 T67.5/T67.6 → T67.7/T67.8 → T67.9 → T67.10. Je Aufgabe eigener Branch/PR.

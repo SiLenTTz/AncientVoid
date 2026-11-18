@@ -1,6 +1,6 @@
 # EPIC-P3 — Adapter-Flotte (swarm/zai/local-llm/opencode/aider), cursor-clip, Sprachsuche & Prompt-Composer
 
-**Status:** teilweise offen (T35.12) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07) — T3.2, T3.4–T3.5, T3.8–T3.14 umgesetzt; T3.6/T3.7 historisch, nach P1.5 vorgezogen und via P10/ADR-0028/0032 abgehakt. Die verbliebenen Reste laufen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): T3.1 (Swarm) → T35.12 (Admin-Credential/Feature-Freischalt und echte Lauf-JSONL fehlen), T3.3s Live-Probe gegen eine echte OpenAI-kompatible Instanz → T35.12 (die Substanz — lokales Modell via llama.cpp — ist seit P7 T7.5/T12.9 real betrieben), AC-P3-3s K6-Gerätemessung → T35.11. AC-P3-1s „sechs Provider-Typen parallel" ist durch die dokumentierte Bestandskorrektur ersetzt (Vorbemerkung 2026-09-18: zai-Router existierte nicht, Flotte stattdessen auf 13 Adaptern gewachsen) ·
+**Status:** abgeschlossen 2026-11-18 (Code + automatisierte Tests grün) — Menschen-Abnahme nach P69 verschoben · teilweise offen (T35.12) — Rückstufung 2026-11-09 (Abnahme-Retro); vormals „abgeschlossen“ · (2026-11-07) — T3.2, T3.4–T3.5, T3.8–T3.14 umgesetzt; T3.6/T3.7 historisch, nach P1.5 vorgezogen und via P10/ADR-0028/0032 abgehakt. Die verbliebenen Reste laufen in [EPIC-P35 Endabnahme-Block](EPIC-P35-harness-paritaet-fortsetzen-provider.md): T3.1 (Swarm) → T35.12 (Admin-Credential/Feature-Freischalt und echte Lauf-JSONL fehlen), T3.3s Live-Probe gegen eine echte OpenAI-kompatible Instanz → T35.12 (die Substanz — lokales Modell via llama.cpp — ist seit P7 T7.5/T12.9 real betrieben), AC-P3-3s K6-Gerätemessung → T35.11. AC-P3-1s „sechs Provider-Typen parallel" ist durch die dokumentierte Bestandskorrektur ersetzt (Vorbemerkung 2026-09-18: zai-Router existierte nicht, Flotte stattdessen auf 13 Adaptern gewachsen) ·
 **Phase:** P3 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** P2 grün
 
 ---
@@ -112,7 +112,7 @@ Handy aus voll arbeitsfähig".
 
 ## 4. Aufgaben
 
-- [ ] **T3.1** Adapter `swarm` inkl. Gate-Ergebnis-Mapping auf Approval-Queue.
+- [ ] **T3.1** Adapter `swarm` inkl. Gate-Ergebnis-Mapping auf Approval-Queue. → nach P69 verschoben
   Kontext (WorkItem-Felder, Event-/Live-Bus-Format, Allowlist-Sicherheitsmuster):
   [`docs/adr/0001-swarm-adapter-context.md`](../docs/adr/0001-swarm-adapter-context.md).
   Die ursprüngliche **Abhängigkeit ist aufgelöst**: P2 (T2.4/T2.5) liefert
@@ -132,7 +132,7 @@ Handy aus voll arbeitsfähig".
   lokaler Nemesis-Router existiert real (siehe Vorbemerkung). Zai-Zugriff
   (Modelle `glm-4.7`…`glm-5.3-highspeed`, Provider `zai-coding-plan`)
   läuft über T3.12s `adapter-opencode`, real verifiziert.
-- [ ] **T3.3** Adapter `local-llm` (OpenAI-kompatibler Stream, Modell-
+- [ ] **T3.3** Adapter `local-llm` (OpenAI-kompatibler Stream, Modell- → nach P69 verschoben
   Registry). Reuse von `examples/adapters/openai-compat/` statt Neubau.
   **Ehrlich unproven:** keine reale lokale LLM-Instanz auf dieser Maschine
   zum Zeitpunkt des Baus vorhanden (siehe Vorbemerkung) — Contract-Tests

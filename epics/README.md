@@ -6,6 +6,14 @@ Keine automatische Wiederaufnahme nach grünen Vorgängern; nur auf ausdrücklic
 Nutzerauftrag. Davon abhängige Arbeit bleibt bis zur erfüllten Voraussetzung
 blockiert; diese Zurückstellung hebt kein anderes Epic-Gating auf.
 
+**Dauerhafte Menschen-Abnahmen (seit 18.11.2026): [EPIC-P69](EPIC-P69-permanente-menschen-abnahmen.md).**
+Epics schließen, sobald Code und automatisierte Tests fertig sind; die
+verbleibende Menschen-Abnahme (Gerät, echte Stimmen/Remotes,
+Nutzer-Verifikation) ist dorthin delegiert (Delegationsvermerk
+„nach P69 verschoben“) und wird nur dort abgehakt. Epics mit reinem
+Agentenrest oder offenen Entscheidungen bleiben offen. Die Statusspalten
+unten sind Stand der Migration; aktuell zeigt `npm run epics:status`.
+
 **Erstellt:** 12.09.2026 · **Basis:** PRD AncientVoid v1.0 (2026-09-12-PRD-Unified-AI-Agent-Command-Center.md)
 **Workflow:** Vault-Standard — jedes Epic enthält Premortem, Messlatten-Bezug (K1–K10), Definition of Done.
 
@@ -303,6 +311,7 @@ ADR vor der ersten Contract-Änderung).
 | [P66 — Metrik-Konsolidierung: alles an einem Ort, aufgeräumt und klappbar](EPIC-P66-metrik-konsolidierung-refinement.md) | `#/statistik` wird die eine Metrik-Zentrale: System- und KI-Server-Sektionen aus dem unveränderten `GET /api/aimetrics`-Report (keine zweite Wahrheit), klappbare Sektionen mit Reload-stabilem Zustand, Filter-Dauerhaftigkeit + Zurücksetzen, Design-System-Ratchets grün; EUR (P31)/Compression (P55)/Input-Output-Token-Split (unbelegt) bleiben draußen — **in Umsetzung seit 17.11.2026** | EPIC-P56 grün (T56.1a–T56.4, PR #123; T56.6-Abnahme parallel); EPIC-P59 grün | 0,5–1 |
 | [P67 — Main-Sync: frischer Main beim Start, laufende Synchronisation, einstellbar](EPIC-P67-main-sync.md) | Stufe 1: neue Session startet auf `origin/<Hauptbranch>` (Fetch mit Timeout, Fallback + sichtbares Event, nur auf dem Hauptbranch); Stufe 2: Sync-Engine (hinter/vor, Probelauf per `merge-tree`, Merge mit Abbruch, nur bei wartender Session) und Scheduler (ein Fetch je Projekt) mit Modi `notify`/`ask`/`auto`; Stufe 3: Einstellungen global + je Projekt (Takt, autonom/mit Bestätigung, Auto-Merge), PWA-Indikator „N hinter main“, `hubctl main-sync`; Hub-Checkout selbst aktualisieren bleibt Out — **umgesetzt (T67.1–T67.9, PRs #149–#158, `verify` grün); T67.10 Abnahme am echten Remote offen (Nutzeraufgabe, Schritte im Epic-Abschluss-Block)** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 2–3 |
 | [P68 — Prompt verbessern: lokales Modell zuerst, Projektkontext, Skill-Vorschläge pflegen](EPIC-P68-prompt-enhance-lokal-skill-pflege.md) | Engine-Kette lokal (`assistant.model`, Auslastung via `/slots`/503) → gewählter Adapter → OpenCode mit sichtbarem Grund je Stufe; gerahmter Projektkontext (Leitfaden, README, Manifest, Skills; ≤ 6 000 Zeichen); Skill-Empfehlung zeigt vorhandene Einträge (`mode: update`), Anpassen/Modell-Vorschlag/Speichern mit Hash-Sperre statt Dubletten (ADR-0089) — **in Umsetzung seit 18.11.2026** | keine fachliche offene (Quer-Epic); P30/P31 On hold unberührt | 1 |
+| [P69 — Dauerhafte Menschen-Abnahmen (Abnahme-Sammelstelle)](EPIC-P69-permanente-menschen-abnahmen.md) | Dauerhaft offenes Sammel-Epic (Nachfolger des P35-Endabnahme-Blocks): alle Menschen-Testabnahmen mit Herkunftsbezug — Gerätetermine, echte Stimmen/Remotes, Nutzer-Verifikation fester Bugs; Epics schließen ohne ihre Menschen-Abnahme mitzunehmen | permanent, öffnet nie; Aufnahme nach Aufnahmeregel §2 | laufend |
 
 ## Reihenfolge & Gating
 
