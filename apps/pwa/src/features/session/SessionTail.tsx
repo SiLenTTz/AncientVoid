@@ -192,6 +192,13 @@ export function SessionTail({
   // BUG-0043: nur wer unten liest, wird mit neuen Events nach unten geführt.
   const stickRef = useRef(true);
   const userInputAt = useRef(0);
+  /** BUG-0207: „hat sich weggelesen“ — der Leser hat die Spitze selbst verlassen. Unterdrueckt
+   * erneutes Anheften, bis er selbst wieder unten ist oder ein neuer Strom beginnt. */
+  const awayRef = useRef(false);
+  /** laeuft gerade ein Live-Strom? Gezählt wird nach turnId — ein Strom gilt erst mit
+   * seinem final-Frame als beendet, sonst ueberlappen sich Bloecke und der gerade
+   * gesetzte Sprung an den Nachrichtenanfang wird sofort wieder nach unten gezogen. */
+  const openTurnsRef = useRef(new Set<string>());
   // The tail ends exactly where the fixed controls start — measured, not
   // guessed: a taller composer (draft, recommendation, error) used to cover
   // the last message.
@@ -407,14 +414,26 @@ export function SessionTail({
       },
       // ADR-0083: echte Live-Frames — kohäriert am Adapter (≤ 150 ms), hier nur angesetzt.
       onFrames: (frames) => {
-        setLiveText((prev) => {
-          let next = prev;
-          for (const f of frames) {
-            if (!f.text) continue;
-            next = f.stream === "assistant" ? { ...next, assistant: next.assistant + f.text } : { ...next, thinking: next.thinking + f.text };
-          }
-          return next;
-        });
+        // BUG-0207: Frames lassen den Chat wachsen, ohne dass ein Ereignis eintrifft.
+        // Ein neu beginnender Strom holt das Mitrollen zurueck — aber nicht gegen einen
+        // Leser, der sich bewusst weiter oben etwas ansieht.
+        const open = openTurnsRef.current;
+        const wasStreaming = open.size > 0;
+        let assistantText = "";
+        let thinkingText = "";
+        for (const f of frames) {
+          if (f.turnId && f.stream) { if (f.final) open.delete(f.turnId); else open.add(f.turnId); }
+          if (!f.text) continue;
+          if (f.stream === "assistant") assistantText += f.text;
+          else thinkingText += f.text;
+        }
+        if (!wasStreaming && open.size > 0 && !awayRef.current) stickRef.current = true;
+        if (assistantText || thinkingText) {
+          setLiveText((prev) => ({
+            assistant: assistantText ? prev.assistant + assistantText : prev.assistant,
+            thinking: thinkingText ? prev.thinking + thinkingText : prev.thinking,
+          }));
+        }
       },
       onState: setConn,
     });
@@ -506,6 +525,8 @@ export function SessionTail({
   useEffect(() => {
     const saved = readTailScroll(session.id, activeTab);
     stickRef.current = saved === null;
+    awayRef.current = false;
+    openTurnsRef.current.clear();
     if (saved === null) return;
     let done = false;
     let raf = 0;
@@ -531,10 +552,6 @@ export function SessionTail({
       ro?.disconnect();
     };
   }, [activeTab, session.id]);
-  useEffect(() => {
-    if (activeTab !== "chat" && activeTab !== "verlauf") return;
-    if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [events, activeTab, filter]);
   // BUG-0044: ändert sich die Höhe (Dock ein-/ausgeblendet), bleibt der Fuß sichtbar.
   // BUG-0056: nicht auf Code/Suche/Bericht — dort schiebt „nach unten“ das Suchfeld aus dem Bild.
   useLayoutEffect(() => {
@@ -694,6 +711,19 @@ export function SessionTail({
   // EPIC-P43 T43.4: der Chat in Zügen — aus dem ungefilterten Strom, damit Schritte nicht verloren gehen.
   const live = status === "working" || status === "starting";
   const chat = useChatEvents(shownEvents, api);
+
+  // BUG-0207/0208: Mitrollen haengt jetzt an Ereignissen UND an Live-Frames — frames
+  // aenderten die alte Abhaengigkeit nie, der Text wuchs unter dem Rand weg. Ist ein
+  // gestreamter Block fertig, rueckt die Ansicht an seinen Anfang, der sonst oberhalb
+  // der Lesespitze laege. Steht absichtlich NACH dem tailMaxHeight-Anheften (BUG-0044),
+  // damit der Sprung nicht sofort wieder nach unten gezogen wird, und nach `chat`,
+  // weil die Zeile des Blocks erst mit dem Chat-Datensatz im DOM erscheint.
+  useLayoutEffect(() => {
+    if (activeTab !== "chat" && activeTab !== "verlauf") return;
+    const el = tailRef.current;
+    if (!el) return;
+    if (stickRef.current) el.scrollTo({ top: el.scrollHeight });
+  }, [events, liveText, activeTab, filter, session.id]);
   const lastPrompt = lastUserPrompt(shownEvents);
   const chatItems = useMemo(() => {
     const all = turnsOf(chat.events, live);
@@ -1125,6 +1155,7 @@ export function SessionTail({
 
       {activeTab === "chat" && !viewWindow && lastPrompt && <PinnedPrompt event={lastPrompt} onJump={() => {
         stickRef.current = false;
+        awayRef.current = true; // explicit nach oben gesprungen — nicht zurueckziehen
         userInputAt.current = Date.now();
         tailRef.current?.querySelector(`[data-seq="${lastPrompt.seq}"]`)?.scrollIntoView({ behavior: "auto", block: "start" });
       }} />}
@@ -1149,8 +1180,13 @@ export function SessionTail({
           if (!el) return;
           // Unten angekommen: wieder mitlaufen. Nach oben nur auf Nutzereingabe —
           // Layout-Änderungen lösen ebenfalls scroll-Ereignisse aus.
-          if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) stickRef.current = true;
-          else if (Date.now() - userInputAt.current < 800) stickRef.current = false;
+          if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) {
+            stickRef.current = true;
+            awayRef.current = false; // zurueck an der Spitze — Mitlaufen ist wieder gewollt
+          } else if (Date.now() - userInputAt.current < 800) {
+            stickRef.current = false;
+            awayRef.current = true; // BUG-0207: bewusst weggelesen, nicht erneut festpinnen
+          }
           writeTailScroll(session.id, activeTab, stickRef.current ? 0 : el.scrollTop);
         }}
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}
