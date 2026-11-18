@@ -245,7 +245,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0209](bug-0209-session-bleibt-working-nach-abschluss.md) | Sessions bleiben nach fertigem Zug auf „arbeitet“ (pi: recover ohne adoptWorker; ACP: Werkzeugaufruf ohne terminales Update hält das Register offen) | done | S2 | core | — |
 | [BUG-0210](bug-0210-sound-taste-schwebt-mittig-im-panel-kopf.md) | die Sound-Taste im Benachrichtigungs-Panel-Kopf schwebt fast mittig statt neben ✕ (`space-between` mit drei Kindern, Spalt 82 px gemessen) — Titel füllt jetzt den Rest, Tasten liegen benachbart | done | S4 | pwa | [#146](https://github.com/securesight-ai/AncientVoid/issues/146) |
 | [BUG-0211](bug-0211-chat-spitze-nicht-erreichbar.md) | lange Gespraechte hoeren nach 500 Eintraegen auf: hochscrollen kommt nicht an den Anfang (Harness: aelteste Folge 45 von 544, nichts zum Holen) | open | S3 | pwa | — |
-| [BUG-0212](bug-0212-stt-verfuegbarkeit-geschwindelt-kein-browser-rueckfall.md) | eigene Spracherkennung abgeschaltet, `GET /api/stt` meldet weiter `available:true` (aus der Konfigolage), App haelt an den toten lokalen Weg fest statt auf die Browser-Erkennung umzuschalten | open | S2 | pwa | — |
+| [BUG-0212](bug-0212-stt-verfuegbarkeit-geschwindelt-kein-browser-rueckfall.md) | eigene Spracherkennung abgeschaltet, `GET /api/stt` meldet weiter `available:true` (allein aus der Konfiguration), App haelt an den toten lokalen Weg fest statt auf die Browser-Erkennung umzuschalten | open | S2 | pwa | — |
 Die nächste freie Nummer ist **0213** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
