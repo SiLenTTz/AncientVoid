@@ -228,6 +228,17 @@ export function SessionTail({
   // BUG-0043: nur wer unten liest, wird mit neuen Events nach unten geführt.
   const stickRef = useRef(true);
   const userInputAt = useRef(0);
+  /** BUG-0207: „hat sich weggelesen“ — der Leser hat die Spitze selbst verlassen. Unterdrueckt
+   * erneutes Anheften, bis er selbst wieder unten ist oder ein neuer Strom beginnt. */
+  const awayRef = useRef(false);
+  /** BUG-0208: Seq des Blocks, der einen Live-Strom eingeholt hat — an seinen Anfang rollen. */
+  const jumpSeqRef = useRef<number | null>(null);
+  /** laeuft gerade ein Live-Strom? Gezählt wird nach turnId — ein Strom gilt erst mit
+   * seinem final-Frame als beendet, sonst ueberlappen sich Bloecke und der gerade
+   * gesetzte Sprung an den Nachrichtenanfang wird sofort wieder nach unten gezogen. */
+  const openTurnsRef = useRef(new Set<string>());
+  /** Zeichenlaengen der laufenden Live-Texte (im WS-Callback ohne State-Lesen). */
+  const liveLensRef = useRef({ assistant: 0, thinking: 0 });
   // The tail ends exactly where the fixed controls start — measured, not
   // guessed: a taller composer (draft, recommendation, error) used to cover
   // the last message.
@@ -436,21 +447,45 @@ export function SessionTail({
             return tailWindow(merged, 500);
           });
           // ADR-0083: der Block hat den Teiltext eingeholt — die Live-Blase verschwindet.
-          if (batch.some((e) => e.type === "assistant")) setLiveText((p) => (p.assistant ? { ...p, assistant: "" } : p));
-          if (batch.some((e) => e.type === "thinking")) setLiveText((p) => (p.thinking ? { ...p, thinking: "" } : p));
+          const assistantBlocks = batch.filter((e) => e.type === "assistant");
+          if (assistantBlocks.length) {
+            // BUG-0208: die Nachricht ist fertig gestreamt — ihr Anfang wird vorgemerkt,
+            // damit die Ansicht dorthin rueckt statt am Strom-Ende stehenzubleiben.
+            if (liveLensRef.current.assistant > 0) jumpSeqRef.current = Math.min(...assistantBlocks.map((e) => e.seq));
+            liveLensRef.current.assistant = 0;
+            setLiveText((p) => (p.assistant ? { ...p, assistant: "" } : p));
+          }
+          if (batch.some((e) => e.type === "thinking")) {
+            liveLensRef.current.thinking = 0;
+            setLiveText((p) => (p.thinking ? { ...p, thinking: "" } : p));
+          }
         };
         flushRef.current = activeRef.current ? requestAnimationFrame(flush) : -window.setTimeout(flush, BACKGROUND_FLUSH_MS);
       },
       // ADR-0083: echte Live-Frames — kohäriert am Adapter (≤ 150 ms), hier nur angesetzt.
       onFrames: (frames) => {
-        setLiveText((prev) => {
-          let next = prev;
-          for (const f of frames) {
-            if (!f.text) continue;
-            next = f.stream === "assistant" ? { ...next, assistant: next.assistant + f.text } : { ...next, thinking: next.thinking + f.text };
-          }
-          return next;
-        });
+        // BUG-0207: Frames lassen den Chat wachsen, ohne dass ein Ereignis eintrifft.
+        // Ein neu beginnender Strom holt das Mitrollen zurueck — aber nicht gegen einen
+        // Leser, der sich bewusst weiter oben etwas ansieht.
+        const open = openTurnsRef.current;
+        const wasStreaming = open.size > 0;
+        let assistantText = "";
+        let thinkingText = "";
+        for (const f of frames) {
+          if (f.turnId && f.stream) { if (f.final) open.delete(f.turnId); else open.add(f.turnId); }
+          if (!f.text) continue;
+          if (f.stream === "assistant") assistantText += f.text;
+          else thinkingText += f.text;
+        }
+        liveLensRef.current.assistant += assistantText.length;
+        liveLensRef.current.thinking += thinkingText.length;
+        if (!wasStreaming && open.size > 0 && !awayRef.current) stickRef.current = true;
+        if (assistantText || thinkingText) {
+          setLiveText((prev) => ({
+            assistant: assistantText ? prev.assistant + assistantText : prev.assistant,
+            thinking: thinkingText ? prev.thinking + thinkingText : prev.thinking,
+          }));
+        }
       },
       onState: setConn,
     });
@@ -542,6 +577,9 @@ export function SessionTail({
   useEffect(() => {
     const saved = readTailScroll(session.id, activeTab);
     stickRef.current = saved === null;
+    awayRef.current = false;
+    jumpSeqRef.current = null;
+    openTurnsRef.current.clear();
     if (saved === null) return;
     let done = false;
     let raf = 0;
@@ -567,10 +605,6 @@ export function SessionTail({
       ro?.disconnect();
     };
   }, [activeTab, session.id]);
-  useEffect(() => {
-    if (activeTab !== "chat" && activeTab !== "verlauf") return;
-    if (stickRef.current) tailRef.current?.scrollTo({ top: tailRef.current.scrollHeight });
-  }, [events, activeTab, filter]);
   // BUG-0044: ändert sich die Höhe (Dock ein-/ausgeblendet), bleibt der Fuß sichtbar.
   // BUG-0056: nicht auf Code/Suche/Bericht — dort schiebt „nach unten“ das Suchfeld aus dem Bild.
   useLayoutEffect(() => {
@@ -730,6 +764,43 @@ export function SessionTail({
   // EPIC-P43 T43.4: der Chat in Zügen — aus dem ungefilterten Strom, damit Schritte nicht verloren gehen.
   const live = status === "working" || status === "starting";
   const chat = useChatEvents(shownEvents, api);
+
+  // BUG-0207/0208: Mitrollen haengt jetzt an Ereignissen UND an Live-Frames — frames
+  // aenderten die alte Abhaengigkeit nie, der Text wuchs unter dem Rand weg. Ist ein
+  // gestreamter Block fertig, rueckt die Ansicht an seinen Anfang, der sonst oberhalb
+  // der Lesespitze laege. Steht absichtlich NACH dem tailMaxHeight-Anheften (BUG-0044),
+  // damit der Sprung nicht sofort wieder nach unten gezogen wird, und nach `chat`,
+  // weil die Zeile des Blocks erst mit dem Chat-Datensatz im DOM erscheint.
+  useLayoutEffect(() => {
+    if (activeTab !== "chat" && activeTab !== "verlauf") return;
+    const el = tailRef.current;
+    if (!el) return;
+    const seq = jumpSeqRef.current;
+    if (seq !== null) {
+      let raf = 0;
+      let tries = 0;
+      const attempt = () => {
+        if (jumpSeqRef.current !== seq) return; // durch eine neuere Absicht ersetzt
+        const node = tailRef.current?.querySelector<HTMLElement>(`[data-seq="${seq}"]`) ?? null;
+        if (node) {
+          jumpSeqRef.current = null;
+          const box = tailRef.current?.getBoundingClientRect();
+          // Nur springen, wenn der Anfang oberhalb der Lesespitze liegt — ist die
+          // Nachricht ganz sichtbar, waere ein Sprung nur Flackern.
+          if (box && node.getBoundingClientRect().top < box.top - 8) {
+            stickRef.current = false;
+            node.scrollIntoView({ behavior: "auto", block: "start" });
+          }
+          return;
+        }
+        if (++tries < 120) raf = requestAnimationFrame(attempt);
+        else jumpSeqRef.current = null; // nie im DOM aufgetaucht — nicht ewig nachhalten
+      };
+      attempt();
+      return () => cancelAnimationFrame(raf);
+    }
+    if (stickRef.current) el.scrollTo({ top: el.scrollHeight });
+  }, [events, chat.events, liveText, activeTab, filter, session.id]);
   const lastPrompt = lastUserPrompt(shownEvents);
   const chatItems = useMemo(() => {
     const all = turnsOf(chat.events, live);
@@ -1161,6 +1232,7 @@ export function SessionTail({
 
       {activeTab === "chat" && !viewWindow && lastPrompt && <PinnedPrompt event={lastPrompt} onJump={() => {
         stickRef.current = false;
+        awayRef.current = true; // explicit nach oben gesprungen — nicht zurueckziehen
         userInputAt.current = Date.now();
         tailRef.current?.querySelector(`[data-seq="${lastPrompt.seq}"]`)?.scrollIntoView({ behavior: "auto", block: "start" });
       }} />}
@@ -1185,8 +1257,13 @@ export function SessionTail({
           if (!el) return;
           // Unten angekommen: wieder mitlaufen. Nach oben nur auf Nutzereingabe —
           // Layout-Änderungen lösen ebenfalls scroll-Ereignisse aus.
-          if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) stickRef.current = true;
-          else if (Date.now() - userInputAt.current < 800) stickRef.current = false;
+          if (el.scrollHeight - el.clientHeight - el.scrollTop < 48) {
+            stickRef.current = true;
+            awayRef.current = false; // zurueck an der Spitze — Mitlaufen ist wieder gewollt
+          } else if (Date.now() - userInputAt.current < 800) {
+            stickRef.current = false;
+            awayRef.current = true; // BUG-0207: bewusst weggelesen, nicht erneut festpinnen
+          }
           writeTailScroll(session.id, activeTab, stickRef.current ? 0 : el.scrollTop);
         }}
         style={`overflow-y: auto; max-height: ${tailMaxHeight !== null ? `calc(${tailMaxHeight}px / var(--ui-zoom, 1))` : "60vh"}`}

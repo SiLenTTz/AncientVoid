@@ -94,7 +94,7 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     expect(at("Rückfrage")).toBeLessThan(at("Zug fertig"));
   });
 
-  test("die Sound-Taste sitzt direkt links neben ✕ im Panel-Kopf (BUG-0207)", async ({ app }) => {
+  test("die Sound-Taste sitzt direkt links neben ✕ im Panel-Kopf (BUG-0210)", async ({ app }) => {
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     const head = app.locator(".notif-panel-head");
     const sound = (await head.locator('[data-testid="notif-sound-toggle"]').boundingBox())!;

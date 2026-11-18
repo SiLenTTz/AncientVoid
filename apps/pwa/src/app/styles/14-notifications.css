@@ -176,7 +176,7 @@
   display: flex;
   align-items: center;
 }
-/* BUG-0207: space-between verteilte Titel, Sound-Taste und ✕ auf die ganze
+/* BUG-0210: space-between verteilte Titel, Sound-Taste und ✕ auf die ganze
  * Breite — die Sound-Taste (EPIC-P65 T65.4) rutschte damit fast in die
  * Panel-Mitte. Der Titel füllt den Rest, beide Tasten liegen rechts benachbart. */
 .notif-panel-head > strong {

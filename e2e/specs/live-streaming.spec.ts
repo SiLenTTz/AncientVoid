@@ -111,6 +111,130 @@ test.describe("das Denken live wie eine Notiz — und es scrollt mit", () => {
   });
 });
 
+/**
+ * Kai am Handy (2026-11-18): bei langen Live-Stromen — gerade beim Denken — schrieb
+ * der Antworten-Text „aus dem Bildschirm raus“: die Blase wuchs unter den Rand, der
+ * Chat rollte nicht mit. Der Chat heftete sich nur neu an, wenn ein EREIGNIS eintraf
+ * (SessionTail: follow-effect mit Abhaengigkeit [events]); Live-Frames aenderten ihn
+ * nicht. Und ist die Antwort fertig, steht man am ENDE statt am ANFANG der Nachricht.
+ */
+test.describe("Live-Frames ohne neue Ereignisse — der Chat laeuft trotzdem mit (BUG-0207)", () => {
+  test.use({
+    hubOptions: {
+      dummyLiveFrames: true, dummyLiveChunks: 40, dummyLiveChunkDelayMs: 150,
+      dummyBlockLeadMs: 9_000, dummyEventsPerSecond: 1, dummyAutoStop: 0, dummyCycleTypes: false,
+    },
+  });
+
+  test("die Live-Blase ueberwaechst den Viewport und bleibt dabei sichtbar", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+    await app.setViewportSize({ width: 390, height: 420 });
+
+    const bubble = app.getByTestId("chat-live-assistant");
+    await expect(bubble).toBeVisible({ timeout: 20_000 });
+
+    // Die fehlende Zutat, hier erzwungen: waehrend die Frames einlaufen trifft kaum ein
+    // Ereignis ein (cycleTypes false + blockLeadMs) — das alte Mitrollen hing aber
+    // ausschliesslich an Ereignissen. Gezahlt wird nachher, ob sich nichts gerührt hat.
+    const before = (await hub.events(id)).filter((e) => e.type === "assistant").length;
+
+    // Ohne Ueberlauf waere jede Scroll-Pruefung wertlos — erst die Hoehenbedingung
+    // macht den Beweis „rausgeschrieben“ moeglich.
+    await expect
+      .poll(() => app.locator(".tail-scroll").evaluate((el) => el.scrollHeight - el.clientHeight), { timeout: 20_000, intervals: [300] })
+      .toBeGreaterThan(200);
+
+    // Durchgehend messen: kein Frameschritt darf die Blase unter den Rand schreiben.
+    await expect
+      .poll(async () => app.evaluate(() => {
+        const box = document.querySelector<HTMLElement>(".tail-scroll");
+        const bubble = document.querySelector<HTMLElement>("[data-testid='chat-live']");
+        if (!box || !bubble) return 9_999;
+        return Math.round(box.getBoundingClientRect().bottom - bubble.getBoundingClientRect().bottom);
+      }), { timeout: 6_000, intervals: [200] })
+      .toBeGreaterThanOrEqual(-4);
+
+    // Beleg, dass das Mitrollen in diesem Fenster ausschliesslich an Frames hing: es sind
+    // keine neuen assistant-Bloecke eingetroffen.
+    const after = (await hub.events(id)).filter((e) => e.type === "assistant").length;
+    expect(after).toBe(before);
+  });
+
+  /**
+   * Kais echter Fall am Handy: er oeffnet die laufende Sitzung, und die Position ist
+   * gemerkt (tail-scroll.ts) — damit war das Anheften aus und wurde von Live-Frames nie
+   * wieder scharf. Die Antwort schreibt unterhalb der Lesespitze weiter.
+   */
+  test("Sitzung mit gemerkter Position oeffnen — der Strom laeuft trotzdem mit", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.addInitScript(
+      ([session, top]) => localStorage.setItem(`ancientvoid.tailScroll.${session}.chat`, String(top)),
+      [id, 260] as [string, number],
+    );
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+    await app.setViewportSize({ width: 390, height: 420 });
+
+    await expect(app.getByTestId("chat-live-assistant")).toBeVisible({ timeout: 20_000 });
+    // Der Chat ueberlaeuft — die gemerkte Stelle allein reicht dafuer nicht, es muss
+    // auch unterhalb der Lesespitze weitergehen koennen.
+    await expect
+      .poll(() => app.locator(".tail-scroll").evaluate((el) => el.scrollHeight - el.clientHeight), { timeout: 20_000, intervals: [300] })
+      .toBeGreaterThan(200);
+
+    // Und die Blase muss sichtbar bleiben, waehrend weitere Frames einlaufen.
+    await expect
+      .poll(async () => app.evaluate(() => {
+        const box = document.querySelector<HTMLElement>(".tail-scroll");
+        const bubble = document.querySelector<HTMLElement>("[data-testid='chat-live']");
+        if (!box || !bubble) return 9_999;
+        return Math.round(box.getBoundingClientRect().bottom - bubble.getBoundingClientRect().bottom);
+      }), { timeout: 5_000, intervals: [200] })
+      .toBeGreaterThanOrEqual(-4);
+  });
+});
+
+test.describe("nach dem Strom steht der Anfang einer Nachricht oben (BUG-0208)", () => {
+  test.use({
+    hubOptions: {
+      dummyLiveFrames: true, dummyLiveChunks: 6, dummyLiveChunkDelayMs: 120,
+      dummyBlockLeadMs: 4_000, dummyEventsPerSecond: 1, dummyAutoStop: 0, dummyCycleTypes: false,
+    },
+  });
+
+  test("nach dem Strom steht der Anfang einer Nachricht oben — nicht ihr Ende", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await sessionTab(app, "Chat");
+    await app.setViewportSize({ width: 390, height: 300 }); // schmale Lesespitze: ein Block ueberragt sie
+
+    await expect(app.getByTestId("chat-live-assistant")).toBeVisible({ timeout: 20_000 });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "erste Nachricht ist als Block da");
+
+    // Nutzerblick: nach einem fertigen Strom liegt der Anfang einer Nachricht oben in der
+    // Spitze und der Chat klebt nicht am Fuss. Die Fuss-Bedingung macht die Pruefung ohne
+    // den Fix rot — vorher stand man genau dort unten.
+    await expect
+      .poll(async () => app.evaluate(() => {
+        const box = document.querySelector<HTMLElement>(".tail-scroll");
+        if (!box) return "kein Lesefenster";
+        const overflows = box.scrollHeight - box.clientHeight;
+        const footGap = Math.round(box.scrollHeight - box.clientHeight - box.scrollTop);
+        const top = box.getBoundingClientRect().top;
+        const aligned = [...document.querySelectorAll<HTMLElement>(".event.assistant[data-seq]")].some(
+          (el) => Math.abs(el.getBoundingClientRect().top - top) <= 24,
+        );
+        if (overflows < 200) return `Liste ueberlaeuft nicht (${overflows})`;
+        if (footGap <= 150) return `Chat klebt am Fuss (footGap=${footGap})`;
+        if (!aligned) return "kein Nachrichtenanfang oben ausgerichtet";
+        return "ok";
+      }), { timeout: 20_000, intervals: [300] })
+      .toBe("ok");
+  });
+});
+
 test.describe("Ohne Frames keine Live-Blase (BUG-0178)", () => {
   test.use({ hubOptions: { dummyEventsPerSecond: 6, dummyAutoStop: 12 } });
 

@@ -1,5 +1,5 @@
 ---
-id: BUG-0207
+id: BUG-0210
 slug: sound-taste-schwebt-mittig-im-panel-kopf
 status: done
 severity: S4
@@ -12,7 +12,11 @@ created: 2026-11-18
 reporter: Nutzer (Kai)
 ---
 
-# BUG-0207 — Sound-Taste schwebt fast mittig im Benachrichtigungs-Panel-Kopf statt neben ✕
+# BUG-0210 — Sound-Taste schwebt fast mittig im Benachrichtigungs-Panel-Kopf statt neben ✕
+
+> Ursprünglich als BUG-0207 angelegt (PR #147); die Nummer kollidierte mit
+> der älteren Belegung durch PR #142 (Live-Strom-Scrolldefekte) und wurde
+> beim Main-Sync auf BUG-0210 umnummeriert. Issue #146 bleibt der Tracker.
 
 ## Gesehen
 
@@ -58,7 +62,7 @@ Expected: <= 12, Received: 82
 
 | Ring | Befehl / Datei | Stand vor dem Fix |
 |---|---|---|
-| E2E | `e2e/specs/notifications.spec.ts` „die Sound-Taste sitzt direkt links neben ✕ im Panel-Kopf (BUG-0207)" | nicht vorhanden |
+| E2E | `e2e/specs/notifications.spec.ts` „die Sound-Taste sitzt direkt links neben ✕ im Panel-Kopf (BUG-0210)" | nicht vorhanden |
 
 Ohne Fix rot (Spalt 82 px > 12 px), mit Fix grün (1,6 s).
 
