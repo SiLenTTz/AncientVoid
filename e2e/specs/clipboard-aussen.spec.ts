@@ -1,4 +1,5 @@
-import { test, expect, type Page } from "../support/fixtures.ts";
+import { test, expect } from "../support/fixtures.ts";
+import type { Page } from "@playwright/test";
 
 /**
  * ADR-0093: was ausserhalb der App kopiert wurde, kommt beim Wiederkommen in die

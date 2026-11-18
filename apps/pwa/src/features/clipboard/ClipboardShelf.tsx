@@ -1,7 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 import { Sheet } from "../../shared/ui/Sheet.tsx";
-import { Button, EmptyState } from "../../shared/ui/index.ts";
+import { Button, EmptyState, Switch } from "../../shared/ui/index.ts";
 import { ago } from "../../shared/status.ts";
+import { dropImage, getImage } from "../../shared/clipboard-images.ts";
+import { copyImageIntoSystem } from "../../shared/clipboard-copy.ts";
+import { requestAttach } from "../../shared/attach-external.ts";
+import { INGEST_EVENT, erlaubnisLage, ingestEnabled, installClipboardIngest, setIngestEnabled } from "../../shared/clipboard-ingest.ts";
 import { pasteTranscript } from "../stt/paste-target.ts";
 import {
   clearShelf,
@@ -12,6 +16,7 @@ import {
   SHELF_LEVELS,
   SHELF_MAX,
   SHELF_ORIGIN_LABEL,
+  imageCaption,
   useShelf,
   visibleShelf,
   type ShelfEntry,
@@ -30,6 +35,31 @@ export function useShelfCount(): number {
 
 /** Zwei Blätter versetzt übereinander — die Ablage ist ein Stapel, keine Zeilenliste.
  *  Die frühere Form mit vier Strichen las sich als Textausrichtung, nicht als Stapel. */
+/** echtes Vorschaubild aus dem Blob — Objekt-URL, beim Verschwinden zurueckgegeben */
+function ShelfThumb({ entry }: { entry: ShelfEntry }) {
+  const [quelle, setQuelle] = useState("");
+  useEffect(() => {
+    let lebt = true;
+    let url = "";
+    if (entry.asset) {
+      void getImage(entry.asset).then((bild) => {
+        if (!lebt || !bild) return;
+        url = URL.createObjectURL(bild.blob);
+        setQuelle(url);
+      });
+    }
+    return () => {
+      lebt = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [entry.asset]);
+  return quelle ? (
+    <img class="shelf-thumb" data-testid="shelf-thumb" src={quelle} alt={imageCaption(entry)} />
+  ) : (
+    <span class="shelf-thumb shelf-thumb-fehlt" data-testid="shelf-thumb" aria-hidden="true">?</span>
+  );
+}
+
 function ShelfGlyph() {
   return (
     <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,10 +77,29 @@ function ShelfGlyph() {
 export function ClipboardShelf() {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<ShelfEntry[]>(() => visibleShelf());
+  // ADR-0093: extern Kopiertes hereinholen — der Schalter bleibt hier sichtbar, weil
+  // „die App liest mein Clipboard“ eine Entscheidung ist, keine Selbstverständlichkeit.
+  const [an, setAn] = useState(() => ingestEnabled());
+  const [lage, setLage] = useState<"erlaubt" | "verweigert" | "weiss nicht">("weiss nicht");
+
   const [note, setNote] = useState("");
   const [armed, setArmed] = useState(false);
 
   const sync = () => setEntries(visibleShelf());
+  // Das Blatt ist appweit montiert — hier hoert die App auf, beim Wiederkommen
+  // ins System-Clipboard zu schauen (ADR-0093).
+  useEffect(() => installClipboardIngest(), []);
+
+  useEffect(() => {
+    const auf = () => setAn(ingestEnabled());
+    window.addEventListener(INGEST_EVENT, auf);
+    return () => window.removeEventListener(INGEST_EVENT, auf);
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    void erlaubnisLage().then(setLage);
+  }, [open]);
+
   useEffect(() => {
     const open_ = () => {
       sync();
@@ -100,6 +149,43 @@ export function ClipboardShelf() {
 
   const remove = (entry: ShelfEntry) => {
     dropShelf(entry.id);
+    // ADR-0093: zu einer Bild-Stufe gehört auch ihre Rohpixelf — „entfernen“ meint weg.
+    if (entry.asset) void dropImage(entry.asset);
+    sync();
+  };
+
+  // ADR-0093: einScreenshot aus einer anderen App an die Session haengen — derselbe Weg
+  // wie die Bueroeklammer (Hochladen, Lese-Status im Anhaenger-Chip).
+  const anhaengen = async (entry: ShelfEntry): Promise<void> => {
+    if (!entry.asset) return;
+    const bild = await getImage(entry.asset);
+    if (!bild) {
+      setNote("Bild ist nicht mehr da — die Stufe zeigt ins Leere.");
+      remove(entry);
+      return;
+    }
+    const name = `screenshot-${new Date(bild.at).toISOString().replace(/[:.]/g, "-")}.${bild.mime === "image/jpeg" ? "jpg" : "png"}`;
+    requestAttach(new File([bild.blob], name, { type: bild.mime }));
+    useShelf(entry.id);
+    setNote("angehängt — der Anhang wird gelesen (OCR), danach kann er im Chat verwendet werden");
+    sync();
+  };
+
+  const bildZurueck = async (entry: ShelfEntry): Promise<void> => {
+    if (!entry.asset) return;
+    const bild = await getImage(entry.asset);
+    if (!bild) {
+      setNote("Bild ist nicht mehr da.");
+      remove(entry);
+      return;
+    }
+    const geklappt = await copyImageIntoSystem(bild.blob, bild.mime);
+    if (geklappt) {
+      useShelf(entry.id);
+      setNote("Bild in die Zwischenablage zurückgeholt");
+    } else {
+      setNote("Dieser Browser kann kein Bild ins System-Clipboard legen — „anhängen“ funktioniert.");
+    }
     sync();
   };
 
@@ -138,7 +224,7 @@ export function ClipboardShelf() {
         {entries.length === 0 ? (
           <EmptyState
             icon={<ShelfGlyph />}
-            text="Noch nichts abgelegt. Was die App kopiert — Diktat, Markierung, Befehl, Eintrag — liegt eine Stufe tiefer hier; Token bleiben draußen."
+            text="Noch nichts abgelegt. Was die App kopiert — Diktat, Markierung, Befehl, Eintrag — liegt eine Stufe tiefer hier; beim Wiederkommen kommt auch extern Kopiertes herein (Text und Screenshot). Token bleiben draußen."
             action={<Button size="sm" onClick={() => setOpen(false)}>schließen</Button>}
           />
         ) : (
@@ -147,7 +233,14 @@ export function ClipboardShelf() {
               <li class="shelf-row" data-testid="shelf-row" key={entry.id}>
                 <span class="shelf-step" aria-hidden="true">{index + 1}</span>
                 <div class="shelf-body">
-                  <p class="shelf-text">{entry.text}</p>
+                  {entry.kind === "bild" ? (
+                    <div class="shelf-bild">
+                      <ShelfThumb entry={entry} />
+                      <p class="shelf-text shelf-caption">{imageCaption(entry)}</p>
+                    </div>
+                  ) : (
+                    <p class="shelf-text">{entry.text}</p>
+                  )}
                 <div class="shelf-meta">
                   <span class="shelf-origin">{SHELF_ORIGIN_LABEL[entry.origin]}</span>
                   <span class="dim">{ago(entry.at)}</span>
@@ -157,8 +250,12 @@ export function ClipboardShelf() {
                 {/* Eine echte Taste, der Rest als Textstelle — sechs Reihen mit drei
                     gleich grossen Knöpfen schreien, und "einfügen" ist die Entscheidung. */}
                 <div class="shelf-actions">
-                  <Button size="sm" data-testid="shelf-insert" onClick={() => void insert(entry)}>Einfügen</Button>
-                  <button type="button" class="link-btn shelf-copy" data-testid="shelf-copy" onClick={() => void copyBack(entry)}>in die Zwischenablage</button>
+                  {entry.kind === "bild" ? (
+                    <Button size="sm" data-testid="shelf-attach" onClick={() => void anhaengen(entry)}>anhängen</Button>
+                  ) : (
+                    <Button size="sm" data-testid="shelf-insert" onClick={() => void insert(entry)}>Einfügen</Button>
+                  )}
+                  <button type="button" class="link-btn shelf-copy" data-testid="shelf-copy" onClick={() => void (entry.kind === "bild" ? bildZurueck(entry) : copyBack(entry))}>in die Zwischenablage</button>
                   <span class="shelf-dot" aria-hidden="true">·</span>
                   <button type="button" class="link-btn shelf-drop" data-testid="shelf-drop" onClick={() => remove(entry)}>entfernen</button>
                 </div>
@@ -169,8 +266,17 @@ export function ClipboardShelf() {
         )}
 
         {note && <p class="shelf-note" role="status" data-testid="shelf-note">{note}</p>}
+        <div class="shelf-ingest">
+          <span>aus anderen Apps übernehmen</span>
+          <Switch label="aus anderen Apps übernehmen" checked={an} onChange={(next) => { setAn(next); setIngestEnabled(next); }} />
+        </div>
+        <p class="shelf-ingest-hinweis">
+          {lage === "verweigert"
+            ? "Der Browser verweigert das Lesen der System-Zwischenablage — in den Browser-Einstellungen erlauben."
+            : "Beim Wiederkommen wird einmal ins System-Clipboard geschaut (Text und Screenshot). Was kopiert wurde, während die App geschlossen war, kann kein Browser nachholen."}
+        </p>
         <p class="shelf-privacy">
-          Nur auf diesem Gerät in diesem Browser — die Ablage geht nie zum Hub. Sichtbar sind {SHELF_LEVELS} Stufen, gemerkt bis {SHELF_MAX}.
+          Nur auf diesem Gerät in diesem Browser — die Ablage geht nie zum Hub. Sichtbar sind {SHELF_LEVELS} Stufen, gemerkt bis {SHELF_MAX}; Bilder liegen getrennt (zwölf Stück, höchstens 24 MB).
         </p>
       </div>
     </Sheet>

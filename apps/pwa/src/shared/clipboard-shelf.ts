@@ -10,7 +10,7 @@
  * über Sessions hinweg geteilt, und Geheimes (Token) kommt erst gar nicht hinein.
  */
 
-export type ShelfOrigin = "diktat" | "markierung" | "eintrag" | "befehl" | "kennung" | "text";
+export type ShelfOrigin = "diktat" | "markierung" | "eintrag" | "befehl" | "kennung" | "text" | "andere-app";
 
 export interface ShelfEntry {
   id: string;
@@ -22,6 +22,14 @@ export interface ShelfEntry {
   uses: number;
   /** Langtext ist gekürzt gespeichert — die Ablage zeigt das offen an. */
   cut: boolean;
+  /** ADR-0093: eine Stufe kann auch ein Bild sein (Screenshot aus einer anderen App). */
+  kind?: "text" | "bild";
+  /** Schlussel des Bildrohpixels in IndexedDB (`clipboard-images.ts`). */
+  asset?: string;
+  mime?: string;
+  bytes?: number;
+  width?: number;
+  height?: number;
 }
 
 /** Sichtbare Stufen der Ablage. */
@@ -43,6 +51,7 @@ export const SHELF_ORIGIN_LABEL: Record<ShelfOrigin, string> = {
   befehl: "Befehl",
   kennung: "Kennung",
   text: "Text",
+  "andere-app": "Andere App",
 };
 
 let entries: ShelfEntry[] | null = null;
@@ -124,6 +133,57 @@ export function pushShelf(text: string, origin: ShelfOrigin, opts: { secret?: bo
   save();
   announce();
   return entry;
+}
+
+/**
+ * ADR-0093: ein Bild aus dem System-Clipboard als Stufe einreihen. Die rohen Bytes
+ * liegen in IndexedDB, die Stufe traegt nur den Schlussel dazu — `localStorage`
+ * kennt keine Bilder. Dasselbe Bild steigt auf, statt sich zu vervielfaeltigen.
+ */
+export function pushShelfImage(input: {
+  asset: string;
+  mime: string;
+  bytes: number;
+  width: number;
+  height: number;
+  origin?: ShelfOrigin;
+}): ShelfEntry | null {
+  const list = load();
+  const bestehend = list.findIndex((e) => e.kind === "bild" && e.asset === input.asset);
+  if (bestehend >= 0) {
+    const [treffer] = list.splice(bestehend, 1);
+    const gehoben: ShelfEntry = { ...treffer!, uses: treffer!.uses + 1, at: new Date().toISOString() };
+    list.unshift(gehoben);
+    save();
+    announce();
+    return gehoben;
+  }
+  const eintrag: ShelfEntry = {
+    id: nextId(),
+    text: "",
+    kind: "bild",
+    asset: input.asset,
+    mime: input.mime,
+    bytes: input.bytes,
+    width: input.width,
+    height: input.height,
+    origin: input.origin ?? "andere-app",
+    at: new Date().toISOString(),
+    uses: 0,
+    cut: false,
+  };
+  list.unshift(eintrag);
+  if (list.length > SHELF_MAX) list.length = SHELF_MAX;
+  save();
+  announce();
+  return eintrag;
+}
+
+/** Menschenwort fuer eine Bild-Stufe: „Screenshot 1080 × 2340 · 412 KB“. */
+export function imageCaption(entry: ShelfEntry): string {
+  const kanten = entry.width && entry.height ? `${entry.width} × ${entry.height}` : "Bild";
+  const groesse = entry.bytes ? (entry.bytes >= 1024 * 1024 ? `${(entry.bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(entry.bytes / 1024))} KB`) : "";
+  return [kanten, groesse].filter(Boolean).join(" · ");
 }
 
 /** Eine Stufe zurück in die System-Zwischenablage: zählt als Benutzung und steigt auf. */

@@ -2,6 +2,7 @@ import { Sheet, Button } from "../../shared/ui/index.ts";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import type { AttachmentRecord } from "../../shared/api.ts";
+import { onExternalAttach } from "../../shared/attach-external.ts";
 
 /**
  * T7.10 (ADR-0022): files and images into a session. Uploaded right away;
@@ -41,9 +42,9 @@ export function AttachmentPicker({ attachments, onChange, disabled }: { attachme
     return () => clearTimeout(timer);
   }, [attachments]);
 
-  const pick = async (files: FileList | null) => {
-    if (!files) return;
-    for (const file of Array.from(files)) {
+  const pick = async (dateien: File[]) => {
+    if (dateien.length === 0) return;
+    for (const file of dateien) {
       const key = `${file.name}-${file.size}-${Date.now()}`;
       setUploading((u) => [...u, { id: key, name: file.name, uploading: true }]);
       try {
@@ -57,16 +58,22 @@ export function AttachmentPicker({ attachments, onChange, disabled }: { attachme
     if (input.current) input.current.value = "";
   };
 
+  // ADR-0093: auch ein Bild aus der Ablage nimmt denselben Weg (Hochladen, Lese-Status).
+  useEffect(() => {
+    if (disabled) return;
+    return onExternalAttach((datei) => void pick([datei]));
+  }, [disabled]);
+
   return (
     <>
-      <input ref={input} type="file" multiple hidden aria-label="Dateien anhängen" onChange={(e) => void pick((e.target as HTMLInputElement).files)} />
+      <input ref={input} type="file" multiple hidden aria-label="Dateien anhängen" data-testid="attachment-input" onChange={(e) => void pick(Array.from((e.target as HTMLInputElement).files ?? []))} />
       <Button disabled={disabled} onClick={() => input.current?.click()} title="Dateien oder Bilder anhängen" aria-label="Anhang hinzufügen" class="attach-btn">
         📎
       </Button>
       {(attachments.length > 0 || uploading.length > 0) && (
         <div class="attachment-chips">
           {attachments.map((a) => (
-            <span key={a.id} class={`attachment-chip ${a.extraction.status}`}>
+            <span key={a.id} class={`attachment-chip ${a.extraction.status}`} data-testid="attachment-chip">
               <strong>{a.name}</strong> <span class="dim">{size(a.bytes)} · {extractionLabel(a)}</span>
               <button type="button" class="attachment-remove" aria-label={`${a.name} entfernen`} onClick={() => onChange(attachments.filter((x) => x.id !== a.id))}>
                 ×
@@ -74,7 +81,7 @@ export function AttachmentPicker({ attachments, onChange, disabled }: { attachme
             </span>
           ))}
           {uploading.map((u) => (
-            <span key={u.id} class={`attachment-chip ${"error" in u && u.error ? "failed" : "pending"}`}>
+            <span key={u.id} class={`attachment-chip ${"error" in u && u.error ? "failed" : "pending"}`} data-testid="attachment-chip">
               <strong>{u.name}</strong> <span class="dim">{"error" in u && u.error ? u.error : "lädt hoch…"}</span>
               {"error" in u && u.error && (
                 <button type="button" class="attachment-remove" aria-label={`${u.name} entfernen`} onClick={() => setUploading((x) => x.filter((y) => y.id !== u.id))}>
