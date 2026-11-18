@@ -1,5 +1,5 @@
 ---
-id: BUG-0217
+id: BUG-0219
 slug: mainsync-stand-gehört-zur-auswahl
 status: open
 severity: S3
@@ -12,7 +12,7 @@ created: 2026-11-18
 reporter: Nutzer
 ---
 
-# BUG-0217 — Main-Sync-Stand „N hinter main“ gehört nicht zur Auswahl
+# BUG-0219 — Main-Sync-Stand „N hinter main“ gehört nicht zur Auswahl
 
 ## Gesehen
 

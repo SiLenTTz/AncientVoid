@@ -4,7 +4,7 @@ Git/Markdown ist SSOT, analog zu `epics/`. Ein Bug ohne Repro ist eine
 Vermutung; die Datei hier ist die Zusage, dass jemand den Defekt **gesehen**
 hat. Das GitHub-Issue ist der Tracker für Zuweisung — nicht die zweite
 Wahrheit (`gh issue create --label bug --body-file bugs/bug-NNNN-slug.md`;
-Spalte „Forge“ = Issue- oder PR-URL auf `github.com/SiLenTTz/AncientVoid`).
+Spalte „Forge“ = Issue- oder PR-URL auf `github.com/securesight-ai/AncientVoid`).
 
 > **Hinweis zur öffentlichen Fassung:** Links auf `gitlab.com/SiLenT_Tz/…`
 > (Issues, MRs, Pipelines) verweisen auf das private Entwicklungs-Repo
@@ -150,7 +150,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0118](bug-0118-session-menue-unter-steuerung.md) | Session-Menü liegt in niedriger Kachel unter der Steuerung | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0119](bug-0119-stdin-epipe-beendet-hub.md) | Ein gebrochenes stdin eines Workers beendet den ganzen Hub (EPIPE) | done | S2 | workers | [#65](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/65) |
 | [BUG-0120](bug-0120-parallele-playwright-laeufe-teilen-test-results.md) | Parallele Playwright-Läufe löschen sich gegenseitig die Artefakte | done | S3 | e2e | — |
-| [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | [#3](https://github.com/SiLenTTz/AncientVoid/issues/3) |
+| [BUG-0121](bug-0121-handy-lauf-session-test-zeitueberschreitung.md) | Am echten Handy: „neue Session aus der UI“ läuft in der Gesamtfolge in die Zeitüberschreitung | open | S3 | e2e | [#3](https://github.com/securesight-ai/AncientVoid/issues/3) |
 | [BUG-0122](bug-0122-overlay-hoehen-ohne-ui-zoom-teilung.md) | Overlay-Höhen/-Breiten (Datei-Blatt, Dialoge, Composer maximiert) ohne Division durch --ui-zoom | done | S3 | pwa | P50 |
 | [BUG-0123](bug-0123-doppelte-scrollbalken-session-kachel.md) | Zwei Scrollbalken rechts in der Session-Ansicht | done | S3 | pwa | P43 |
 | [BUG-0124](bug-0124-menue-datei-oeffnet-dateibaum-nicht.md) | „Mehr → Datei“ öffnet den Dateibaum nicht, Tab zeigt nur einen Knopf | done | S3 | pwa | P43 |
@@ -192,27 +192,27 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0160](bug-0160-galaxy-route-verliert-tab-bei-kacheloffnung.md) | Graph-Deep-Link verliert den Reiter beim Öffnen der Kachel | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
 | [BUG-0161](bug-0161-tool-aktivitaet-beendet-hauptzug-vorzeitig.md) | Ein Tool-Aktivitätsende beendet den Hauptzug vorzeitig | done | S1 | core | — |
 | [BUG-0162](bug-0162-exit-regex-matcht-fremde-event-typen.md) | Exit-Regex matcht fremde Event-Typen | done | S2 | core | — |
-| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | done | S2 | ci | [#4](https://github.com/SiLenTTz/AncientVoid/issues/4) |
+| [BUG-0163](bug-0163-ci-verify-rot-seit-11-11.md) | CI: `verify` seit dem 11.11. durchgehend rot (4 Umgebungstests), lokal grün | done | S2 | ci | [#4](https://github.com/securesight-ai/AncientVoid/issues/4) |
 | [BUG-0164](bug-0164-offline-diff-verliert-stand.md) | Offline-Nachladen verwirft den sichtbaren Diff | done | S3 | pwa | [#67](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/67) |
 | [BUG-0165](bug-0165-restart-session-working-ohne-worker.md) | Restart lässt Session dauerhaft `working` ohne Worker | done | S2 | core | [!481](https://gitlab.com/SiLenT_Tz/AncientVoid/-/merge_requests/481) |
 | [BUG-0166](bug-0166-automation-neuanlage-aktiv.md) | Automation-Neuanlage übernimmt Aktivierung | done | S2 | core | [#46](https://gitlab.com/SiLenT_Tz/AncientVoid/-/work_items/46) |
-| [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/SiLenTTz/AncientVoid/issues/5) |
-| [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/SiLenTTz/AncientVoid/issues/12) |
-| [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/SiLenTTz/AncientVoid/issues/28) |
+| [BUG-0167](bug-0167-fastify-update-macht-zughistorie-flaky.md) | fastify ≥ 5.12.6 macht „ohne Plan, mit Zughistorie“ flaky (Pin auf 5.12.5) | open | S3 | server | [#5](https://github.com/securesight-ai/AncientVoid/issues/5) |
+| [BUG-0168](bug-0168-fleet-steer-dedup-race-auf-langsamer-hardware.md) | Fleet-Steer-Dedup greift auf langsamer Hardware nicht (2 user-Events) | done | S3 | hub | [#12](https://github.com/securesight-ai/AncientVoid/issues/12) |
+| [BUG-0176](bug-0176-starten-klick-von-arbeitsort-feld-ueberdeckt.md) | Starten-Klick im Neue-Session-Formular wird zeitweise vom Arbeitsort-Feld überdeckt (E2E-Flake) | open | S3 | e2e | [#28](https://github.com/securesight-ai/AncientVoid/issues/28) |
 | [BUG-0177](bug-0177-spracheingabe-bricht-ab-und-ist-nicht-stoppbar.md) | Spracheingabe endet nach 10 s/60 s, kein Wort-für-Wort, erneut tippen kann nicht stoppen, Text doppelt nach Chrome-Neustart | done | S1 | pwa | — |
 | [BUG-0178](bug-0178-agent-ausgabe-nur-vorgetaeuscht-gestreamt.md) | Agent-Ausgabe wird nur vorgetäuscht gestreamt: Adapter verwerfen Deltas, PWA tippt fertige Blöcke ab | done | S2 | pwa | — |
 | [BUG-0179](bug-0179-e2e-stand-ins-lassen-sich-auf-windows-nicht-spawnen.md) | E2E-Stand-in-CLIs (Shebang ohne Extension) spawnen auf Windows nicht — Adapter-E2E sind lokal nicht prüfbar | done | S2 | e2e | — |
-| [BUG-0180](bug-0180-z-fold-ausgeklappt-verschenkt-die-breite.md) | Ausgeklappter Z Fold (832 px, hoch): 680-px-Spalte mittig, Sitzungsliste quer scrollbar | done | S2 | pwa | [#40](https://github.com/SiLenTTz/AncientVoid/pull/40) |
+| [BUG-0180](bug-0180-z-fold-ausgeklappt-verschenkt-die-breite.md) | Ausgeklappter Z Fold (832 px, hoch): 680-px-Spalte mittig, Sitzungsliste quer scrollbar | done | S2 | pwa | [#40](https://github.com/securesight-ai/AncientVoid/pull/40) |
 | [BUG-0181](bug-0181-app-dreht-nicht-mit-und-querformat-ohne-leshoehe.md) | App dreht nicht mit (Manifest `portrait-primary`); gedreht fraß der Dock 278 von 412 px, der Chat behielt 48 px | done | S2 | pwa | — |
-| [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | [#50](https://github.com/SiLenTTz/AncientVoid/pull/50) |
-| [BUG-0184](bug-0184-token-summe-ist-kontext-quadrat-statt-verbrauch.md) | „Σ 244 Mio Tokens“ ist der aufaddierte Kontext (1.744 Aufrufe × Verlauf), nicht der Verbrauch — Erzeugtes ist nirgends sichtbar | done | S1 | pwa | [#48](https://github.com/SiLenTTz/AncientVoid/pull/48) |
-| [BUG-0185](bug-0185-token-bilanz-steht-auf-fruehem-abruf.md) | Token-Bilanz der Statuszeile bleibt auf dem Abruf vor dem Zug-Ende stehen — „erzeugt/verarbeitet“ fehlen dauerhaft; Inventarzeile S20 mit zwei Nachweisen rot | done | S2 | pwa | [#54](https://github.com/SiLenTTz/AncientVoid/issues/54) |
+| [BUG-0183](bug-0183-test-laeufe-ueberschreiben-das-live-buendel-des-hubs.md) | Playwright- und Guide-Läufe bauten in `apps/pwa/dist` — derselbe Ordner, den der laufende Hub am Handy servt: Fixes waren weg, ohne dass jemand deployt hätte | done | S1 | tests | [#50](https://github.com/securesight-ai/AncientVoid/pull/50) |
+| [BUG-0184](bug-0184-token-summe-ist-kontext-quadrat-statt-verbrauch.md) | „Σ 244 Mio Tokens“ ist der aufaddierte Kontext (1.744 Aufrufe × Verlauf), nicht der Verbrauch — Erzeugtes ist nirgends sichtbar | done | S1 | pwa | [#48](https://github.com/securesight-ai/AncientVoid/pull/48) |
+| [BUG-0185](bug-0185-token-bilanz-steht-auf-fruehem-abruf.md) | Token-Bilanz der Statuszeile bleibt auf dem Abruf vor dem Zug-Ende stehen — „erzeugt/verarbeitet“ fehlen dauerhaft; Inventarzeile S20 mit zwei Nachweisen rot | done | S2 | pwa | [#54](https://github.com/securesight-ai/AncientVoid/issues/54) |
 | [BUG-0186](bug-0186-installierte-app-dreht-nicht-mit-trotz-freiem-manifest.md) | installierte App drehte nicht: Chromes Installations-Metadaten hielten die alte Manifest-Ausrichtung fest; nach Entfernen+Neuanlegen meldet die App 270° und 970x796 | done | S2 | pwa | — |
-| [BUG-0187](bug-0187-geister-tokens-fremde-fallback-farben.md) | Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling | open | S3 | pwa | — |
-| [BUG-0188](bug-0188-projekt-anlegen-ignoriert-host.md) | „+ Anlegen“ in der Neuanlage legt Projekte immer auf dem heimischen Hub an — gewählter Fleet-Host wird ignoriert, Liste und Pfad springen auf lokal | in Arbeit | S2 | pwa | [#62](https://github.com/SiLenTTz/AncientVoid/issues/62) |
-| [BUG-0189](bug-0189-bugs-ohne-statusfarben-im-dateibaum.md) | `bug-*.md` im Dateibaum ohne Statusfarben — Epics haben Punkte (grün/gelb/blau/grau) | done | S4 | pwa | [#72](https://github.com/SiLenTTz/AncientVoid/issues/72) |
-| [BUG-0190](bug-0190-git-historie-graph-unleserlich.md) | Git-Historie: Lane-Linien, Farben ohne Legende, Worktree-Refs nur als UUID | done | S3 | pwa | [#73](https://github.com/SiLenTTz/AncientVoid/issues/73) |
-| [BUG-0191](bug-0191-git-historie-datei-oeffnet-nur-workdir.md) | Datei aus Git-Historie öffnet nur Worktree-Stand — gelöschte/alte Pfade → 404 | done | S2 | pwa | [#74](https://github.com/SiLenTTz/AncientVoid/issues/74) |
+| [BUG-0187](bug-0187-geister-tokens-fremde-fallback-farben.md) | Geister-Tokens mit fremder Fallback-Palette im Diff-, Dateien- und Arbeitsort-Styling | done | S3 | pwa | [#84](https://github.com/securesight-ai/AncientVoid/issues/84) |
+| [BUG-0188](bug-0188-projekt-anlegen-ignoriert-host.md) | „+ Anlegen“ in der Neuanlage legt Projekte immer auf dem heimischen Hub an — gewählter Fleet-Host wird ignoriert, Liste und Pfad springen auf lokal | in Arbeit | S2 | pwa | [#62](https://github.com/securesight-ai/AncientVoid/issues/62) |
+| [BUG-0189](bug-0189-bugs-ohne-statusfarben-im-dateibaum.md) | `bug-*.md` im Dateibaum ohne Statusfarben — Epics haben Punkte (grün/gelb/blau/grau) | done | S4 | pwa | [#72](https://github.com/securesight-ai/AncientVoid/issues/72) |
+| [BUG-0190](bug-0190-git-historie-graph-unleserlich.md) | Git-Historie: Lane-Linien, Farben ohne Legende, Worktree-Refs nur als UUID | done | S3 | pwa | [#73](https://github.com/securesight-ai/AncientVoid/issues/73) |
+| [BUG-0191](bug-0191-git-historie-datei-oeffnet-nur-workdir.md) | Datei aus Git-Historie öffnet nur Worktree-Stand — gelöschte/alte Pfade → 404 | done | S2 | pwa | [#74](https://github.com/securesight-ai/AncientVoid/issues/74) |
 | [BUG-0192](bug-0192-slash-commands-nicht-bei-allen-anbietern.md) | Slash-Commands fehlen bei den meisten Anbietern — opencode/ACP-Dispatch live belegt, Deklaration fehlte | done | S3 | adapters | — |
 
 
@@ -225,7 +225,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0175](bug-0175-projektfilter-vergleicht-slash-pfade.md) | `outsideRoots()` vergleicht mit `/` und filtert Windows-Sessions komplett weg | done | S2 | core | — |
 
 
-| [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/SiLenTTz/AncientVoid/pull/26) |
+| [BUG-0182](bug-0182-web-push-4-esm-import.md) | web-push 4 verhindert den Hub-Import (ESM) | done | S1 | core | [#26](https://github.com/securesight-ai/AncientVoid/pull/26) |
 | [BUG-0193](bug-0193-schneller-testloop-laeuft-auf-windows-nicht.md) | `test:fast`/`test:slow` setzen die Tier-Umgebung inline — auf Windows (cmd.exe) gibt es dafür kein Ergebnis, der schnelle Loop war dort unbenutzbar | done | S2 | repo | — |
 | [BUG-0194](bug-0194-niedriges-querformat-dock-haengt-an-der-listenspalte.md) | niedriges Querformat: Dock an der Listenspalte eingerueckt (Tabs + Eingabe unter der Kante), Warteschlangen-Text auf 390 px unlesbar | done | S2 | pwa | — |
 | [BUG-0195](bug-0195-live-thinking-groesser-als-die-denk-notiz.md) | das live uebertragene Denken war groesser, gerahmt und hinterlegt (15 px + Akzentkasten) statt wie eine Denk-Notiz (12 px, dimmt, kursiv) | done | S3 | pwa | [#126](https://github.com/securesight-ai/AncientVoid/issues/126) |
@@ -250,8 +250,10 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0214](bug-0214-stt-verfuegbarkeit-geschwindelt-kein-browser-rueckfall.md) | eigene Spracherkennung abgeschaltet, `GET /api/stt` meldet weiter `available:true` (allein aus der Konfiguration), App haelt an den toten lokalen Weg fest statt auf die Browser-Erkennung umzuschalten | open | S2 | pwa | — |
 | [BUG-0215](bug-0215-live-woerter-enden-nach-einer-minute.md) | 85-Sekunden-Diktat am Live-Hub: Teiltexte bis 57 s, dann „Sprachaufnahme dauerte länger als 60 Sekunden“ — Live-Vorschau endet mitten im Satz | open | S2 | hub | — |
 | [BUG-0216](bug-0216-endtext-des-streamten-diktats-traegt-fremden-namen.md) | streamendes Diktat endet mit „engine=Nemotron 3.5 ASR Streaming“, obwohl `stt.streaming.engine` auf unsere Radeon-Erkennung steht — main.ts gibt den Schluessel nicht weiter |
-| [BUG-0217](bug-0217-mainsync-stand-gehoert-zur-auswahl.md) | Hinweis „N hinter main“ gehört nicht zur Auswahl: Abfrage läuft nur beim Mount, Kachelfokus und Rückkehr zur offenen Ansicht zeigen den Stand eines früheren Zeitpunkts/anderen Projekts | open | S3 | pwa | [#180](https://github.com/securesight-ai/AncientVoid/issues/180) |
-Die nächste freie Nummer ist **0218** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0217](bug-0217-aktivitaetsregister-zeitkritisch-auf-hosted-runner.md) | Aktivitätsregister-Test auf Hosted-Runnern zeitkritisch — 1 von 2139 rot, Neustart grün (Issue #83, nachgezogen EPIC-P71) | open | S3 | tests | [#83](https://github.com/securesight-ai/AncientVoid/issues/83) |
+| [BUG-0218](bug-0218-tier-a-parallel-zeitkritische-flakes.md) | drei Tests rotieren unter parallelem Tier A (8 Forks): handover, steer-wait-timeout, turn-state — je 1 von 3 Läufen rot (Issue #85, nachgezogen EPIC-P71) | open | S3 | tests | [#85](https://github.com/securesight-ai/AncientVoid/issues/85) |
+| [BUG-0219](bug-0219-mainsync-stand-gehoert-zur-auswahl.md) | Hinweis „N hinter main“ gehört nicht zur Auswahl: Abfrage läuft nur beim Mount, Kachelfokus und Rückkehr zur offenen Ansicht zeigen den Stand eines früheren Zeitpunkts/anderen Projekts (zuerst als 0217 geführt, nach Kollision mit main umnummeriert) | open | S3 | pwa | [#180](https://github.com/securesight-ai/AncientVoid/issues/180) |
+Die nächste freie Nummer ist **0220** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens

@@ -101,6 +101,47 @@ export async function reportFailures(api, run) {
   return numbers;
 }
 
+/**
+ * EPIC-P71: Ein abgeschlossener nightly-Lauf schließt offene CI-Bug-Issues
+ * der Jobs, die in diesem Lauf grün waren — mit Evidenz-Kommentar (Run-ID,
+ * SHA, Job-Link), dem Muster des manuellen Schließens von #54–#57. Rot
+ * gebliebene Jobs bleiben offen und werden von reportFailures aktualisiert;
+ * nach dem Schließen erzeugt ein neuer Fehler wie bisher eine neue Issue.
+ * Abgebrochene Läufe schließen nichts. Redelivery ist idempotent: geschlossene
+ * Issues tauchen im Open-Listing nicht mehr auf, die Concurrency-Gruppe
+ * serialisiert report/close desselben Ereignisses.
+ */
+export async function closeResolved(api, run) {
+  if (run.name !== "nightly" || run.event === "pull_request" || run.conclusion === "cancelled") return [];
+  const jobs = [];
+  for (let page = 1; ; page++) {
+    const result = await api("GET", `actions/runs/${run.id}/jobs?filter=latest&per_page=100&page=${page}`);
+    jobs.push(...result.jobs);
+    if (result.jobs.length < 100) break;
+  }
+  const byName = new Map(jobs.map((job) => [job.name, job]));
+  // Startup-Fehlern hat kein Job entsprochen; ein insgesamt grüner Lauf belegt, dass der Start wieder geht.
+  const resolved = (key) => (key === "workflow startup" && run.conclusion === "success") || byName.get(key)?.conclusion === "success";
+  if (!jobs.some((job) => job.conclusion === "success")) return [];
+  const issues = [];
+  for (let page = 1; ; page++) {
+    const result = await api("GET", `issues?state=open&labels=bug&per_page=100&page=${page}`);
+    issues.push(...result.filter((issue) => !issue.pull_request));
+    if (result.length < 100) break;
+  }
+  const numbers = [];
+  for (const issue of issues) {
+    const key = issue.body?.match(/<!-- ancientvoid-nightly:(.+?) -->/)?.[1];
+    if (!key || !resolved(key)) continue;
+    const job = byName.get(key);
+    const evidence = `Automatisch geschlossen (EPIC-P71): Job »${key}« ist in diesem Lauf grün.\nRun: ${run.html_url} (ID ${run.id}, Versuch ${run.run_attempt})\nCommit: ${run.head_sha}${job ? `\nJob: ${job.html_url}` : ""}\n\nTritt der Fehler erneut auf, erzeugt der nächste rote Lauf automatisch eine neue Issue; Re-Open: \`gh issue reopen ${issue.number}\` (docs/issues.md).`;
+    await api("POST", `issues/${issue.number}/comments`, { body: evidence });
+    await api("PATCH", `issues/${issue.number}`, { state: "closed", state_reason: "completed" });
+    numbers.push(issue.number);
+  }
+  return numbers;
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const api = githubApi(process.env.GH_TOKEN, process.env.GITHUB_REPOSITORY);
   if (["sync", "resolve"].includes(process.argv[2])) {
@@ -112,7 +153,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (!event.workflow_run && !/^\d+$/.test(id ?? "")) throw new Error("Missing/invalid CI run ID");
     const run = event.workflow_run ?? await api("GET", `actions/runs/${id}`);
     console.log("CI bug issues:", await reportFailures(api, run));
+  } else if (process.argv[2] === "close") {
+    const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, "utf8"));
+    if (!event.workflow_run) throw new Error("close requires a workflow_run event (not workflow_dispatch)");
+    console.log("Closed CI bug issues:", await closeResolved(api, event.workflow_run));
   } else {
-    throw new Error("Usage: node scripts/ci-pipeline.mjs sync|resolve|report");
+    throw new Error("Usage: node scripts/ci-pipeline.mjs sync|resolve|report|close");
   }
 }

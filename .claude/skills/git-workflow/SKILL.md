@@ -158,7 +158,7 @@ gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Numme
   PR 25–90 s und sind der Fehler, nicht die Vorsicht). Gemessene Gate-Länge nach der
   Tempobeschleunigung (PR #131/#134/#135/#136/#137): 3:41 → 2:12; Ausgangslage war 5:14.
 
-Body: Warum, Testplan, Link Issue (`Fixes #<nr>`). Der PR bleibt Pflicht als
+Body: Warum, Testplan, Link Issue (`Fixes #<nr>` — Pflicht für jeden Defekt-PR, auch Epic-Task-PRs; Standard `docs/issues.md`). Der PR bleibt Pflicht als
 Log-Eintrag — der Merge-Klick/`gh pr merge` ist der **einzige** Weg, wie
 Inhalt von einem Branch nach `main` kommt (siehe Hard Rules).
 

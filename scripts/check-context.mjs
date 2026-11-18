@@ -46,6 +46,7 @@ export const REFRESH_MAP = [
   { doc: "docs/testing-e2e.md", areas: ["e2e/", "playwright.config.ts"], maxDrift: 100 },
   { doc: "docs/funktionsinventar.md", areas: ["apps/pwa/src/"], maxDrift: 100 },
   { doc: "docs/commit-notation.md", areas: [".githooks/", "scripts/check-commits.mjs"], maxDrift: 40 },
+  { doc: "docs/issues.md", areas: ["scripts/ci-pipeline.mjs", ".github/workflows/nightly-bugs.yml"], maxDrift: 40 },
   { doc: "docs/onboarding.md", areas: ["setup.sh", "scripts/setup-git.mjs"], maxDrift: 60 },
   { doc: "docs/tutorial-erste-schritte.md", areas: ["setup.sh", "apps/hubctl/", "apps/pwa/src/app/", "scripts/setup-tailscale-serve.sh"], maxDrift: 30 },
   { doc: "docs/ci-gate-inventar.md", areas: [".github/workflows/ci.yml", "package.json"], maxDrift: 40 },

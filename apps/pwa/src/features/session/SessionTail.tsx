@@ -244,7 +244,7 @@ export function SessionTail({
   const [mainSync, setMainSync] = useState<MainSyncCheckDto | null>(null);
   const [mainSyncBusy, setMainSyncBusy] = useState(false);
   const [mainSyncResult, setMainSyncResult] = useState<string | null>(null);
-  // BUG-0217: Die Abfrage gehört zur Auswahl, nicht zum Mount. Generation und
+  // BUG-0219: Die Abfrage gehört zur Auswahl, nicht zum Mount. Generation und
   // In-Flight-Merker lassen nur die zuletzt gestellte Frage den Stand setzen —
   // eine späte Antwort kann nie einen neueren Stand überschreiben.
   const mainSyncGen = useRef(0);
@@ -269,7 +269,7 @@ export function SessionTail({
     void refreshMainSync();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id]);
-  // BUG-0217: Auswahl ohne Remount (Kachelfokus) und Rückkehr zur offenen
+  // BUG-0219: Auswahl ohne Remount (Kachelfokus) und Rückkehr zur offenen
   // Ansicht (Sichtbarkeit) stellen dieselbe Frage erneut — der Hinweis zeigt
   // sonst weiter den Stand eines früheren Zeitpunkts.
   const tileActive = tile?.active ?? true;

@@ -82,11 +82,11 @@ test.describe("Session: Main-Sync-Indikator und Menü (EPIC-P67 T67.8)", () => {
     expect(geo.hitIsSelfOrChild).toBe(true);
   });
 
-  /** BUG-0217: Die Abfrage gehört zur Auswahl — Session-Wechsel, Kachelfokus
+  /** BUG-0219: Die Abfrage gehört zur Auswahl — Session-Wechsel, Kachelfokus
    * und Rückkehr zur offenen Ansicht stellen sie jeweils neu. */
   const idleSession = (hub: TestHub, id: string) => hub.until(async () => ((await hub.api<{ status: string }[]>(`/api/sessions`)).body.find((s) => (s as { id?: string }).id === id)?.status ?? "") === "idle", `session ${id} idle`);
 
-  test("BUG-0217: Projektwechsel über die Übersicht zeigt den Stand der gewählten Session", async ({ app, hub }) => {
+  test("BUG-0219: Projektwechsel über die Übersicht zeigt den Stand der gewählten Session", async ({ app, hub }) => {
     const a = await withOrigin(hub.alpha, "wela");
     const b = await withOrigin(hub.beta, "welb");
     const idA = await hub.createSession({ adapter: "dummy", project: hub.alpha, prompt: "arbeite", workspaceMode: "worktree" });
@@ -105,7 +105,7 @@ test.describe("Session: Main-Sync-Indikator und Menü (EPIC-P67 T67.8)", () => {
     await expect(app.getByTestId("mainsync-behind")).toHaveText(/1 hinter main/);
   });
 
-  test("BUG-0217: Kachelfokus fragt neu — ausgewähltes Projekt zeigt seinen aktuellen Stand @desktop", async ({ app, hub, isMobile }) => {
+  test("BUG-0219: Kachelfokus fragt neu — ausgewähltes Projekt zeigt seinen aktuellen Stand @desktop", async ({ app, hub, isMobile }) => {
     test.skip(isMobile, "Kachelfokus braucht das Desktop-Projekt (breites Layout)");
     const a = await withOrigin(hub.alpha, "foka");
     const b = await withOrigin(hub.beta, "fokb");
@@ -130,7 +130,7 @@ test.describe("Session: Main-Sync-Indikator und Menü (EPIC-P67 T67.8)", () => {
     await expect(betaBadge).toHaveText(/4 hinter main/);
   });
 
-  test("BUG-0217: Rückkehr zur offenen Session-Ansicht fragt neu (Sichtbarkeit)", async ({ app, hub }) => {
+  test("BUG-0219: Rückkehr zur offenen Session-Ansicht fragt neu (Sichtbarkeit)", async ({ app, hub }) => {
     const b = await withOrigin(hub.beta, "visb");
     const idB = await hub.createSession({ adapter: "dummy", project: hub.beta, prompt: "arbeite", workspaceMode: "worktree" });
     await idleSession(hub, idB);

@@ -6,7 +6,7 @@ severity: S1
 area: core
 instance: dev
 commit: "d40eadce"
-forge: "https://github.com/SiLenTTz/AncientVoid/pull/26"
+forge: "https://github.com/securesight-ai/AncientVoid/pull/26"
 epic: "EPIC-P28"
 created: 2026-11-16
 reporter: "Codex"
@@ -41,7 +41,7 @@ SyntaxError: The requested module 'web-push' does not provide an export named 'd
 Die sieben vorhandenen Push-Tests scheitern ebenfalls (VAPID-Schlüssel).
 Repro über Modulstart und Tests bestätigt; kein laufender Hub/PWA-Repro,
 weil bereits das Laden des Hubs scheitert. Derselbe Fehler steht im K8-Job
-des [roten CI-Laufs](https://github.com/SiLenTTz/AncientVoid/actions/runs/43889215018).
+des [roten CI-Laufs](https://github.com/securesight-ai/AncientVoid/actions/runs/43889215018).
 
 ## Ursache und Fix
 

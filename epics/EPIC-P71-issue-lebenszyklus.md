@@ -1,6 +1,6 @@
 # EPIC-P71 — Issue-Lebenszyklus: Anlegen, Triage, Abarbeiten, Schließen
 
-**Status:** offen (Planungsentwurf 18.11.2026 — startet nur auf Nutzervotum) · **Phase:** P71 · **Dauer:** 2–3 Agenten-Tage · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P70; P70 (höchste laufende Phase) umgesetzt (PR #172, `verify` grün; main-seitige E2E-Röte benannt, volle Messlatte im Nightly). P30/P31 bleiben On hold und unberührt. P69 ist durch die Umbenennung zu EPIC-000 belegt.
+**Status:** umgesetzt 18.11.2026 — Start auf Nutzervotum („EPIC-P71 abarbeiten"); Belege und Retro in §8 · **Phase:** P71 · **Dauer:** 2–3 Agenten-Tage · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P70; P70 (höchste laufende Phase) umgesetzt (PR #172, `verify` grün; main-seitige E2E-Röte benannt, volle Messlatte im Nightly). P30/P31 bleiben On hold und unberührt. P69 ist durch die Umbenennung zu EPIC-000 belegt.
 
 ## 1. Ziel
 
@@ -23,8 +23,8 @@ kein Schließweg für CI-Bug-Issues (Runbook §7: „Grüne Läufe schließen Bu
 nicht automatisch"; `reportFailures` in `scripts/ci-pipeline.mjs:61–102` erzeugt
 und aktualisiert nur — historisches Schließen #54–#57 war reine Handarbeit),
 keine Triage-Regel für Issues ohne Label/bugs/-Datei (#83, #85), 13 Markdown-
-Dateien verlinken auf den toten Namespace `github.com/SiLenTTz/AncientVoid`
-(HTTP 404, kein Redirect), und es existiert kein Epic↔Issue-Inventar
+Dateien verlinken auf den toten alten GitHub-Namespace (SiLenTTz; seit dem
+Umzug HTTP 404, kein Redirect), und es existiert kein Epic↔Issue-Inventar
 (`npm run epics:status` liest nur `epics/`).
 
 ## 2. Scope (In / Out)
@@ -35,7 +35,7 @@ Dateien verlinken auf den toten Namespace `github.com/SiLenTTz/AncientVoid`
   Zuordnung, Triage-Schritt, Schließregeln.
 - Automatischer Evidenz-Close für CI-Bug-Issues: Erweiterung
   `scripts/ci-pipeline.mjs` + `.github/workflows/nightly-bugs.yml` + Runbook §7.
-- Namespace-Migration `SiLenTTz/AncientVoid` → `securesight-ai/AncientVoid`
+- Namespace-Migration des alten SiLenTTz-Repo-Pfads → `securesight-ai/AncientVoid`
   in `bugs/` (11 Dateien) und `epics/` (2 Dateien).
 - Fix-Verknüpfungspflicht (`Fixes #<nr>` auch für Epic-Task-PRs) in
   `git-workflow`/`epic-creation`/CONTRIBUTING verankert.
@@ -125,19 +125,19 @@ abgearbeitet werden — Auto-Close und Pflicht-Zuordnung verkürzen den Weg von
 
 ## 4. Aufgaben (Checkliste)
 
-- [ ] **T71.1** `docs/issues.md` anlegen: Anlage-Klassen (§3.1), Pflicht-Zuordnung + Triage-Schritt (§3.2), Schließregeln (Auto-Close CI-Bugs, `Fixes #`-Pflicht), Einordnungstabelle der 11 Issues. Verlinkt aus `CONTRIBUTING.md` und `AGENTS.md`; `npm run check:context` grün.
-- [ ] **T71.2** Namespace-Migration: `github.com/SiLenTTz/AncientVoid/issues/` → `securesight-ai/AncientVoid/issues/` in `bugs/` (11 Dateien) und `epics/` (2 Dateien); Negativ-Probe `grep -r "SiLenTTz/AncientVoid" bugs/ epics/` = 0 Treffer.
-- [ ] **T71.3** `closeResolved(api, run)` in `scripts/ci-pipeline.mjs` + Unit-Tests (`scripts/ci-pipeline.test.mjs`, Fake-API): grüner Job schließt seine CI-Bug-Issue mit Evidenz-Kommentar; rot gebliebener aktualisiert statt schließt; Idempotenz bei Redelivery; Workflow-Startup-Fallback bleibt. Rot-dann-grün belegt.
-- [ ] **T71.4** `.github/workflows/nightly-bugs.yml`: Close-Schritt nach jedem abgeschlossenen `nightly`-Lauf (auch grün) innerhalb der bestehenden Concurrency-Gruppe; `docs/ci-runbook.md` §7 fortschreiben („Grüne Läufe schließen CI-Bug-Issues automatisch mit Evidenz-Kommentar").
-- [ ] **T71.5** Skills und Einstiege: `git-workflow` (`Fixes #`-Pflicht für jeden Defekt-PR), `epic-creation` (DoD: zugehörige Issues gesichtet; Epic-Statuszeile führt Tracker-Issue), `CONTRIBUTING.md` + `AGENTS.md` (je eine Verweiszeile auf `docs/issues.md`).
-- [ ] **T71.6** Bestand migrieren: #84 evidenzkommentiert schließen; #83/#85 bugs/-Dateien nachziehen (`bug-report`), Labels setzen, BUG-0170-Bezug dokumentieren; #5/#6/#28/#100–#104 gemäß §3.5 bestätigen; Ergebnis in `docs/issues.md` festgehalten.
-- [ ] **T71.7** Retro (Skill `retro`) gegen die AC; Erkenntnisse an diese Datei anhängen.
+- [x] **T71.1** `docs/issues.md` anlegen: Anlage-Klassen (§3.1), Pflicht-Zuordnung + Triage-Schritt (§3.2), Schließregeln (Auto-Close CI-Bugs, `Fixes #`-Pflicht), Einordnungstabelle der 11 Issues. Verlinkt aus `CONTRIBUTING.md` und `AGENTS.md`; `npm run check:context` grün. — **erledigt:** zusätzlich verlinkt aus `docs/uebersicht.md` (referenz) und Frischhalte-Map (`maxDrift` 40 über ci-pipeline/nightly-bugs); Bestandstabelle nach Sichtung.
+- [x] **T71.2** Namespace-Migration des alten SiLenTTz-Repo-Pfads nach `securesight-ai/AncientVoid` in `bugs/` (README + 11 Dateien) und `epics/` (P61, P62), inkl. `/pull/`- und `/actions/runs/`-Links und der stale BUG-0187-Indexzeile (`open` → `done` + #84) — **erledigt:** 14 Dateien, Negativ-Probe 0 Treffer (Beleg §8).
+- [x] **T71.3** `closeResolved(api, run)` in `scripts/ci-pipeline.mjs` + Unit-Tests (`scripts/ci-pipeline.test.mjs`, Fake-API): grüner Job schließt seine CI-Bug-Issue mit Evidenz-Kommentar; rot gebliebener aktualisiert statt schließt; Idempotenz bei Redelivery; Workflow-Startup-Fallback bleibt. Rot-dann-grün belegt. — **erledigt:** 8 neue Tests rot (Funktion fehlt) → 25/25 grün.
+- [x] **T71.4** `.github/workflows/nightly-bugs.yml`: Close-Schritt nach jedem abgeschlossenen `nightly`-Lauf (auch grün) innerhalb der bestehenden Concurrency-Gruppe; `docs/ci-runbook.md` §7 fortschreiben („Grüne Läufe schließen CI-Bug-Issues automatisch mit Evidenz-Kommentar"). — **erledigt:** close-Job neben report-Job; Trade-off-Entscheidung im Runbook-Diff.
+- [x] **T71.5** Skills und Einstiege: `git-workflow` (`Fixes #`-Pflicht für jeden Defekt-PR), `epic-creation` (DoD: zugehörige Issues gesichtet; Epic-Statuszeile führt Tracker-Issue), `CONTRIBUTING.md` + `AGENTS.md` (je eine Verweiszeile auf `docs/issues.md`). — **erledigt:** git-workflow-Body-Zeile erweitert (Budget 249/250), epic-creation Punkt 8, CONTRIBUTING Branches-Bullet, AGENTS Arbeitsweise-Zeile.
+- [x] **T71.6** Bestand migrieren: #84 evidenzkommentiert schließen; #83/#85 bugs/-Dateien nachziehen (`bug-report`), Labels setzen, BUG-0170-Bezug dokumentieren; #5/#6/#28/#100–#104 gemäß §3.5 bestätigen; Ergebnis in `docs/issues.md` festgehalten. — **erledigt:** #84 war bereits 18.11. 20:07 geschlossen, Evidenz-Kommentar nachgezogen; #83→BUG-0217, #85→BUG-0218 (Dateien, Indexzeilen, Label `bug`, SSOT-Kommentare).
+- [x] **T71.7** Retro (Skill `retro`) gegen die AC; Erkenntnisse an diese Datei anhängen. — **erledigt:** §8.
 
 ## 5. Acceptance Criteria (AC-P71-k)
 
 1. **AC-P71-1 (Triage-Standard):** `docs/issues.md` definiert Anlage, Triage, Abarbeiten, Schließen Ende-zu-Ende; jede offene Issue im Repo ist klassifiziert und — außer CI-Bugs — einem `BUG-NNNN`/`EPIC-Pn` zugeordnet oder als begründete Ausnahme benannt. Beleg: `gh issue list --state open` + Auswertung in `docs/issues.md`.
 2. **AC-P71-2 (Auto-Close):** Nach einem grünen `nightly`-Lauf werden offene CI-Bug-Issues desselben Jobs automatisch mit Evidenz-Kommentar (Run-ID, SHA, Job-Link) geschlossen; ein erneuter Fehler erzeugt wie bisher eine neue Issue. Beleg: Unit-Tests + erster Live-Lauf.
-3. **AC-P71-3 (Links):** `grep -r "SiLenTTz/AncientVoid" bugs/ epics/` liefert 0 Treffer; alle `forge:`-Verweise zeigen auf `securesight-ai/AncientVoid` und resolve auf die echte Issue.
+3. **AC-P71-3 (Links):** Grep nach dem alten SiLenTTz-Repo-Pfad über `bugs/` und `epics/` liefert 0 Treffer; alle `forge:`-Verweise zeigen auf `securesight-ai/AncientVoid` und resolve auf die echte Issue.
 4. **AC-P71-4 (Bestand):** #84 ist geschlossen mit Verweis auf `bugs/bug-0187` (fixed) und AC-P63-2; #83/#85 haben bugs/-Dateien (Indexzeile in `bugs/README.md`) und Label `bug`.
 5. **AC-P71-5 (Erreichbarkeit):** `docs/issues.md` ist aus `CONTRIBUTING.md` und `AGENTS.md` verlinkt; `npm run check:context` grün (Budget/Frischhalte).
 
@@ -151,8 +151,8 @@ abgearbeitet werden — Auto-Close und Pflicht-Zuordnung verkürzen den Weg von
    Zustand, siehe #84) ist der größere Fehler.
 2. **Namespace-Rewrite erfasst historische Archiv-Verweise, die bewusst auf
    das alte Repo zeigen sollen.**
-   → Exakter Match nur auf `github.com/SiLenTTz/AncientVoid/issues/`
-   (Tracker-Links); manueller Diff-Review der 13 Dateien; grep-Negativ-Probe
+   → Exakter Match auf den alten Repo-Pfad (Tracker-, PR- und Run-Links);
+   manueller Diff-Review der 14 Dateien; grep-Negativ-Probe
    als AC. Runbook-Historie (gitlab-Archiv-Links) bleibt unangetastet.
 3. **Die neue Doku verrottet als tote Datei — niemand triaged.**
    → `docs/issues.md` hängt an `check:context` (Frischhalte/Budget), ist aus
@@ -181,3 +181,68 @@ abgearbeitet werden — Auto-Close und Pflicht-Zuordnung verkürzen den Weg von
   in dieser Datei vermerkt; `epics/README.md` aktualisiert.
 - Retro (T71.7) gelaufen; Erkenntnisse angehängt.
 - Epic startet nicht vor Nutzervotum (Planungsentwurf).
+
+## 8. Abschluss und Retro (T71.7, 18.11.2026)
+
+Umgesetzt am 18.11.2026 auf den Nutzerauftrag („EPIC-P71 abarbeiten") auf
+`feat/p71-issue-lebenszyklus`; Abschluss-PR nach `main` führt die Belege.
+
+### AK-Matrix
+
+- **AC-P71-1 🟢** — `docs/issues.md` definiert Anlage/Triage/Abarbeiten/
+  Schließen; Sichtungstabelle stimmt Zeile für Zeile mit
+  `gh issue list --state open` überein (#5/#6/#28/#83/#85/#100–#104).
+- **AC-P71-2 🟡 Mechanismus 🟢, erster Live-Lauf ausstehend (benannt)** —
+  8 neue Unit-Tests rot vor `closeResolved`, danach 25/25 grün
+  (`scripts/ci-pipeline.test.mjs`: Evidenz-Kommentar mit Run/SHA/Job-Link,
+  Close nur grüner Jobs, Startup-Sonderfall, Redelivery-Idempotenz,
+  Pagination, Workflow-Wiring). Live-Beweis trägt der nächste `nightly`
+  nach Merge nach: Evidenz-Kommentar in #100–#104 oder Negativ-Probe
+  „schloss nichts falsch" (DoD). Nachtrag: AI-P71-2.
+- **AC-P71-3 🟢** — Negativ-Probe (Grep alter Repo-Pfad über `bugs/`+`epics/`)
+  = 0 Treffer, auch die Eigen-Erwähnungen dieses Epics dazu umformuliert;
+  14 Dateien migriert: bugs/README.md, 11 bug-Dateien, EPIC-P61, EPIC-P62 —
+  inkl. `/pull/`- und `/actions/runs/`-Links, damit **alle** `forge:`-Verweise
+  auf `securesight-ai/AncientVoid` zeigen.
+- **AC-P71-4 🟢** — #84 geschlossen (18.11. 20:07) + Evidenz-Kommentar
+  ([#84comment](https://github.com/securesight-ai/AncientVoid/issues/84#issuecomment-6991355688):
+  bug-0187 fixed, EPIC-P63 T63.2/AC-P63-2, PR #94); #83 → BUG-0217
+  ([Kommentar](https://github.com/securesight-ai/AncientVoid/issues/83#issuecomment-6991354723)),
+  #85 → BUG-0218 ([Kommentar](https://github.com/securesight-ai/AncientVoid/issues/85#issuecomment-6991355187)),
+  je Indexzeile in `bugs/README.md` und Label `bug`.
+- **AC-P71-5 🟢** — verlinkt aus `CONTRIBUTING.md` (Branches and pull
+  requests), `AGENTS.md` (Arbeitsweise) und `docs/uebersicht.md` (referenz);
+  Frischhalte-Map-Eintrag; `npm run check:context` grün.
+
+### Erkenntnisse (max. fünf, mit Beleg)
+
+1. **Plan-Ist-Drift innerhalb eines Tages:** #84 war bei Umsetzungsbeginn
+   bereits geschlossen (18.11. 20:07 UTC) — T71.6 reduzierte sich auf den
+   Evidenz-Kommentar. Beleg: `gh issue view 84 --json state,closedAt`.
+   Lehre: am selben Tag geplante und umgesetzte Epics prüfen die Checkliste
+   gegen das Ist, nicht nur die AC.
+2. **Nummernkreis war belegt:** Plan nannte keine BUG-Nummern für #83/#85;
+   `bugs/` reichte bis 0216, nächste freie stand in `bugs/README.md` (0217).
+   Beleg: bugs/README.md „Die nächste freie Nummer". Skill `bug-report`
+   (Nummer aus den Dateien) griff unverändert.
+3. **Premortem-Fall 2 schlug teilweise an:** Der geplante exakte Match nur
+   auf `/issues/`-Links hätte die `/pull/`- und `/actions/runs/`-Verweise
+   (bugs/README, bug-0163, bug-0182) übrig lassen und AC-P71-3 verfehlt —
+   migriert wurde der volle Repo-Pfad. Beleg: grep-Vorher 14 Dateien mit
+   Treffern außerhalb `/issues/`.
+4. **Budgetdecke wirkte wie geplant:** `git-workflow/SKILL.md` stand auf
+   249/250 Zeilen — die `Fixes #`-Pflicht passte nur als Erweiterung der
+   bestehenden Body-Zeile, nicht als neue Regelzeile. Beleg: `wc -l`.
+5. **Bekannter Rest außerhalb des Scopes:** `docs/videos/*.md` (9 Dateien)
+   und `docs/2026-11-17_launch-playbook.md` verlinken weiter auf den alten
+   Namespace — bewusst nicht mitmigriert (In-scope war `bugs/`+`epics/`);
+   AI-P71-1.
+
+### Action Items
+
+- **AI-P71-1:** Alte Namespace-Links in `docs/videos/` und Launch-Playbook
+  beim nächsten Video-/Promo-Durchgang mitmigrieren — zurück als: Vermerk an
+  EPIC-P62 T62.5 (dort angehängt).
+- **AI-P71-2:** Ergebnis des ersten Live-Auto-Close nach dem nächsten
+  `nightly`-Lauf hier nachtragen (Kommentar-Link oder Negativ-Probe) —
+  zurück als: Nachtrag in diesem Abschnitt.
