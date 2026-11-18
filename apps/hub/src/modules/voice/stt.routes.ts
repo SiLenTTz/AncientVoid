@@ -52,8 +52,63 @@ export function projectVocabulary(paths: readonly string[]): string {
   return names.slice(0, 40).join(", ");
 }
 
+/** BUG-0212: whisper.cpp antwortet auf `/health` neben `/inference`; andere Erkennungen
+ *  haben diesen Pfad nicht — dann reicht jede Antwort als Lebenszeichen. */
+export function sttHealthUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const path = u.pathname;
+    u.pathname = path.endsWith("/inference") ? `${path.slice(0, -"/inference".length)}/health` : "/health";
+    u.search = "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * BUG-0212: die Auskunft darf nicht aus der Konfiguration alone Behauptung sein — wer
+ * `available:true` sagt, muss die eigene Spracherkennung erreicht haben. Kurz gecacht,
+ * damit ein toter Dienst nicht jedes Druecken aufs Neue warten laesst, aber die App nach
+ * einem Ausfall beim naechstenmal die Wahrheit bekommt.
+ */
+export function makeSttProbe(cfg: { url: string; fetch?: typeof fetch }, ttlMs = 4_000, timeoutMs = 1_200) {
+  const doFetch = cfg.fetch ?? fetch;
+  let cache: { at: number; ok: boolean } | null = null;
+  let inflight: Promise<{ ok: boolean; ageMs: number }> | null = null;
+  return async (): Promise<{ ok: boolean; ageMs: number }> => {
+    const now = Date.now();
+    if (cache && now - cache.at < ttlMs) return { ok: cache.ok, ageMs: now - cache.at };
+    if (inflight) return inflight;
+    const target = sttHealthUrl(cfg.url);
+    inflight = (async () => {
+      let ok = true;
+      if (target) {
+        try {
+          await doFetch(target, { signal: AbortSignal.timeout(timeoutMs) });
+        } catch {
+          ok = false; // kein Aufbau, keine Antwort: die Erkennung ist nicht da
+        }
+      }
+      const at = Date.now();
+      cache = { at, ok };
+      inflight = null;
+      return { ok, ageMs: 0 };
+    })();
+    return inflight;
+  };
+}
+
 export function registerSttRoutes(app: FastifyInstance, cfg: SttConfig | undefined, projects: () => Promise<string[]> = async () => []): void {
-  app.get("/api/stt", async () => (cfg ? { available: true, engine: cfg.engine, language: cfg.language, local: true, streaming: Boolean(cfg.streaming) } : { available: false, streaming: false }));
+  const probe = cfg ? makeSttProbe(cfg) : undefined;
+  app.get("/api/stt", async () => {
+    if (!cfg) return { available: false, streaming: false, reason: "keine lokale Spracherkennung konfiguriert" };
+    const check = await probe?.();
+    if (!check?.ok) {
+      return { available: false, streaming: false, local: true, reason: "eigene Spracherkennung nicht erreichbar", checkedMsAgo: check?.ageMs ?? 0 };
+    }
+    return { available: true, engine: cfg.engine, language: cfg.language, local: true, streaming: Boolean(cfg.streaming), checkedMsAgo: check.ageMs };
+  });
   const streamConfig: SttStreamingConfig | undefined = cfg?.streaming ? {
     ...cfg.streaming,
     engine: "Nemotron 3.5 ASR Streaming",
