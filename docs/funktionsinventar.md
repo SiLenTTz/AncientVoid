@@ -195,7 +195,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S75 | Eigene fachliche Arbeitsnotiz auf diesem Gerät, getrennt vom Laufzeitstatus und ohne Auto-Senden | Session → Weitere Aktionen → Arbeitsnotiz (oder Schnellsuche) | P43.5 T43.5-2 | spec:quellenchips.spec.ts |
 | S76 | Installierter Stand: Modus, Fenster-Ausrichtung, Winkel, Manifest, Worker-Stufe; dreht das Gerät nicht, erzwingt die App Querformat oder nennt die Abweisung | Einstellungen → Geräte | BUG-0186 | spec:installations-stand.spec.ts |
 | S77 | Ein langes Gespräch bleibt bis zu seinem Anfang lesbar: hochscrollen (oder der Knopf „frühere Einträge“) holt die früheren, die Lesestelle hält ihre Position | Session → Chat oder Verlauf → nach oben scrollen | BUG-0211 | spec:chat-aeltere-laden.spec.ts |
-| S78 | Kopiertes bleibt greifbar: die Ablage hält sechs sichtbare Stufen (Diktat, Markierung, Befehl, Eintrag, Kennung) und fügt sie wieder ein — Token bleiben draußen | Composer → Ablage-Knopf; oder Text markieren/kopieren | ADR-0089 | spec:clipboard-shelf.spec.ts |
+| S78 | Kopiertes bleibt greifbar: die Ablage hält sechs sichtbare Stufen (Diktat, Markierung, Befehl, Eintrag, Kennung) und fügt sie wieder ein — Token bleiben draußen | Composer → Ablage-Knopf; oder Text markieren/kopieren | ADR-0090 | spec:clipboard-shelf.spec.ts |
 
 ## PC-Arbeitsfläche
 

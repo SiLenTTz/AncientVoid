@@ -1,5 +1,5 @@
 /**
- * ADR-0089: die mehrstufige Zwischenablage („Ablage“).
+ * ADR-0090: die mehrstufige Zwischenablage („Ablage“).
  *
  * Alles, was die App irgendwo in die System-Zwischenablage legt (Diktat, markierte
  * Chat-Stelle, einzelner Ereignistext, Befehl, Kennung), liegt danach zusätzlich in einer
@@ -101,7 +101,7 @@ function nextId(): string {
 
 /**
  * Eine Zwischenablage-Aktion in die Ablage einreihen. `secret: true` (Token, Kennwörter)
- * speichert bewusst NICHTS — ADR-0089. Identischer Text ganz oben zählt als Benutzung,
+ * speichert bewusst NICHTS — ADR-0090. Identischer Text ganz oben zählt als Benutzung,
  * identischer Text weiter unten steigt auf (so arbeitet ein Mensch mit einer Stufe).
  */
 export function pushShelf(text: string, origin: ShelfOrigin, opts: { secret?: boolean } = {}): ShelfEntry | null {

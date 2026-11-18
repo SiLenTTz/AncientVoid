@@ -281,7 +281,7 @@ export function SessionTail({
       const text = sel?.toString() ?? "";
       if (!el || !sel || !text.trim() || !el.contains(sel.anchorNode)) return;
       // BUG-0107: transient abgelehntes writeText wurde still geschluckt — der Flash ist
-      // der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu. ADR-0089: ohne Clipboard-API
+      // der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu. ADR-0090: ohne Clipboard-API
       // bleibt die Auswahl trotzdem eine Stufe in der Ablage — nie still verloren.
       void copyIntoShelf(text, "markierung").then((ok) => {
         if (!ok) return; // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg

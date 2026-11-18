@@ -27,7 +27,7 @@ import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 function CopyButton({ text }: { text: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const copy = async () => {
-    // ADR-0089: copied commands stay one level down in the local shelf.
+    // ADR-0090: copied commands stay one level down in the local shelf.
     const ok = await copyIntoShelf(text, "befehl");
     setState(ok ? "copied" : "failed");
     setTimeout(() => setState("idle"), 1500);
@@ -193,7 +193,7 @@ export function ContinueCard({ openCmd, host = null }: { openCmd?: string | unde
 export function AttachCmdRow({ cmd }: { cmd: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
-    // ADR-0089: ohne Clipboard-API bleibt der Befehl in der Ablage — nie ein toter Endpunkt.
+    // ADR-0090: ohne Clipboard-API bleibt der Befehl in der Ablage — nie ein toter Endpunkt.
     const ok = await copyIntoShelf(cmd, "befehl");
     if (ok) {
       setCopied(true);

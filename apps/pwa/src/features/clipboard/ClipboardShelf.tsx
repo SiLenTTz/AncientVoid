@@ -40,7 +40,7 @@ function ShelfGlyph() {
 }
 
 /**
- * ADR-0089: die mehrstufige Zwischenablage. Sechs Stufen sichtbar, jede mit Einfügen,
+ * ADR-0090: die mehrstufige Zwischenablage. Sechs Stufen sichtbar, jede mit Einfügen,
  * Zurückholen und Entfernen. Was hier steht, liegt nur in diesem Browser — der Hinweis am
  * Ende ist keine Deko, er ist die Zusage des Designs.
  */

@@ -1,5 +1,5 @@
 /**
- * ADR-0089: EIN Weg für alles, was die App kopiert. Vorher schrieb jede Stelle einzeln
+ * ADR-0090: EIN Weg für alles, was die App kopiert. Vorher schrieb jede Stelle einzeln
  * in `navigator.clipboard` — der Text war nach dem nächsten Kopieren weg. Jetzt liegt er
  * zusätzlich in der mehrstufigen Ablage (`shared/clipboard-shelf.ts`).
  *
@@ -10,7 +10,7 @@ import { copyWithRetry } from "../features/session/copy-selection.ts";
 import { pushShelf, type ShelfOrigin } from "./clipboard-shelf.ts";
 
 export interface CopyOptions {
-  /** Token, Kennwörter: die Ablage bekommt davon nichts ab (ADR-0089). */
+  /** Token, Kennwörter: die Ablage bekommt davon nichts ab (ADR-0090). */
   secret?: boolean;
 }
 

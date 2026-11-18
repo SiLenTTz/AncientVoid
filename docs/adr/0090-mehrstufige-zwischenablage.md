@@ -1,4 +1,4 @@
-# ADR-0089 — Mehrstufige Zwischenablage: die Ablage liegt im Browser, nie am Hub
+# ADR-0090 — Mehrstufige Zwischenablage: die Ablage liegt im Browser, nie am Hub
 
 **Status:** akzeptiert · **Betrifft:** `apps/pwa/src/shared/clipboard-shelf.ts`,
 `apps/pwa/src/shared/clipboard-copy.ts`, `apps/pwa/src/features/clipboard/`,

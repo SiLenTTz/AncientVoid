@@ -79,7 +79,7 @@ export function ConnectionsSettings() {
   };
 
   const copyToken = (token: string) => {
-    // ADR-0089: ein Token ist kein Ablage-Stoff — die Zwischenablage ja, die Ablage nein.
+    // ADR-0090: ein Token ist kein Ablage-Stoff — die Zwischenablage ja, die Ablage nein.
     void copyIntoShelf(token, "text", { secret: true }).then((ok) =>
       setMessage(ok ? { ok: true, text: "Token kopiert." } : { ok: false, text: "Kopieren nicht erlaubt — bitte von Hand markieren." }),
     );

@@ -1,4 +1,4 @@
-/* ADR-0089: die mehrstufige Zwischenablage („Ablage“).
+/* ADR-0090: die mehrstufige Zwischenablage („Ablage“).
  * Der Einstiegsknopf ist ein normaler icon-btn der composer-Reihe — gleiche Zielgröße,
  * gleiche Linie, nur eine Marke, wenn Stufen da sind. Das Blatt selbst kommt aus
  * styles/ui/sheet.css; hier steht nur der Inhalt. Keine eigenen Farben (css-tokens-Test). */

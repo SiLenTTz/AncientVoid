@@ -1,11 +1,11 @@
 import { test, expect } from "../support/fixtures.ts";
 
 /**
- * ADR-0089: die mehrstufige Zwischenablage. Markieren (bestehender Weg, BUG-0107) legt eine
+ * ADR-0090: die mehrstufige Zwischenablage. Markieren (bestehender Weg, BUG-0107) legt eine
  * Stufe in die Ablage; das Blatt holt sie zurück und fügt sie ins Eingabefeld ein. Ohne den
  * Fix gab es kein `clipboard-open` — Kopiertes war beim nächsten Kopieren verloren.
  */
-test.describe("Mehrstufige Zwischenablage (ADR-0089)", () => {
+test.describe("Mehrstufige Zwischenablage (ADR-0090)", () => {
   test.beforeEach(async ({ app, hub }) => {
     await app.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: hub.origin });
   });

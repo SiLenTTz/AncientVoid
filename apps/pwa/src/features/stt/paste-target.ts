@@ -58,7 +58,7 @@ function appendContentEditable(el: HTMLElement, text: string): void {
 }
 
 /**
- * Transkript ins fokussierte Feld und in die Zwischenablage. ADR-0089: was hier liegt, liegt
+ * Transkript ins fokussierte Feld und in die Zwischenablage. ADR-0090: was hier liegt, liegt
  * zusätzlich eine Stufe tiefer in der Ablage — ausser der Aufrufer kommt selbst aus ihr
  * (`shelve: false`), sonst wäre jede Einfügung eine neue Stufe.
  */

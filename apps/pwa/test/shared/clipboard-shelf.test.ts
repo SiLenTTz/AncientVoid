@@ -22,8 +22,8 @@ import {
   visibleShelf,
 } from "../../src/shared/clipboard-shelf.ts";
 
-/** ADR-0089: die Ablage ist ein Stapel mit Stufen — denkbare Fehler sind hier gemeint. */
-describe("mehrstufige Zwischenablage (ADR-0089)", () => {
+/** ADR-0090: die Ablage ist ein Stapel mit Stufen — denkbare Fehler sind hier gemeint. */
+describe("mehrstufige Zwischenablage (ADR-0090)", () => {
   beforeEach(() => {
     localStorage.clear();
     clearShelf();

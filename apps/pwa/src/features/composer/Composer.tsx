@@ -109,7 +109,7 @@ export function Composer({
   // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
   // greift dann nicht ein (offsetHeight ist schon groß).
   const [expanded, setExpanded] = useState(false);
-  // ADR-0089: die Ablage atmet mit — der Knopf zeigt, wie viele Stufen da sind.
+  // ADR-0090: die Ablage atmet mit — der Knopf zeigt, wie viele Stufen da sind.
   const shelfCount = useShelfCount();
   // EPIC-P43 T43.4: einzeilig, bis das Feld zum ersten Mal den Fokus bekommt.
   const [touched, setTouched] = useState(false);
