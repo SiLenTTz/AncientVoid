@@ -7,6 +7,7 @@ import { isOffloaded, visibleEventText, withBlobPayload } from "./event-text.ts"
 import { isEmptyThinking, toolIdOf } from "./event-filter.ts";
 import { Markdown } from "../../shared/Markdown.tsx";
 import { AttachmentChips, type AttachmentRef } from "../attachments/Attachments.tsx";
+import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 
 function toolAnchor(toolId: string, side: "use" | "result"): string {
   return `tool-${side}-${toolId}`;
@@ -241,10 +242,7 @@ function CopyButton({ text }: { text: string }) {
       class="link-btn copy-btn"
       onClick={(ev) => {
         ev.stopPropagation();
-        navigator.clipboard
-          ?.writeText(text)
-          .then(() => setDone("ok"))
-          .catch(() => setDone("fail"));
+        void copyIntoShelf(text, "eintrag").then((ok) => setDone(ok ? "ok" : "fail"));
         setTimeout(() => setDone(""), 1500);
       }}
     >

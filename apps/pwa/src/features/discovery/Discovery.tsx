@@ -2,6 +2,7 @@ import { useEffect, useState } from "preact/hooks";
 import { hubApi, type DiscoveredSession, type SessionRecord } from "../../shared/api.ts";
 import { adapterCounts, discoveryState, filterDiscovery, groupDiscovery, stateCounts, type DiscoveryState } from "./groups.ts";
 import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
+import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 
 /** "vor 5 min" — how old the observation is (EPIC-P5 §3: explicit age). */
 export function observedAgo(observedAt: string, now = Date.now()): string {
@@ -224,7 +225,8 @@ function DiscoveredRow({ item, onOpen, onAdopt, onMirror }: { item: DiscoveredSe
   const id = item.nativeSessionId ?? item.hubSessionId ?? "";
   const [copied, setCopied] = useState(false);
   const copyId = () => {
-    void navigator.clipboard?.writeText(id).then(() => {
+    void copyIntoShelf(id, "kennung").then((ok) => {
+      if (!ok) return;
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });

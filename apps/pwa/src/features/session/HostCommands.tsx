@@ -2,6 +2,7 @@ import { useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import { projectName } from "../../shared/project-name.ts";
 import { Button, Card } from "../../shared/ui/index.ts";
+import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 
 /**
  * Real user request (2026-09-19): "same session on the phone and my
@@ -26,13 +27,9 @@ import { Button, Card } from "../../shared/ui/index.ts";
 function CopyButton({ text }: { text: string }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setState("copied");
-    } catch {
-      // Clipboard needs a secure context; the text stays selectable.
-      setState("failed");
-    }
+    // ADR-0089: copied commands stay one level down in the local shelf.
+    const ok = await copyIntoShelf(text, "befehl");
+    setState(ok ? "copied" : "failed");
     setTimeout(() => setState("idle"), 1500);
   };
   return (
@@ -196,13 +193,11 @@ export function ContinueCard({ openCmd, host = null }: { openCmd?: string | unde
 export function AttachCmdRow({ cmd }: { cmd: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(cmd);
+    // ADR-0089: ohne Clipboard-API bleibt der Befehl in der Ablage — nie ein toter Endpunkt.
+    const ok = await copyIntoShelf(cmd, "befehl");
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // clipboard API unavailable (e.g. insecure context) — the command
-      // is still shown and selectable by hand, never a dead end.
     }
   };
   return (

@@ -37,6 +37,7 @@ import { NyxFab } from "../features/stt/NyxFab.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
 import { Button } from "../shared/ui/index.ts";
+import { ClipboardShelf } from "../features/clipboard/ClipboardShelf.tsx";
 
 // T1.6-2: applied before the first render so a stored "light" preference
 // never flashes dark first — index.html's data-theme="dark" was previously
@@ -410,6 +411,7 @@ function Main() {
         </div>
       )}
       <CommandBar />
+      <ClipboardShelf />
       <CheatSheet />
       {wide && (
         <RestoreBar
