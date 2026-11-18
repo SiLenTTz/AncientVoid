@@ -4,16 +4,32 @@
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent)
+    transparent;
 }
 /* EPIC-P43/P50: Inhalte passen in ihre Fläche (früher 45-readable-content.css,
  * T63.5 in die Fachdateien zusammengeführt). */
 .tail-scroll {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--accent) 55%, transparent)
+    transparent;
   min-width: 0;
   overflow-wrap: anywhere;
   overflow-x: hidden;
+}
+/* BUG-0211: Zeile ueber dem ersten sichtbaren Eintrag — sie holt die frueheren, damit der
+ * Anfang eines langen Chats erreichbar bleibt. */
+.tail-older {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) 0 var(--space-2);
+  text-align: center;
+}
+.tail-older-hint {
+  font-size: var(--text-sm);
 }
 /* Zahlen, die sich ändern oder untereinander stehen, springen nicht in der Breite. */
 .num {
@@ -65,7 +81,8 @@ body::-webkit-scrollbar-thumb:hover,
 #app {
   max-width: 680px;
   margin: 0 auto;
-  padding: env(safe-area-inset-top) 12px calc(24px + env(safe-area-inset-bottom));
+  padding: env(safe-area-inset-top) 12px
+    calc(24px + env(safe-area-inset-bottom));
 }
 
 /* BUG-0099: Als installierte App (PWA-Fenster) scrollt das Fenster nie —
@@ -283,7 +300,15 @@ a {
 }
 
 /* EPIC-P20 T20.1: reading tabs (Diff, Bericht, Suche, Code) use the whole tile. */
-.tile-grid.layout-1 > .tile:has(:is([data-tab="diff"], [data-tab="bericht"], [data-tab="suche"], [data-tab="code"])) {
+.tile-grid.layout-1
+  > .tile:has(
+    :is(
+      [data-tab="diff"],
+      [data-tab="bericht"],
+      [data-tab="suche"],
+      [data-tab="code"]
+    )
+  ) {
   padding-inline: 12px;
 }
 
@@ -365,32 +390,98 @@ a {
  * Anteile); hier nur die Platzierung. Kacheln sind <section>, Divider sind
  * <div> — nth-of-type zählt daher nur Kacheln. Spur 2 ist die Divider-Spur. */
 
-.tile-grid.layout-2v > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
-.tile-grid.layout-2v > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
-.tile-grid.layout-2v > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
+.tile-grid.layout-2v > .tile:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.tile-grid.layout-2v > .tile:nth-of-type(2) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.tile-grid.layout-2v > .tile-divider.col {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
 
-.tile-grid.layout-3v > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
-.tile-grid.layout-3v > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
-.tile-grid.layout-3v > .tile:nth-of-type(3) { grid-column: 5; grid-row: 1; }
-.tile-grid.layout-3v > .tile-divider.col { grid-column: 2; grid-row: 1; }
-.tile-grid.layout-3v > .tile-divider.col.second { grid-column: 4; grid-row: 1; }
+.tile-grid.layout-3v > .tile:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.tile-grid.layout-3v > .tile:nth-of-type(2) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.tile-grid.layout-3v > .tile:nth-of-type(3) {
+  grid-column: 5;
+  grid-row: 1;
+}
+.tile-grid.layout-3v > .tile-divider.col {
+  grid-column: 2;
+  grid-row: 1;
+}
+.tile-grid.layout-3v > .tile-divider.col.second {
+  grid-column: 4;
+  grid-row: 1;
+}
 
-.tile-grid.layout-2h > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
-.tile-grid.layout-2h > .tile:nth-of-type(2) { grid-column: 1; grid-row: 3; }
-.tile-grid.layout-2h > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+.tile-grid.layout-2h > .tile:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.tile-grid.layout-2h > .tile:nth-of-type(2) {
+  grid-column: 1;
+  grid-row: 3;
+}
+.tile-grid.layout-2h > .tile-divider.row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
 
-.tile-grid.layout-1p2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1 / span 3; }
-.tile-grid.layout-1p2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
-.tile-grid.layout-1p2 > .tile:nth-of-type(3) { grid-column: 3; grid-row: 3; }
-.tile-grid.layout-1p2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
-.tile-grid.layout-1p2 > .tile-divider.row { grid-column: 3; grid-row: 2; }
+.tile-grid.layout-1p2 > .tile:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+}
+.tile-grid.layout-1p2 > .tile:nth-of-type(2) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.tile-grid.layout-1p2 > .tile:nth-of-type(3) {
+  grid-column: 3;
+  grid-row: 3;
+}
+.tile-grid.layout-1p2 > .tile-divider.col {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+.tile-grid.layout-1p2 > .tile-divider.row {
+  grid-column: 3;
+  grid-row: 2;
+}
 
-.tile-grid.layout-2x2 > .tile:nth-of-type(1) { grid-column: 1; grid-row: 1; }
-.tile-grid.layout-2x2 > .tile:nth-of-type(2) { grid-column: 3; grid-row: 1; }
-.tile-grid.layout-2x2 > .tile:nth-of-type(3) { grid-column: 1; grid-row: 3; }
-.tile-grid.layout-2x2 > .tile:nth-of-type(4) { grid-column: 3; grid-row: 3; }
-.tile-grid.layout-2x2 > .tile-divider.col { grid-column: 2; grid-row: 1 / -1; }
-.tile-grid.layout-2x2 > .tile-divider.row { grid-column: 1 / -1; grid-row: 2; }
+.tile-grid.layout-2x2 > .tile:nth-of-type(1) {
+  grid-column: 1;
+  grid-row: 1;
+}
+.tile-grid.layout-2x2 > .tile:nth-of-type(2) {
+  grid-column: 3;
+  grid-row: 1;
+}
+.tile-grid.layout-2x2 > .tile:nth-of-type(3) {
+  grid-column: 1;
+  grid-row: 3;
+}
+.tile-grid.layout-2x2 > .tile:nth-of-type(4) {
+  grid-column: 3;
+  grid-row: 3;
+}
+.tile-grid.layout-2x2 > .tile-divider.col {
+  grid-column: 2;
+  grid-row: 1 / -1;
+}
+.tile-grid.layout-2x2 > .tile-divider.row {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
 
 .tile-divider {
   --divider-line: 2px;
@@ -407,22 +498,50 @@ a {
   border-radius: 1px;
   transition: background 0.1s;
 }
-.tile-divider.col { cursor: col-resize; }
-.tile-divider.col::after { left: calc(50% - var(--divider-line) / 2); top: 10%; bottom: 10%; width: var(--divider-line); }
-.tile-divider.row { cursor: row-resize; }
-.tile-divider.row::after { top: calc(50% - var(--divider-line) / 2); left: 10%; right: 10%; height: var(--divider-line); }
+.tile-divider.col {
+  cursor: col-resize;
+}
+.tile-divider.col::after {
+  left: calc(50% - var(--divider-line) / 2);
+  top: 10%;
+  bottom: 10%;
+  width: var(--divider-line);
+}
+.tile-divider.row {
+  cursor: row-resize;
+}
+.tile-divider.row::after {
+  top: calc(50% - var(--divider-line) / 2);
+  left: 10%;
+  right: 10%;
+  height: var(--divider-line);
+}
 .tile-divider:hover::after,
 .tile-divider:active::after {
   background: var(--fg-dim);
 }
 
 /* Die Mini-Glyphen in den Layout-Buttons behalten ihre festen Templates. */
-.tile-glyph.layout-2v { grid-template-columns: 1fr 1fr; }
-.tile-glyph.layout-3v { grid-template-columns: 1fr 1fr 1fr; }
-.tile-glyph.layout-2h { grid-template-rows: 1fr 1fr; }
-.tile-glyph.layout-1p2 { grid-template-columns: 1.35fr 1fr; grid-template-rows: 1fr 1fr; }
-.tile-glyph.layout-1p2 > :first-child { grid-row: 1 / span 2; }
-.tile-glyph.layout-2x2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.tile-glyph.layout-2v {
+  grid-template-columns: 1fr 1fr;
+}
+.tile-glyph.layout-3v {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.tile-glyph.layout-2h {
+  grid-template-rows: 1fr 1fr;
+}
+.tile-glyph.layout-1p2 {
+  grid-template-columns: 1.35fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.tile-glyph.layout-1p2 > :first-child {
+  grid-row: 1 / span 2;
+}
+.tile-glyph.layout-2x2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
 
 .tile {
   position: relative;
