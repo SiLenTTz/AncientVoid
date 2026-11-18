@@ -1,0 +1,83 @@
+import { test, expect } from "../support/fixtures.ts";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { join, dirname } from "node:path";
+
+const execFileAsync = promisify(execFile);
+
+/** EPIC-P67 T67.8 / ADR-0088: Session-Indikator „N hinter main“ + Menü
+ * (Prüfen/Aktualieren/Konflikte) — gegen ein echtes lokales Remote. */
+
+/** Bare-„origin“ für ein TestHub-Projekt aufsetzen (Muster Forge-Integrationstest). */
+async function withOrigin(project: string, name: string): Promise<{ advance: (msg: string) => Promise<void> }> {
+  const origin = join(dirname(project), `${name}-origin.git`);
+  await execFileAsync("git", ["init", "-q", "--bare", "-b", "main", origin]);
+  await execFileAsync("git", ["-C", project, "remote", "add", "origin", origin]);
+  await execFileAsync("git", ["-C", project, "push", "-q", "-u", "origin", "main"]);
+  const advance = async (msg: string) => {
+    const other = join(dirname(project), `${name}-other`);
+    await execFileAsync("git", ["clone", "-q", origin, other]);
+    await execFileAsync("git", ["-C", other, "config", "user.email", "e2e@ancientvoid.local"]);
+    await execFileAsync("git", ["-C", other, "config", "user.name", "ancientvoid e2e"]);
+    await execFileAsync("git", ["-C", other, "commit", "-q", "--allow-empty", "-m", msg]);
+    await execFileAsync("git", ["-C", other, "push", "-q", "origin", "main"]);
+    await execFileAsync("rm", ["-rf", other]);
+  };
+  return { advance };
+}
+
+test.describe("Session: Main-Sync-Indikator und Menü (EPIC-P67 T67.8)", () => {
+  test("Hinweis erscheint bei Rückstand; Prüfen nennt Stand; Einmischen holt auf und der Hinweis verschwindet", async ({ app, hub }) => {
+    const { advance } = await withOrigin(hub.alpha, "mainsync");
+    const id = await hub.createSession({ adapter: "dummy", project: hub.alpha, prompt: "arbeite", workspaceMode: "worktree" });
+    // Gating AC-P67-6: Einmischen erst auf wartender Session — erst idle abwarten
+    await hub.until(async () => ((await hub.api<{ status: string }[]>(`/api/sessions`)).body.find((s) => (s as { id?: string }).id === id)?.status ?? "") === "idle", "session idle");
+
+    // origin vorrücken — der Session-Worktree läuft jetzt hinterher
+    await advance("neuer-stand");
+
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    const badge = app.getByTestId("mainsync-behind");
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveText(/1 hinter main/);
+
+    // Menü (⋯) trägt die Aktionen — 44-px-Ziel, P63-Baustein-Regel
+    await app.locator(".session-menu summary").click();
+    const menu = app.getByTestId("mainsync-menu");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText(/zuletzt abgeglichen: nie/)).toBeVisible();
+
+    // Prüfen: Probelauf sauber, Stand im Klartext
+    await menu.getByRole("button", { name: "Main prüfen" }).click();
+    await expect(app.getByTestId("mainsync-result")).toHaveText(/1 hinter origin\/main · Probelauf sauber/);
+
+    // Einmischen: Fast-Forward, Hinweis verschwindet, Abgleich-Stand gesetzt
+    await menu.getByRole("button", { name: "Main einmischen" }).click();
+    await expect(app.getByTestId("mainsync-result")).toHaveText(/eingemischt/);
+    await expect(badge).toHaveCount(0);
+    await expect(menu.getByText(/zuletzt abgeglichen:/)).not.toHaveText(/nie/);
+  });
+
+  test("Layout-Beweis mobil (390 px): Hinweis überdeckt weder Titel noch Status, alles im Kopf-Rand", async ({ app, hub }) => {
+    const { advance } = await withOrigin(hub.beta, "mainsyncbeta");
+    const id = await hub.createSession({ adapter: "dummy", project: hub.beta, prompt: "arbeite", workspaceMode: "worktree" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant"), "first answer");
+    await advance("noch-neuer");
+    await app.setViewportSize({ width: 390, height: 800 });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+
+    const badge = app.getByTestId("mainsync-behind");
+    await expect(badge).toBeVisible();
+    const geo = await badge.evaluate((el) => {
+      const b = el.getBoundingClientRect();
+      const head = el.closest(".session-top")?.getBoundingClientRect() ?? document.body.getBoundingClientRect();
+      const meta = el.closest(".session-top-meta")?.getBoundingClientRect();
+      // Überdeckung: liegt unter der Badge-Mitte ein anderes Element als die Badge selbst?
+      const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+      return { left: b.left, right: b.right, top: b.top, bottom: b.bottom, headRight: head.right, metaBottom: meta?.bottom ?? -1, hitIsSelfOrChild: !!hit && (hit === el || el.contains(hit)) };
+    });
+    expect(geo.right).toBeLessThanOrEqual(geo.headRight + 1);
+    expect(geo.bottom).toBeLessThanOrEqual(geo.metaBottom + 1);
+    expect(geo.hitIsSelfOrChild).toBe(true);
+  });
+});
