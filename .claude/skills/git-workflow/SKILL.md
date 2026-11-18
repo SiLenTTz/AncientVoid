@@ -141,11 +141,11 @@ git ls-remote --heads origin <branch>          # Push bewiesen (nicht aus dem Au
 gh pr create … | rg -o "pull/[0-9]+"          # PR-Nummer abnehmen; ohne Nummer nicht pollen
 ```
 
-- **Auto-Merge-Standard (seit 2026-11-18, Nutzerauftrag, an PR #169 verifiziert):**
-  PRs mit belegten lokalen Gates werden mit `gh pr merge --auto --merge --delete-branch
-  --subject …` eingestellt und merge-t sich bei grünem `verify` selbst; nur bei
-  abgelehntem `--auto` manuell nach `gh pr checks --watch` mergen. Merge-Commit
-  bleibt Pflicht (`check:commits`, [`docs/commit-notation.md`](../../../docs/commit-notation.md)).
+- **Auto-Merge-Standard (seit 2026-11-18, Nutzerauftrag; PR #169 stellte ihn ein,
+  sein `verify` wurde nachträglich grün; Ruleset-Bedingung auf `main` seither gesetzt):**
+  PRs mit belegten lokalen Gates werden mit `gh pr merge --auto --merge
+  --delete-branch --subject …` eingestellt — GitHub wartet auf grünes `verify`
+  (`check:commits`, [`docs/commit-notation.md`](../../../docs/commit-notation.md)).
 - `--body-file` nimmt eine vorbereitete Beschreibungsdatei (alternativ
   `--body "$(cat …)"`); die Vorlage liegt in `.github/pull_request_template.md`.
 - Status: `gh pr view <nr>`, `gh pr checks <nr>`; roter Lauf →
