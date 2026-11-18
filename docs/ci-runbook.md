@@ -180,8 +180,22 @@ das Setup oder die Branch-Synchronisierung scheitert. Pro fehlgeschlagenem
 Job entsteht ein GitHub-Issue mit Label `bug`, SHA, Branch, Run-/Job-Link
 und Reproduktionshinweis. Ein vorhandener offener Bug desselben Jobs wird
 auf das jüngste Auftreten aktualisiert; nach Schließen erzeugt ein neuer
-Fehler einen neuen Bug. Grüne Läufe schließen Bugs nicht automatisch.
-Abgebrochene Läufe erzeugen keinen Produktbug und bleiben als Abbruch sichtbar.
+Fehler einen neuen Bug.
+
+**Auto-Close (EPIC-P71, 18.11.2026 — löst die frühere Regel „Grüne Läufe
+schließen Bugs nicht automatisch" ab):** Jeder abgeschlossene `nightly`-Lauf
+(auch teilweise grün; Abbrüche ausgenommen) schließt offene CI-Bug-Issues
+der Jobs, die in diesem Lauf grün waren, mit Evidenz-Kommentar (Run-ID,
+SHA, Job-Link) — das Muster des manuellen Schließens von #54–#57, jetzt
+automatisch (`closeResolved` in `scripts/ci-pipeline.mjs`, Close-Job in
+`nightly-bugs.yml`, dieselbe Concurrency-Gruppe, Code nur von `main`).
+Bewusster Trade-off: Flaked ein Job zufällig grün, erzeugt ein erneutes
+Auftreten wie bisher eine neue Issue; Re-Open per `gh issue reopen <nr>`
+(Lebenszyklus: `docs/issues.md`). „workflow startup"-Bugs schließt nur ein
+insgesamt grüner Lauf. CI-Bugs von `pipeline-sync`-Jobs bleiben vom
+Auto-Close unberührt (Sync-Ausfall, kein Testversagen) und werden manuell
+geschlossen. Abgebrochene Läufe erzeugen keinen Produktbug, schließen
+nichts und bleiben als Abbruch sichtbar.
 
 Der Reporter führt ausschließlich Code von `main` aus, liest Job-Metadaten
 über die API und führt weder Logs noch Artefakte aus. Nur dieser Workflow

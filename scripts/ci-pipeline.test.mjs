@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { URL } from "node:url";
 import { load } from "js-yaml";
-import { githubApi, pipelineSha, reportFailures, resolvePipeline, syncPipeline } from "./ci-pipeline.mjs";
+import { closeResolved, githubApi, pipelineSha, reportFailures, resolvePipeline, syncPipeline } from "./ci-pipeline.mjs";
 
 const run = { id: 42, run_attempt: 1, name: "nightly", event: "schedule", conclusion: "failure", head_sha: "abc", head_branch: "main", html_url: "https://github.com/a/b/actions/runs/42" };
 const job = { name: "e2e-shards (2)", conclusion: "failure", html_url: `${run.html_url}/job/2` };
@@ -114,6 +114,61 @@ describe("nightly bugs", () => {
   });
 });
 
+const greenRun = { id: 43, run_attempt: 1, name: "nightly", event: "schedule", conclusion: "success", head_sha: "def", head_branch: "main", html_url: "https://github.com/a/b/actions/runs/43" };
+const greenJob = { name: "e2e-shards (2)", conclusion: "success", html_url: `${greenRun.html_url}/job/2` };
+const redJob = { name: "e2e", conclusion: "failure", html_url: `${greenRun.html_url}/job/3` };
+
+describe("closeResolved (EPIC-P71 auto-close)", () => {
+  it("closes open CI bugs whose job went green, with run/SHA/job evidence", async () => {
+    const issue = { number: 17, body: "<!-- ancientvoid-nightly:e2e-shards (2) -->\n<!-- run:42:1 -->\nold report\n<!-- /ancientvoid-nightly -->" };
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [greenJob, redJob] }).mockResolvedValueOnce([issue]).mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    expect(await closeResolved(api, greenRun)).toEqual([17]);
+    expect(api.mock.calls[2].slice(0, 2)).toEqual(["POST", "issues/17/comments"]);
+    expect(api.mock.calls[2][2].body).toContain("e2e-shards (2)");
+    expect(api.mock.calls[2][2].body).toContain("def");
+    expect(api.mock.calls[2][2].body).toContain(`${greenRun.html_url}/job/2`);
+    expect(api.mock.calls[3].slice(0, 2)).toEqual(["PATCH", "issues/17"]);
+    expect(api.mock.calls[3][2].state).toBe("closed");
+  });
+  it("keeps bugs of still-red jobs and of other workflows open for reportFailures", async () => {
+    const issues = [{ number: 18, body: "<!-- ancientvoid-nightly:e2e -->" }, { number: 21, body: "<!-- ancientvoid-nightly:pipeline-sync/e2e -->" }];
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [greenJob, redJob] }).mockResolvedValueOnce(issues);
+    expect(await closeResolved(api, greenRun)).toEqual([]);
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+  it("fetches no issues when no job is green", async () => {
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [redJob] });
+    expect(await closeResolved(api, { ...greenRun, conclusion: "failure" })).toEqual([]);
+    expect(api).toHaveBeenCalledTimes(1);
+  });
+  it("ignores cancelled runs, PR runs and non-nightly workflows", async () => {
+    const api = vi.fn();
+    for (const override of [{ conclusion: "cancelled" }, { event: "pull_request" }, { name: "pipeline-sync" }]) expect(await closeResolved(api, { ...greenRun, ...override })).toEqual([]);
+    expect(api).not.toHaveBeenCalled();
+  });
+  it("is idempotent on redelivery: already closed issues are not listed anymore", async () => {
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [greenJob] }).mockResolvedValueOnce([]);
+    expect(await closeResolved(api, greenRun)).toEqual([]);
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+  it("closes workflow-startup bugs only once the whole run is green", async () => {
+    const issue = { number: 19, body: "<!-- ancientvoid-nightly:workflow startup -->" };
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [greenJob] }).mockResolvedValueOnce([issue]);
+    expect(await closeResolved(api, { ...greenRun, conclusion: "failure" })).toEqual([]);
+    expect(api).toHaveBeenCalledTimes(2);
+    const replay = vi.fn().mockResolvedValueOnce({ jobs: [greenJob] }).mockResolvedValueOnce([issue]).mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    expect(await closeResolved(replay, greenRun)).toEqual([19]);
+    expect(replay.mock.calls[2][2].body).toContain("workflow startup");
+  });
+  it("paginates issues before closing anything", async () => {
+    const issue = { number: 17, body: "<!-- ancientvoid-nightly:e2e-shards (2) -->" };
+    const api = vi.fn().mockResolvedValueOnce({ jobs: [greenJob] }).mockResolvedValueOnce(Array.from({ length: 100 }, () => ({ body: "unrelated" }))).mockResolvedValueOnce([issue]).mockResolvedValueOnce({}).mockResolvedValueOnce({});
+    expect(await closeResolved(api, greenRun)).toEqual([17]);
+    expect(api.mock.calls[2][1]).toContain("page=2");
+    expect(api.mock.calls[3][0]).toBe("POST");
+  });
+});
+
 describe("workflow routing and permissions", () => {
   const workflow = (name) => load(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), "utf8"));
   it("routes main pushes to an independent short sync, never behind the full suite", () => {
@@ -132,5 +187,13 @@ describe("workflow routing and permissions", () => {
     expect(full.jobs.prepare.steps.find((step) => step.run)?.run).toBe("node scripts/ci-pipeline.mjs resolve");
     expect(workflow("pipeline-sync").jobs.sync.permissions).toEqual({ contents: "write" });
     expect(workflow("nightly-bugs").on.workflow_run.workflows).toContain("pipeline-sync");
+  });
+  it("runs the close step on green runs from trusted main code within the serialized group", () => {
+    const bugs = workflow("nightly-bugs");
+    expect(bugs.concurrency.group).toBe("nightly-bugs");
+    expect(bugs.jobs.close.steps.find((step) => step.run)?.run).toBe("node scripts/ci-pipeline.mjs close");
+    expect(bugs.jobs.close.steps.find((step) => step.uses?.startsWith("actions/checkout"))?.with?.ref).toBe("main");
+    expect(bugs.jobs.close.if).toContain("success");
+    expect(bugs.jobs.report.if).toContain("failure");
   });
 });
