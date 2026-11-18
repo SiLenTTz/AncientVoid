@@ -6,7 +6,7 @@ severity: S2
 area: pwa
 instance: dev
 commit: "f5fbed08"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/62"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/62"
 epic: "EPIC-P6"
 created: 2026-11-17
 reporter: "Nutzer"

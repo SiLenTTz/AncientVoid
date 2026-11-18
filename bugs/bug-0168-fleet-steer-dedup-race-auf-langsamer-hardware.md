@@ -6,7 +6,7 @@ severity: S3
 area: hub
 instance: ci
 commit: "e86ac4f1b059ded39d9219b6017c417a92ec9154"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/12"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/12"
 epic: ""
 created: 2026-11-16
 reporter: "GitHub-Actions-CI (PR #2, Run 43833945447)"

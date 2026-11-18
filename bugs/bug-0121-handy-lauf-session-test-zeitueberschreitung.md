@@ -6,7 +6,7 @@ severity: S3
 area: e2e
 instance: dev
 commit: "492999d"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/3"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/3"
 epic: "EPIC-P43"
 created: 2026-11-11
 reporter: "Agent (EPIC-P43 T43.9)"

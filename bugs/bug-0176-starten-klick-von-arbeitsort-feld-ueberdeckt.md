@@ -6,7 +6,7 @@ severity: S3
 area: e2e
 instance: dev
 commit: "56f8e8c2"
-forge: "https://github.com/SiLenTTz/AncientVoid/issues/28"
+forge: "https://github.com/securesight-ai/AncientVoid/issues/28"
 created: 2026-11-16
 reporter: "E2E-Läufe (Phone main + PR-#17-CI)"
 ---
@@ -66,5 +66,5 @@ lassen — erst mit Repro entscheiden.
 ## Handoff
 
 - [x] Datei im Index [`README.md`](README.md)
-- [x] GitHub-Issue angelegt ([#28](https://github.com/SiLenTTz/AncientVoid/issues/28))
+- [x] GitHub-Issue angelegt ([#28](https://github.com/securesight-ai/AncientVoid/issues/28))
 - [ ] `bugfix` oder offen lassen
