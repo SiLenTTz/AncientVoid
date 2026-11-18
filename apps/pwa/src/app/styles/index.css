@@ -77,3 +77,4 @@
  * gegen später importierte Basalregeln (run-strip, turns) gewinnen. */
 @import "./50-short-viewport.css";
 @import "./52-terminal.css";
+@import "./54-clipboard-shelf.css";

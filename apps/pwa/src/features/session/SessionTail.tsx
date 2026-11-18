@@ -1,7 +1,7 @@
 import { StatusNote } from "./StatusNote.tsx";
 import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
-import { copyWithRetry } from "./copy-selection.ts";
+import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 import { readTailScroll, writeTailScroll } from "./tail-scroll.ts";
 import { sessionHash, fileHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
@@ -280,18 +280,15 @@ export function SessionTail({
       const sel = window.getSelection();
       const text = sel?.toString() ?? "";
       if (!el || !sel || !text.trim() || !el.contains(sel.anchorNode)) return;
-      // BUG-0107: transient abgelehntes writeText wurde still geschluckt —
-      // der Flash ist der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu.
-      if (navigator.clipboard) {
-        void copyWithRetry(text, (t) => navigator.clipboard!.writeText(t)).then(
-          (ok) => {
-            if (!ok) return; // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg
-            setCopyFlash(true);
-            window.clearTimeout(flashTimer);
-            flashTimer = window.setTimeout(() => setCopyFlash(false), 1200);
-          },
-        );
-      }
+      // BUG-0107: transient abgelehntes writeText wurde still geschluckt — der Flash ist
+      // der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu. ADR-0090: ohne Clipboard-API
+      // bleibt die Auswahl trotzdem eine Stufe in der Ablage — nie still verloren.
+      void copyIntoShelf(text, "markierung").then((ok) => {
+        if (!ok) return; // kein Clipboard (insecure context) — Kopieren-Button bleibt der Weg
+        setCopyFlash(true);
+        window.clearTimeout(flashTimer);
+        flashTimer = window.setTimeout(() => setCopyFlash(false), 1200);
+      });
     };
     document.addEventListener("pointerup", onUp);
     return () => {

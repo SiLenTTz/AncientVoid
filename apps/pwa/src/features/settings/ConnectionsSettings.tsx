@@ -3,6 +3,7 @@ import { hubApi, type EndpointEntry, type EndpointKind, type VoidWardenConnectio
 import { ago } from "../../shared/status.ts";
 import { SettingsSection } from "./parts.tsx";
 import { Button } from "../../shared/ui/index.ts";
+import { copyIntoShelf } from "../../shared/clipboard-copy.ts";
 
 /**
  * Verbindungs-Registry (Optionen): VoidWarden-Instanzen und Modell-/Tool-
@@ -78,9 +79,9 @@ export function ConnectionsSettings() {
   };
 
   const copyToken = (token: string) => {
-    void navigator.clipboard?.writeText(token).then(
-      () => setMessage({ ok: true, text: "Token kopiert." }),
-      () => setMessage({ ok: false, text: "Kopieren nicht erlaubt — bitte von Hand markieren." }),
+    // ADR-0090: ein Token ist kein Ablage-Stoff — die Zwischenablage ja, die Ablage nein.
+    void copyIntoShelf(token, "text", { secret: true }).then((ok) =>
+      setMessage(ok ? { ok: true, text: "Token kopiert." } : { ok: false, text: "Kopieren nicht erlaubt — bitte von Hand markieren." }),
     );
   };
 

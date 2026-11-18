@@ -1,0 +1,159 @@
+/* ADR-0090: die mehrstufige Zwischenablage („Ablage“).
+ * Der Einstiegsknopf ist ein normaler icon-btn der composer-Reihe — gleiche Zielgröße,
+ * gleiche Linie, nur eine Marke, wenn Stufen da sind. Das Blatt selbst kommt aus
+ * styles/ui/sheet.css; hier steht nur der Inhalt. Keine eigenen Farben (css-tokens-Test). */
+
+.composer-shelf {
+  position: relative;
+}
+
+.composer-shelf.has-items {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+/* Die Marke liegt INNEN an der Ecke — ausserhalb wuerde sie gegen den Rand des
+ * Eingabefeldes stossen und wirkt dann wie ein Fehler, nicht wie eine Zahl. */
+.shelf-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: var(--space-4);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--space-4);
+  text-align: center;
+  pointer-events: none;
+}
+
+.shelf-body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.shelf {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.shelf-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.shelf-title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.shelf-sub {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+.shelf-clear {
+  margin-left: auto;
+}
+
+.shelf-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.shelf-row {
+  /* Die Stufenzahl steht ausserhalb des Flattersatzes: Text, Meta und Aktionen halten
+   * dieselbe linke Kante, sonst wirkt die Zeile zerwuerfelt. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--space-2);
+  align-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.shelf-row:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
+/* Die Stufenzahl ist die Antwort auf „wie mehrstufig?“ — ablesbar, nicht dekorativ. */
+.shelf-step {
+  min-width: var(--space-4);
+  color: var(--fg-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.shelf-text {
+  margin: 0;
+  color: var(--fg);
+  font-size: var(--text-sm);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shelf-meta {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.shelf-origin {
+  color: var(--accent);
+}
+
+.shelf-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.shelf-dot {
+  color: var(--fg-faint);
+}
+
+.shelf-copy,
+.shelf-drop {
+  font-size: var(--text-xs);
+}
+
+.shelf-note {
+  margin: 0;
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}
+
+/* Die Zusage des Designs, nicht als Fußzeile versteckt. */
+.shelf-privacy {
+  margin: 0;
+  color: var(--fg-faint);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 639px) {
+  .shelf-row {
+    padding: var(--space-2);
+  }
+
+  .shelf-actions {
+    gap: var(--space-1);
+  }
+}

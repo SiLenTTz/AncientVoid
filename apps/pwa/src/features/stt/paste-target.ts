@@ -1,6 +1,7 @@
 /**
  * Letztes editierbares Feld merken (FAB stiehlt Fokus) und Text einfügen + Zwischenablage.
  */
+import { pushShelf, type ShelfOrigin } from "../../shared/clipboard-shelf.ts";
 
 let lastEditable: HTMLElement | null = null;
 
@@ -56,8 +57,12 @@ function appendContentEditable(el: HTMLElement, text: string): void {
   }
 }
 
-/** Transkript ins fokussierte Feld und in die Zwischenablage. */
-export async function pasteTranscript(text: string): Promise<"pasted" | "clipboard-only" | "nowhere"> {
+/**
+ * Transkript ins fokussierte Feld und in die Zwischenablage. ADR-0090: was hier liegt, liegt
+ * zusätzlich eine Stufe tiefer in der Ablage — ausser der Aufrufer kommt selbst aus ihr
+ * (`shelve: false`), sonst wäre jede Einfügung eine neue Stufe.
+ */
+export async function pasteTranscript(text: string, opts: { shelve?: boolean; origin?: ShelfOrigin } = {}): Promise<"pasted" | "clipboard-only" | "nowhere"> {
   const trimmed = text.trim();
   if (!trimmed) return "nowhere";
   let pasted = false;
@@ -76,6 +81,7 @@ export async function pasteTranscript(text: string): Promise<"pasted" | "clipboa
   } catch {
     // Clipboard kann fehlen (unsicherer Kontext) — Einfügen zählt trotzdem.
   }
+  if (opts.shelve !== false) pushShelf(trimmed, opts.origin ?? "diktat");
   if (pasted) return "pasted";
   if (clipped) return "clipboard-only";
   return "nowhere";

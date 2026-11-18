@@ -233,6 +233,12 @@ Scheduled work — see [page:automationen](#pageautomationen--automations). Spec
 
 The hosted browser test workspace — see [layer:browser](#layerbrowser--browser). Spec: [browser-workspace.spec.ts](../../e2e/specs/browser-workspace.spec.ts)
 
+### feature:clipboard
+
+Multi-level clipboard shelf in the browser: up to six pasteable stages
+(dictation, selection, command, entry, id). Tokens stay out of the shelf.
+Opens from the composer shelf button. Spec: [clipboard-shelf.spec.ts](../../e2e/specs/clipboard-shelf.spec.ts)
+
 ### feature:code
 
 Search code, run registered actions in the worktree, open files with line

@@ -11,6 +11,8 @@ import { AttachmentPicker } from "../attachments/Attachments.tsx";
 import { SourceChips, SourcePreviewNote } from "./SourceChips.tsx";
 import type { AttachmentRecord } from "../../shared/api.ts";
 import { Button } from "../../shared/ui/index.ts";
+import { openClipboardShelf } from "../../shared/clipboard-shelf.ts";
+import { ShelfGlyph, useShelfCount } from "../clipboard/ClipboardShelf.tsx";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
@@ -107,6 +109,8 @@ export function Composer({
   // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
   // greift dann nicht ein (offsetHeight ist schon groß).
   const [expanded, setExpanded] = useState(false);
+  // ADR-0090: die Ablage atmet mit — der Knopf zeigt, wie viele Stufen da sind.
+  const shelfCount = useShelfCount();
   // EPIC-P43 T43.4: einzeilig, bis das Feld zum ersten Mal den Fokus bekommt.
   const [touched, setTouched] = useState(false);
   useEffect(() => {
@@ -380,6 +384,17 @@ export function Composer({
             <AttachmentPicker attachments={attachments} onChange={onAttachmentsChange} {...(disabled !== undefined ? { disabled } : {})} />
           </span>
         )}
+        <Button
+          icon
+          class={shelfCount > 0 ? "composer-shelf has-items" : "composer-shelf"}
+          data-testid="clipboard-open"
+          onClick={openClipboardShelf}
+          aria-label={shelfCount > 0 ? `Ablage öffnen, ${shelfCount} Stufen` : "Ablage öffnen, noch leer"}
+          title={shelfCount > 0 ? `Zwischenablage-Ablage (${shelfCount} Stufen)` : "Zwischenablage-Ablage — noch nichts kopiert"}
+        >
+          <ShelfGlyph />
+          {shelfCount > 0 && <span class="shelf-badge" aria-hidden="true">{shelfCount > 9 ? "9+" : shelfCount}</span>}
+        </Button>
         <Button
           aria-pressed={expanded}
           aria-label={expanded ? "Eingabe verkleinern" : "Eingabe maximieren"}
