@@ -10,18 +10,25 @@ import { bugStatusOf, epicStatusOf, listTree } from "../../../src/modules/code/e
  * den Epic-Dateien des Repos (Stand 14.11.2026), damit die Heuristik an der
  * Realität hängt statt an erfundenen Mustern.
  */
-const STATUS_LINES: [string, "done" | "code" | "wip" | "open"][] = [
+const STATUS_LINES: [string, "done" | "code" | "wip" | "open" | "blocked"][] = [
   ["**Status:** abgeschlossen (05.11.2026, [MR !293], 1181 Tests / 295 E2E-Pässe, K8 grün)", "done"],
-  ["**Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid)", "open"],
+  ["**Status:** Planungsentwurf · **Umsetzung:** gesperrt (umpriorisiert 2026-11-08: läuft nach P36, Nutzerentscheid)", "blocked"],
   ["**Status:** in Umsetzung seit 2026-11-09 (P36 umgesetzt, Gating erfüllt)", "wip"],
   ["**Status:** umgesetzt 2026-11-10 (T40.1–T40.7, ADR-0064; Gate grün) — Live-Lauf mit echtem Hermes-Koordinator am Gerät offen", "code"],
-  ["**Status:** Code abgeschlossen, Live-Abnahme offen", "code"],
+  ["**Status:** Code abgeschlossen, Live-Abnahme offen", "blocked"],
   ["**Status:** teilweise umgesetzt (T51.1–T51.2: Vault-Unterbau; T51.3–T51.10 offen)", "code"],
   ["**Status:** offen · **Phase:** P47", "open"],
   ["**Status:** gebaut 2026-11-13 (T52.1–T52.7); echtes Handy und Bildzeit-p95 offen", "code"],
   ["**Status:** fertiggestellt 10.11.2026, Exit „No-go“ — Tailnet bleibt", "done"],
   ["**Status:** Code-Lücken der Übergabeprüfung geschlossen 11.11.2026, Exit offen", "code"],
   ["**Status:** Umsetzung (Branch `feat/p42-android-testgeraete`) · **Umsetzung:** freigegeben am 2026-11-11", "wip"],
+  // blocked-Vokabular (ADR-0089) — echte Statuszeilen des Korpus (Stand 18.11.2026)
+  ["**Status:** On hold (Nutzerentscheid 15.11.2026) · **Umsetzung:** gesperrt bis zur ausdrücklichen Wiederaufnahme durch Jan", "blocked"],
+  ["**Status:** Code abgeschlossen, Geräteabnahme offen (T35.10) — Rückstufung 2026-11-09 (Abnahme-Retro)", "blocked"],
+  ["**Status:** umgesetzt 2026-11-14 (T47.1–T47.6; Gate grün, PWA-Build grün; Live-Abnahme am echten Gerät offen)", "blocked"],
+  ["**Status:** umgesetzt 07.11.2026 — seit 2026-11-07 hängt der Endabnahme-Block (T35.10–T35.17) an diesem Epic — P35 bleibt offen, bis der Block abgenommen ist", "blocked"],
+  // Gegentest: abgeschlossene Zeile mit erwähnter, aber grüner Geräteabnahme bleibt done
+  ["**Status:** abgeschlossen 2026-11-10 (ADR-0059; Geräteabnahme am ONEPLUS A6013 grün, Latenz belegt) — P39 beendet", "done"],
 ];
 
 describe("epicStatusOf (Nutzerauftrag 14.11.2026)", () => {
@@ -48,7 +55,10 @@ describe("bugStatusOf (BUG-0189)", () => {
     expect(bugStatusOf("---\nstatus: in-progress\n---\n")?.epic).toBe("wip");
     expect(bugStatusOf("---\nstatus: in Arbeit\n---\n")?.epic).toBe("wip");
     expect(bugStatusOf("---\nstatus: open\n---\n")?.epic).toBe("open");
-    expect(bugStatusOf("---\nstatus: wont-fix\n---\n")?.epic).toBe("open");
+    expect(bugStatusOf("---\nstatus: wont-fix\n---\n")?.epic).toBe("open"); // unbekannt → open (Fail-loud, K7/ADR-0089)
+    expect(bugStatusOf("---\nstatus: fixed\n---\n")?.epic).toBe("code");
+    expect(bugStatusOf("---\nstatus: blocked\n---\n")?.epic).toBe("blocked");
+    expect(bugStatusOf("---\nstatus: needs-human-acceptance\n---\n")?.epic).toBe("blocked");
     expect(bugStatusOf("# ohne Frontmatter\nstatus: done\n")).toBeNull();
   });
 });
@@ -67,7 +77,7 @@ describe("listTree mit Epic-Anreicherung", () => {
     expect(byName.get("EPIC-P99-fertig.md")?.epic).toBe("done");
     expect(byName.get("EPIC-P99-fertig.md")?.epicStatus).toContain("abgeschlossen");
     expect(byName.get("EPIC-P98-laufend.md")?.epic).toBe("wip");
-    expect(byName.get("EPIC-P97-offen.md")?.epic).toBe("open");
+    expect(byName.get("EPIC-P97-offen.md")?.epic).toBe("blocked"); // „gesperrt“ ist blocked (ADR-0089)
     expect(byName.get("README.md")?.epic).toBeNull();
     const top = (await listTree(root, "", { kind: "project", sessionId: null, root, branch: null, head: null, base: null }))!;
     expect(top.entries.find((e) => e.name === "EPIC-P96-ausserhalb.md")?.epic).toBe("done");
@@ -78,12 +88,14 @@ describe("listTree mit Epic-Anreicherung", () => {
     mkdirSync(join(root, "bugs"));
     writeFileSync(join(root, "bugs", "bug-0189-offen.md"), "---\nid: BUG-0189\nstatus: open\n---\n# BUG-0189\n");
     writeFileSync(join(root, "bugs", "bug-0190-laufend.md"), "---\nstatus: in-progress\n---\n# BUG-0190\n");
+    writeFileSync(join(root, "bugs", "bug-0192-blocked.md"), "---\nstatus: blocked\n---\n# BUG-0192\n");
     writeFileSync(join(root, "bugs", "bug-0191-fertig.md"), "---\nstatus: done\n---\n# BUG-0191\n");
     writeFileSync(join(root, "bugs", "NOTIZ.md"), "---\nstatus: done\n---\n# keine Bug-Datei\n");
     const listing = (await listTree(root, "bugs", { kind: "project", sessionId: null, root, branch: null, head: null, base: null }))!;
     const byName = new Map(listing.entries.map((e) => [e.name, e]));
     expect(byName.get("bug-0189-offen.md")?.epic).toBe("open");
     expect(byName.get("bug-0190-laufend.md")?.epic).toBe("wip");
+    expect(byName.get("bug-0192-blocked.md")?.epic).toBe("blocked");
     expect(byName.get("bug-0191-fertig.md")?.epic).toBe("done");
     expect(byName.get("NOTIZ.md")?.epic).toBeNull();
   });
