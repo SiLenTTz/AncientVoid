@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { isProjectPathAllowed, recommendForPrompt, writeProjectArtifact } from "@ancientvoid/core";
-import { enhancePrompt } from "./enhance.ts";
+import { enhancePrompt, RewriteFailed, type LocalRewriteModel } from "./enhance.ts";
+import { projectContext } from "./project-context.ts";
 import { appendOptimizerFeedback } from "./optimizer-feedback.ts";
 import { z } from "zod";
 import type { RouteContext } from "../../route-context.ts";
@@ -17,6 +18,8 @@ const OptimizerFeedbackBody = z.object({
   original: z.string().min(1),
   enhanced: z.string().min(1),
   decision: z.enum(["accepted", "rejected"]),
+  /** EPIC-P68: which stage wrote the suggestion ("local" or an adapter id). */
+  engine: z.string().max(80).optional(),
   costUsd: z.number().optional(),
   latencyMs: z.number(),
 });
@@ -24,6 +27,23 @@ const OptimizerFeedbackBody = z.object({
 /** Prompt enhancer, optimizer feedback, skills and recommendations (T1.5, T3.9, T5.10). */
 export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, projectRoots, skillsFor } = ctx;
+  // EPIC-P68 (ADR-0089): same local model as text commands (T9.2), with
+  // its own budget — the planner's 12s timeout is for one JSON intent.
+  const local: LocalRewriteModel | undefined = deps.assistantModel
+    ? {
+        url: deps.assistantModel.url,
+        model: deps.assistantModel.model,
+        ...(deps.assistantModel.apiKey ? { apiKey: deps.assistantModel.apiKey } : {}),
+        ...(deps.assistantModel.fetch ? { fetch: deps.assistantModel.fetch } : {}),
+      }
+    : undefined;
+  const registrationOf = (adapter: string) => {
+    const registered = deps.registry.get(adapter);
+    return {
+      ...(registered?.module !== undefined ? { module: registered.module } : {}),
+      ...(registered?.config !== undefined ? { config: registered.config as Record<string, unknown> } : {}),
+    };
+  };
 
   app.post("/api/prompt-enhance", async (req, reply) => {
     // T1.5-8: never automatic, only on explicit request (this route is
@@ -43,17 +63,19 @@ export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): 
       return reply.code(422).send({ error: "project path is outside the configured projectRoots" });
     }
     try {
-      // BUG-0061: the enhancer is picked from the registration (module +
-      // config), not the free-form adapter id — a dsh ACP registration
-      // can carry any id ("deepseek", …).
-      const registered = deps.registry.get(parsed.data.adapter);
+      // BUG-0061: the adapter one-shot is picked from the registration
+      // (module + config), not the free-form adapter id — a dsh ACP
+      // registration can carry any id ("deepseek", …).
+      const context = await projectContext(parsed.data.project, await skillsFor(parsed.data.project));
       return await enhancePrompt(parsed.data.adapter, parsed.data.text, parsed.data.project, {
-        ...(registered?.module !== undefined ? { module: registered.module } : {}),
-        ...(registered?.config !== undefined ? { config: registered.config as Record<string, unknown> } : {}),
+        registration: registrationOf(parsed.data.adapter),
+        ...(local ? { local } : {}),
+        context,
       });
     } catch (err) {
       return reply.code(502).send({
         error: err instanceof Error ? err.message : "prompt enhancement failed",
+        ...(err instanceof RewriteFailed ? { skipped: err.skipped } : {}),
       });
     }
   });
@@ -67,8 +89,8 @@ export function registerPromptsRoutes(app: FastifyInstance, ctx: RouteContext): 
     if (!deps.dataDir) return reply.code(501).send({ error: "prompt-optimizer feedback storage not configured" });
     const parsed = OptimizerFeedbackBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: "invalid feedback body", issues: parsed.error.issues });
-    const { costUsd, ...rest } = parsed.data;
-    await appendOptimizerFeedback(deps.dataDir, { ...rest, ...(costUsd !== undefined ? { costUsd } : {}) });
+    const { costUsd, engine, ...rest } = parsed.data;
+    await appendOptimizerFeedback(deps.dataDir, { ...rest, ...(costUsd !== undefined ? { costUsd } : {}), ...(engine !== undefined ? { engine } : {}) });
     return { ok: true };
   });
 
