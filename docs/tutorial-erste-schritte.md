@@ -2,10 +2,11 @@
 
 **Art:** tutorial
 
-Stand 2026-11-17 (Frischhalte-Review nach EPIC-P63): Wizard-Pfad
+Stand 2026-11-18 (Frischhalte-Review nach P67/P68 und Explorer-blocked): Wizard-Pfad
 (`./setup.sh --yes --adapter=dummy`), Device-Token und `/api/ready` unverändert;
 die PWA-Oberfläche nutzt die Bausteine aus [`design-system.md`](design-system.md),
-der Ablauf dieses Tutorials bleibt derselbe.
+der Ablauf dieses Tutorials bleibt derselbe. Main-Sync und Prompt-Verbessern
+ändern den Erststart nicht.
 
 Ziel: Du hast einen laufenden Hub, dein Handy zeigt ihn an, und du hast von
 dort aus eine Nachricht an eine laufende Agent-Session geschickt. Wir nehmen
