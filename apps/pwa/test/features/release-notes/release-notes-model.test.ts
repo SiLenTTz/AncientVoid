@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { INTENT_LABEL, notationLine, RISK_LABEL, statsLine, loadReleaseNotesPrefs, saveReleaseNotesPrefs } from "../../../src/features/release-notes/release-notes-model.ts";
 
-/** EPIC-P70 (ADR-0092): Klartext-Labels, Notations-Kurzzeile, Stats-Zeile und
+/** EPIC-P70 (ADR-0093): Klartext-Labels, Notations-Kurzzeile, Stats-Zeile und
  * die gerätelokale Projekt-Pinne (Muster git-model.ts). */
 
 const page = () => {

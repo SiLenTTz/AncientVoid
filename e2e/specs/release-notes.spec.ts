@@ -7,7 +7,7 @@ import { join } from "node:path";
 
 const execFileAsync = promisify(execFile);
 
-/** EPIC-P70 (ADR-0092): Release-Notes-Seite — gemergte PRs aus echten Merges im
+/** EPIC-P70 (ADR-0093): Release-Notes-Seite — gemergte PRs aus echten Merges im
  * Fixture-Projekt: Kurzfassung aus der Commit-Notation, aufklappbar Was
  * (Commits) und Warum (PR-Beschreibung); rohe Subjects ohne Notation bleiben. */
 
@@ -26,7 +26,7 @@ async function openReleaseNotes(app: Page): Promise<void> {
   await expect(app).toHaveURL(/#\/releasenotes$/);
 }
 
-test.describe("Release-Notes (EPIC-P70, ADR-0092)", () => {
+test.describe("Release-Notes (EPIC-P70, ADR-0093)", () => {
   test("listet gemergte PRs mit Kurzfassung; Aufklappen zeigt Was und Warum", async ({ app, hub }) => {
     const a = hub.alpha;
     await git(a, "config", "user.email", "e2e@ancientvoid.local");

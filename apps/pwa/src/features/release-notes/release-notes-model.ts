@@ -1,6 +1,6 @@
 import type { CommitNotation, NotationIntent, NotationRisk } from "@ancientvoid/contracts";
 
-/** EPIC-P70 (ADR-0092): Labels zu docs/commit-notation.md — Klartext statt Codezeichen. */
+/** EPIC-P70 (ADR-0093): Labels zu docs/commit-notation.md — Klartext statt Codezeichen. */
 export const RISK_LABEL: Record<NotationRisk, string> = {
   ".": "beweisbar sicher",
   "^": "geprüft",

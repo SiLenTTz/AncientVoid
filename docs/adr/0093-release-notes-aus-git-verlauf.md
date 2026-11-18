@@ -1,4 +1,4 @@
-# ADR-0092: Release-Notes aus dem lokalen Git-Verlauf — Merge-Commits als PRs, Commit-Notation als Struktur
+# ADR-0093: Release-Notes aus dem lokalen Git-Verlauf — Merge-Commits als PRs, Commit-Notation als Struktur
 
 Status: akzeptiert (2026-11-18)
 

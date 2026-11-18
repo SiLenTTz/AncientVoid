@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseCommitNotation } from "../../../src/modules/release-notes/notation.ts";
 import { parseShortStat } from "../../../src/modules/release-notes/build.ts";
 
-/** EPIC-P70 (ADR-0092): Commit-Notation als Struktur — echte Formen aus dem
+/** EPIC-P70 (ADR-0093): Commit-Notation als Struktur — echte Formen aus dem
  * eigenen Verlauf, inkl. fail loud für Subjects ohne Notation (PR #150). */
 describe("parseCommitNotation (T70.2)", () => {
   it("zerlegt Risiko, Absicht, Bereich, Satz", () => {

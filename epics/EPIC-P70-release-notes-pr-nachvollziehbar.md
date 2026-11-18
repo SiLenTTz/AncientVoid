@@ -21,7 +21,7 @@ GitHub-API — der Hub liest nur das Repo, das er ohnehin überwacht.
 
 ### In
 
-- **ADR-0092 + Contracts vor Code** (Regel 1): Typen und Caps in
+- **ADR-0093 + Contracts vor Code** (Regel 1): Typen und Caps in
   `packages/contracts/src/release-notes/` — Notation, Listen-Eintrag, Detail.
 - **Core-Builder** `packages/core/src/modules/release-notes/`:
   Commit-Notation-Parser (fail loud bei Subjects ohne Notation) und
@@ -101,7 +101,7 @@ BUG-0067: text-only, nie `innerHTML`), darunter Commit-Liste und Dateien.
 
 ## 4. Aufgaben (Checkliste T70.n)
 
-- [x] **T70.1** ADR-0092 (`docs/adr/0092-release-notes-aus-git-verlauf.md`) und
+- [x] **T70.1** ADR-0093 (`docs/adr/0093-release-notes-aus-git-verlauf.md`) und
   Contracts (`packages/contracts/src/release-notes/release-notes.ts` + Export):
   `CommitNotation`, `ReleaseNotesEntry`, `ReleaseNotesListReport`,
   `ReleaseNotesDetail`, `ReleaseNotesStats`, vier Caps. **Vor dem Code** (Regel 1).
@@ -131,7 +131,7 @@ BUG-0067: text-only, nie `innerHTML`), darunter Commit-Liste und Dateien.
 
 ### Belege (18.11.2026, T70.1–T70.5)
 
-- **T70.1:** ADR-0092 + Contracts (`packages/contracts/src/release-notes/`, Export
+- **T70.1:** ADR-0093 + Contracts (`packages/contracts/src/release-notes/`, Export
   in beiden `index.ts`) lagen vor dem Code-Commit.
 - **T70.2:** `packages/core/test/modules/release-notes/` — **17 Tests grün**
   (notation 9, builder 8) gegen echte Temp-Repos mit `--no-ff`-Merges: Reihenfolge,

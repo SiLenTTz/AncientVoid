@@ -9,7 +9,7 @@ import { RELEASE_NOTES_BODY_CAP } from "@ancientvoid/contracts";
 
 const exec = promisify(execFile);
 
-/** EPIC-P70 (ADR-0092): Builder gegen echte Git-Repos — Merge-Commits als PRs,
+/** EPIC-P70 (ADR-0093): Builder gegen echte Git-Repos — Merge-Commits als PRs,
  * Notation Subject/Body, Caps mit truncated, benannte Fehler (fail loud). */
 
 let base: string;
@@ -58,7 +58,7 @@ afterAll(async () => {
   await rm(base, { recursive: true, force: true });
 });
 
-describe("buildReleaseNotes (T70.2, ADR-0092)", () => {
+describe("buildReleaseNotes (T70.2, ADR-0093)", () => {
   it("listet PRs neueste zuerst, mit Notation bzw. roh (fail loud) und Stats", async () => {
     const report = await buildReleaseNotes(repo);
     expect(report.error).toBeUndefined();
@@ -110,7 +110,7 @@ describe("buildReleaseNotes (T70.2, ADR-0092)", () => {
   });
 });
 
-describe("buildReleaseNotesDetail (T70.2, ADR-0092)", () => {
+describe("buildReleaseNotesDetail (T70.2, ADR-0093)", () => {
   it("liefert Warum (PR-Body) und Was (Commits mit Notation + Body, Dateien, Stats)", async () => {
     const list = await buildReleaseNotes(repo);
     const sha = list.entries[1]!.mergeSha; // PR #1

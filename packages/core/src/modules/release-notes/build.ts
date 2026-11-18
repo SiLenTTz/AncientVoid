@@ -51,7 +51,7 @@ function capBody(text: string): { body: string; truncated: boolean } {
 }
 
 /**
- * ADR-0092: Liste der gemergten PRs — Merge-Commits auf dem ersten Parent-Strang.
+ * ADR-0093: Liste der gemergten PRs — Merge-Commits auf dem ersten Parent-Strang.
  * Neueste zuerst; ±Zeilen aus einem zweiten, formatlosen `--shortstat`-Lauf
  * (ein Stat-Block je Merge, per Index zugeordnet — Bodies können keinen
  * Shortstat vortäuschen). Kein Repo / kein Verlauf → benannter `error`.
@@ -96,7 +96,7 @@ export async function buildReleaseNotes(root: string, maxEntries = RELEASE_NOTES
 const SHA_RE = /^[0-9a-f]{7,40}$/i;
 
 /**
- * ADR-0092: Detail eines PRs — PR-Beschreibung (Merge-Body), Branch-Commits
+ * ADR-0093: Detail eines PRs — PR-Beschreibung (Merge-Body), Branch-Commits
  * (`P1..P2`, älteste zuerst), Dateien (name-status) und Stats, alles mit
  * ehrlichen Caps. Unbekannter/kein Merge-Commit → `ReleaseNotesNotFoundError`.
  */

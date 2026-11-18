@@ -12,7 +12,7 @@ import { createHubApp } from "../../../src/app.ts";
 
 const exec = promisify(execFile);
 
-/** EPIC-P70 (ADR-0092): Release-Notes-Routen — Liste klein (K5-Geist), Detail on
+/** EPIC-P70 (ADR-0093): Release-Notes-Routen — Liste klein (K5-Geist), Detail on
  * demand, Auth/Guards wie git-graph (ADR-0071), ehrliche Fehler (AC-P70-5/6). */
 
 let base: string;
@@ -96,7 +96,7 @@ afterAll(async () => {
 const headers = (): { authorization: string } => ({ authorization: `Bearer ${token}` });
 const listUrl = (): string => `/api/release-notes?project=${encodeURIComponent(repo)}`;
 
-describe("release-notes routes (integration, ADR-0092)", () => {
+describe("release-notes routes (integration, ADR-0093)", () => {
   it("GET /api/release-notes listet PRs neueste zuerst; rohe Subjects bleiben (AC-P70-1/3)", async () => {
     const res = await app.inject({ method: "GET", url: listUrl(), headers: headers() });
     expect(res.statusCode).toBe(200);
@@ -162,7 +162,7 @@ describe("release-notes routes (integration, ADR-0092)", () => {
     expect(body.error).toBe("Kein Git-Repository.");
   });
 
-  it("session= zeigt den Ausschnitt des Session-Worktrees (ADR-0092 §5)", async () => {
+  it("session= zeigt den Ausschnitt des Session-Worktrees (ADR-0093 §5)", async () => {
     const created = await app.inject({
       method: "POST",
       url: "/api/sessions",
