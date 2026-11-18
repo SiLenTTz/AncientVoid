@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { createHubTeam } from "./modules/team/index.ts";
+import { sttModuleConfig } from "./modules/voice/stt-wiring.ts";
 /**
  * AncientVoid hub daemon entry.
  *
@@ -115,6 +116,7 @@ async function main(): Promise<void> {
   process.umask(0o077);
   const configPath = resolve(process.env.ANCIENTVOID_CONFIG ?? "hub.config.json");
   const { config } = await loadConfig(configPath);
+  const sttConfig = sttModuleConfig(config.stt);
   const claudeLive = new ClaudeLive(config.discovery.claudeCommand);
   const dataDir = resolve(config.dataDir);
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
@@ -413,18 +415,7 @@ async function main(): Promise<void> {
     actions: config.actions,
     loops,
     ...(assistantModel ? { assistantModel } : {}),
-    ...(config.stt ? { stt: {
-      url: config.stt.url,
-      engine: config.stt.engine,
-      language: config.stt.language,
-      vocabulary: config.stt.vocabulary,
-      timeoutMs: config.stt.timeoutMs,
-      ...(config.stt.streaming ? { streaming: {
-        url: config.stt.streaming.url,
-        endpointingMs: config.stt.streaming.endpointingMs,
-        ...(config.stt.streaming.apiKeyFile ? { apiKeyFile: resolve(config.stt.streaming.apiKeyFile.replace(/^~(?=\/)/, homedir())) } : {}),
-      } } : {}),
-    } } : {}),
+    ...(sttConfig ? { stt: sttConfig } : {}),
     // EPIC-P11 (ADR-0031): the desktop companion's queue — always there; a
     // PC appears once a companion with a `companion:` token reports in.
     desktop: new DesktopService(db),
