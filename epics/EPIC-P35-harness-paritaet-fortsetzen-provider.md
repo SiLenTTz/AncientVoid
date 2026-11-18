@@ -1,6 +1,6 @@
 # EPIC-P35 — Harness-Parität: Fortsetzen, Erkennung, Provider-Modularität
 
-**Status:** abgeschlossen 2026-11-18 — Endabnahme-Block §8 nach P69 überführt (führbare Liste: EPIC-P69) · umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **seit 2026-11-07 hängt der Endabnahme-Block (T35.10–T35.17) an diesem Epic** — P35 bleibt offen, bis der Block abgenommen ist; AC-P35-7 läuft dort als Teil von T35.16 · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen + Abnahme-Termine · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
+**Status:** abgeschlossen 2026-11-18 — Endabnahme-Block §8 nach P000 überführt (führbare Liste: EPIC-P000) · umgesetzt 07.11.2026 — T35.1–T35.8 abgeschlossen, Gate grün (1350 Unit, 368 E2E), alle Live-Belege außer AC-P35-7 eingefahren; **seit 2026-11-07 hängt der Endabnahme-Block (T35.10–T35.17) an diesem Epic** — P35 bleibt offen, bis der Block abgenommen ist; AC-P35-7 läuft dort als Teil von T35.16 · **Phase:** P35 · **Dauer:** 2–3 Agenten-Wochen + Abnahme-Termine · **Abhängigkeit:** P34-Implementierungs-Exit grün (T34.1–T34.12, Gate 07.11.2026). Die offene Live-Abnahme AC-P34-13 wird gemeinsam mit der P35-Abnahme in einem Termin gemacht (Präzedenz P1.5/P1.6: nicht zwei Abnahmen auf Oberflächen, die sich gerade ändern). P30 wartet damit zusätzlich auf P35.
 
 **Auftrag:** Jan, 07.11.2026 (Nutzermeldung mit Screenshot): „Session fortsetzen
 macht immer noch regelmäßig Probleme"; Popout-Fenster „nimmt nicht die ganze
@@ -319,24 +319,24 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
 
 ### 8.1 Aufgaben (T35.10–T35.17)
 
-> Führbar jetzt in [EPIC-P69](EPIC-P69-permanente-menschen-abnahmen.md); die
+> Führbar jetzt in [EPIC-P000](EPIC-000-testsuite-fuer-menschen.md); die
 > Checkboxen hier sind Delegationsverweise, abgehakt wird dort.
 
-- [ ] **T35.10 — Geräte-Abnahme Handy über WAN.** (aus T12.1/T12.4/T12.7, → nach P69 verschoben
+- [ ] **T35.10 — Geräte-Abnahme Handy über WAN.** (aus T12.1/T12.4/T12.7, → nach P000 verschoben
   T16.5, AC-P0-4, AC-P1-5, AC-P1.5-1, P1.6-DoD) Echtes Pairing über
   Tailnet/WAN, PC↔Handy↔PC-Kontinuität, Session vom Handy starten und
   Kontingent sehen, Offline/Flugmodus mit K10-Zeitstempel, Push im
   Hintergrund/Sperrbildschirm, 200 % Text, TalkBack/VoiceOver, Anhang aus
   dem Teilen-Menü, zweiter Origin (Fleet/Handoff/Entwürfe), Fairphone
   (gesperrt, Flugmodus), Gerätetokens einspielen und rotieren. K1/K7/K10.
-- [ ] **T35.11 — Sprach- und K6-Gerätemessung.** (aus T12.4/AI-P10-1, → nach P69 verschoben
+- [ ] **T35.11 — Sprach- und K6-Gerätemessung.** (aus T12.4/AI-P10-1, → nach P000 verschoben
   T12.10, AC-P1.5-8, AC-P3-3, AC-P10-2) ≥ 20 Fachbegriff-Diktate je
   Zielgerät mit echter Stimme: Headset, Störgeräusch, Permission-Deny,
   Coldstart, WAN. Streaming-STT mit endpointing/VAD auf Zielhosts
   installieren/konfigurieren und je Gerät 100 warme Kurzbefehle messen
   (erstes Teiltranskript p95 ≤ 500 ms ab Sprachbeginn); `stt.streaming`
   danach erst standardmäßig an. K6.
-- [ ] **T35.12 — Provider-Handläufe und Swarm.** (aus T12.4/AI-P5-1, T12.8, → nach P69 verschoben
+- [ ] **T35.12 — Provider-Handläufe und Swarm.** (aus T12.4/AI-P5-1, T12.8, → nach P000 verschoben
   AC-P1-1-Rest, T3.1, T3.3-Rest, T7.5-Rest) Handläufe Claude Code, Codex,
   Copilot über die PWA inkl. ±10-%-Kostenabgleich, danach deren
   Resume-Zellen `verified`; Swarm-Adapter live gegen das Cockpit (braucht
@@ -344,25 +344,25 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
   Lauf-JSONL); aider live mit dem lokalen Modell (`--yes-always` braucht
   ausdrückliche Nutzerfreigabe); Live-Probe des OpenAI-kompatiblen
   Beispiel-Adapters gegen die echte llama.cpp-Instanz. K1/K2.
-- [ ] **T35.13 — Externe Systeme und WSL.** (aus T4.3, T4.4, T4.5, AC-P4-4, → nach P69 verschoben
+- [ ] **T35.13 — Externe Systeme und WSL.** (aus T4.3, T4.4, T4.5, AC-P4-4, → nach P000 verschoben
   AI-P6-1/AC-P6-5-WSL-Teil) Hermes-Skill `agent-hub` dünn gegen echten
   Hermes; Gengar-Status-Board-Anbindung mit realen Zugangsdaten; WSL-Host
   in die Flotte aufnehmen und Hub-in-WSL2 vom Handy aus abnehmen. Der Host
   ist noch nicht bestimmt — **bmax ist ausdrücklich kein Kandidat**
   (Trading-Maschine, nicht als Host eingetragen; Nutzentscheid 2026-11-07).
-- [ ] **T35.14 — Release-Entscheidungen.** (aus T4.8, T4.11) Lizenz → nach P69 verschoben
+- [ ] **T35.14 — Release-Entscheidungen.** (aus T4.8, T4.11) Lizenz → nach P000 verschoben
   (**erledigt 2026-11-09: PolyForm Noncommercial 1.0.0, `LICENSE` committet**);
   v0.1-Tag + Changelog + Fixtures-Hygiene-Abschluss (der Repo-weite
   Secret-Scan steht seit MR !319 als Gate). Öffentliche, schwer rückgängig
   zu machende Aktionen nur mit expliziter Bestätigung.
-- [ ] **T35.15 — Betriebs-Abnahmen.** (aus T12.2, T12.3, T12.5, T12.12, → nach P69 verschoben
+- [ ] **T35.15 — Betriebs-Abnahmen.** (aus T12.2, T12.3, T12.5, T12.12, → nach P000 verschoben
   P14-Rest) 24-h-Dauerlauf mit ≥ 20 Sessions inkl. Netz-/Hub-/Modell-Ausfall
   (bestätigt nebenbei den FileTailer-Fix aus EPIC-P4.5 §8); K2/K8 unter
   echter Sprachlast; Restore-Latenz/ENOSPC/Retention-Löschlauf; Update &
   Rollback der Produktivinstanz; Desktop-Leck-Messung 0/50 am echten
   Hyprland-Desktop; produktiver `hubctl worktrees prune --apply` (löscht
   Daten — Entscheidung Jan). K2/K7/K8/K9/K10.
-- [ ] **T35.16 — Abnahme der gebauten UI-Flows.** (aus P19, P22, P24, P26 T26.11/AC-P26-10, → nach P69 verschoben
+- [ ] **T35.16 — Abnahme der gebauten UI-Flows.** (aus P19, P22, P24, P26 T26.11/AC-P26-10, → nach P000 verschoben
   T25.6, AC-P34-13, AC-P35-7; plus P43 AI-P43-5: echtes Tablet, zweiter Bildschirm,
   TalkBack/Orca) Loop-Abnahme mit echtem Repo/Token, wartender
   Frage am Handy und K1 gesamt; Session-Entdeckung/Übernahme live am
@@ -370,7 +370,7 @@ AC-P34-13) durch Jan; `epics/README.md` aktualisiert; Retro angehängt.
   verifizieren (`capabilities().commands`); Arbeitsfläche/Eigene Fenster
   am Desktop mit Jan abnehmen (**AC-P34-13 + AC-P35-7 gemeinsam in einem
   Termin**, Präzedenz P1.5/P1.6).
-- [ ] **T35.17 — Abschluss.** Abnahme-Checkliste vollständig, jede → nach P69 verschoben
+- [ ] **T35.17 — Abschluss.** Abnahme-Checkliste vollständig, jede → nach P000 verschoben
   Herkunfts-AK am Ursprungsepic als `erfüllt via P35` vermerkt (oder mit
   dokumentierter Nutzentscheidung ⚪), K1–K10-Matrix belegt, Retro am
   Epic-File.

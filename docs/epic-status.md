@@ -2,7 +2,7 @@
 
 **Art:** referenz
 
-`scripts/epic-status.mjs` liest `epics/EPIC-P*.md` (nur Lesezugriff, Inhalte
+`scripts/epic-status.mjs` liest `epics/EPIC-P*.md` (plus `EPIC-000-*` als Sortierplatz) (nur Lesezugriff, Inhalte
 werden nie verändert) und hebt jede Epic-Datei mit offenen Punkten im
 Datenbaum farblich hervor (gelb/fett); Dateien ohne offene Punkte und
 Nicht-Epic-Dateien (PRD, `README.md`) bleiben in normaler Farbe.

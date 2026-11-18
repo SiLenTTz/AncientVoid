@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Epic-Status: hebt EPIC-P*.md-Dateien mit offenen Punkten im Datenbaum farblich
+// Epic-Status: hebt Epic-Dateien (EPIC-P*.md, EPIC-000-*) mit offenen Punkten farblich
 // hervor. Die Epic-Inhalte werden nie verändert — nur gelesen und angezeigt.
 // Erkennungsregeln und ihre Begründung: docs/epic-status.md
 import { readdirSync, readFileSync } from "node:fs";
@@ -33,7 +33,8 @@ const DELEGATED_LINE = /(verschoben nach|nach P\d+(\.\d+)?\b)/;
 // Epic-Bezug“ (Definition of Done) trifft bewusst nicht zu.
 const TODO_MARKER = /\bTODO:/;
 
-const EPIC_FILE = /^EPIC-P[\d.]+-.+\.md$/;
+const EPIC_FILE = /^EPIC-P?[\d.]+-.+\.md$/; // EPIC-000-* = Sortierplatz ganz oben (ID P000 bleibt im Text)
+
 
 export function classifyEpicText(text) {
   const lines = text.split("\n");
@@ -68,7 +69,7 @@ export function scanEpicsDir(epicsDir) {
   return names.map((name) => {
     if (!EPIC_FILE.test(name)) return { file: name, epic: false };
     const { open, reasons, counts } = classifyEpicText(readFileSync(join(epicsDir, name), "utf8"));
-    const phase = name.match(/^EPIC-P([\d.]+)-/)[1];
+    const phase = name.match(/^EPIC-P?([\d.]+)-/)[1];
     return { file: name, epic: true, phase: `P${phase}`, open, reasons, counts };
   });
 }
@@ -86,7 +87,7 @@ export function renderTree(entries, color) {
   const closed = epics.length - open.length;
   const width = Math.max(...entries.map((e) => e.file.length));
 
-  const out = [`epics/ ${c(DIM, `— ${epics.length} Epic-Dateien: ${open.length} offen, ${closed} abgeschlossen (nur EPIC-P*.md werden gewertet)`)}`];
+  const out = [`epics/ ${c(DIM, `— ${epics.length} Epic-Dateien: ${open.length} offen, ${closed} abgeschlossen (nur Epic-Dateien werden gewertet)`)}`];
   entries.forEach((e, i) => {
     const branch = i === entries.length - 1 ? "└──" : "├──";
     const pad = " ".repeat(Math.max(1, width - e.file.length + 2));

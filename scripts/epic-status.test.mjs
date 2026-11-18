@@ -124,6 +124,13 @@ describe("epic-status — Verzeichnis, Baum und JSON", () => {
     expect(byName["EPIC-P1.5-zu.md"]).toMatchObject({ epic: true, phase: "P1.5", open: false });
   });
 
+  it("EPIC-000-Sortierplatz wird als Epic gewertet und steht vor allen EPIC-P*", async () => {
+    await fixture("EPIC-000-testsuite-fuer-menschen.md", "**Status:** offen · **Phase:** P000\n\n- [ ] T000.1 Rest\n");
+    await fixture("EPIC-P0-hub.md", "**Status:** abgeschlossen · **Phase:** P0\n");
+    const entries = scanEpicsDir(dir);
+    expect(entries[0]).toMatchObject({ file: "EPIC-000-testsuite-fuer-menschen.md", epic: true, open: true });
+  });
+
   it("renderTree: offen farbig (nur bei color), geschlossen unverändert, Legende dabei", async () => {
     await fixture("EPIC-P1-offen.md", "**Status:** offen · **Phase:** P1\n");
     await fixture("EPIC-P2-zu.md", "**Status:** abgeschlossen · **Phase:** P2\n");
