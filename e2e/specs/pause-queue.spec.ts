@@ -151,15 +151,27 @@ test.describe("Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-00
   test.describe("mit durchlaufendem Zug (Eingabe mitten im Zug möglich)", () => {
     test.use({ hubOptions: { dummyAutoStop: 0 } });
 
-    test("⚡ lenken schickt die Meldung sofort in den laufenden Zug, ⏳ stellt um", async ({ app, hub }) => {
+    test("lenken schickt die Meldung sofort in den laufenden Zug, „am Zugende“ stellt um", async ({ app, hub }) => {
       const id = await hub.createSession({ adapter: "dummy", prompt: "erste Frage" });
       await app.goto(`${hub.origin}/#/sessions/${id}`);
       await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
 
       const chip = app.getByTestId("delivery-toggle");
-      await expect(chip).toHaveText("⏳ am Zugende");
+      await expect(chip).toHaveText("am Zugende");
+      // Nutzerfund 18.11.: der Chip stand links am Hauptknopf und trug ein Emoji — beides
+      // ist jetzt festgehalten: er steht rechts, ist so hoch wie der Knopf, und sein Symbol
+      // ist ein Linienzeichen (eigenes <svg>), kein gerätefärbiges Emoji.
+      const mainBox = await app.getByTestId("send-queue").boundingBox();
+      const chipBox = await chip.boundingBox();
+      expect([chipBox, mainBox]).toEqual([expect.objectContaining({}), expect.objectContaining({})]);
+      expect(chipBox!.x).toBeGreaterThan(mainBox!.x + mainBox!.width - 1);
+      expect(Math.abs(chipBox!.height - mainBox!.height)).toBeLessThanOrEqual(2);
+      await expect(chip.locator("svg")).toHaveCount(1);
+      const label = await chip.textContent();
+      expect(label).not.toMatch(/[\u2300-\u27BF\u{1F300}-\u{1FAFF}]/u); // kein Emoji in der Beschriftung
+      expect(label ?? "").not.toContain("\uFE0F"); // auch kein Variation Selector als Emoji-Markierung
       await chip.click();
-      await expect(chip).toHaveText("⚡ lenken");
+      await expect(chip).toHaveText("lenken");
       await expect(app.getByTestId("send-now")).toHaveText("Jetzt lenken");
 
       await app.getByPlaceholder("Antworten…").fill("mitten im Zug lenken");
@@ -174,7 +186,7 @@ test.describe("Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-00
       expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("working");
       // Die Wahl ist eine Gewohnheit, kein einmaliger Klick: sie übersteht ein Neuladen.
       await app.reload();
-      await expect(app.getByTestId("delivery-toggle")).toHaveText("⚡ lenken");
+      await expect(app.getByTestId("delivery-toggle")).toHaveText("lenken");
     });
 
     test("↑ ↓ und ✎ wirken beim Hub, nicht nur in der Ansicht", async ({ app, hub }) => {
