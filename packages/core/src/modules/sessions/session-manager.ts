@@ -5,12 +5,13 @@ import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings } from "@ancientvoid/contracts";
-import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
+import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings, MainSyncApplyResult, MainSyncCheckResult } from "@ancientvoid/contracts";
+import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, MAIN_SYNC_DEFAULTS, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
 import type { AdapterRegistry } from "../harness/index.ts";
 import type { HubDatabase } from "../../platform/index.ts";
 import type { WorktreeBaseChoice, WorktreeManager } from "../workspace/index.ts";
+import { MainSyncEngine, resolveMainBranch, fetchMainBranch, classifyFetchError } from "../workspace/index.ts";
 import { WorkspaceRuntime, ManifestApprovalStore, ServiceSupervisor, CheckoutLeaseStore, canonicalCheckout, checkoutState, foldWorkspaceState, gateManifest, resolveManifest } from "../workspace/index.ts";
 import { refuseSpec, refuseSteer } from "../harness/index.ts";
 import { OperationStore } from "../approvals/index.ts";
@@ -1134,6 +1135,124 @@ export class SessionManager {
   private workspaceBlocked(session: LiveSession): string | null {
     if (!session.workspace || session.workspace.phase === "ready") return null;
     return `Workspace ist nicht bereit (${session.workspace.phase}) — erst Freigabe/Retry (EPIC-P29)`;
+  }
+
+  // ---------------------------------------------------------------------
+  // EPIC-P67 / ADR-0088 T67.4: Main-Sync — Messung, Probelauf, Anwenden.
+  // Gating: ein Merge läuft NIE in eine arbeitende Session (AC-P67-6).
+  // ---------------------------------------------------------------------
+
+  private mainSyncTargets(sessionId: string): { session: LiveSession } | { error: string } {
+    const session = this.live.get(sessionId);
+    if (!session) return { error: "Session nicht gefunden oder nicht live" };
+    if (!session.worktreeIsolated || session.record.workspaceMode !== "worktree") {
+      return { error: "Session arbeitet ohne Worktree-Isolation — Main-Sync greift nicht (session.no_worktree_isolation im Verlauf)" };
+    }
+    return { session };
+  }
+
+  /** Gating (AC-P67-6): angewendet wird nur auf wartende Sessions — kein offener Zug, kein offener Prozess, keine offene Aktivität. */
+  private mainSyncSessionWaiting(session: LiveSession): boolean {
+    const openWork = (session.activeWorkers ?? 0) > 0 || Boolean(session.persistentWorker) || session.activities.size > 0;
+    return !openWork && (session.record.status === "idle" || session.record.status === "parked" || session.record.status === "interrupted");
+  }
+
+  private async mainSyncSettingsFor(project: string): Promise<MainSyncSettings> {
+    return this.mainSyncSettings?.(project) ?? MAIN_SYNC_DEFAULTS;
+  }
+
+  /** Zeitstempel des letzten erfolgreichen Abgleichs — aus Events gefaltet (K7), null = noch nie. */
+  private async lastMainSyncAt(sessionId: string): Promise<string | null> {
+    const events = await this.store.replay(sessionId);
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const payload = events[i]!.payload as { kind?: string };
+      if (payload.kind === "workspace.main_sync_applied") return events[i]!.ts;
+    }
+    return null;
+  }
+
+  /**
+   * Messung + Probelauf (GET-Sicht): fetcht den Hauptbranch (hart begrenzt),
+   * zählt behind/ahead und probiert den Merge lesend (`merge-tree`). Das
+   * Ergebnis wird als `main_sync_checked` gejournalt; ein Fetch-Fehler als
+   * `main_sync_failed` — und dann geworfen, damit die Route ehrlich 502 sagt
+   * statt einen Zustand zu erfinden.
+   */
+  async mainSyncCheck(sessionId: string): Promise<MainSyncCheckResult> {
+    const targets = this.mainSyncTargets(sessionId);
+    if ("error" in targets) throw new Error(targets.error);
+    const { session } = targets;
+    const settings = await this.mainSyncSettingsFor(session.record.project);
+    const branch = await resolveMainBranch(session.record.project, settings);
+    const engine = new MainSyncEngine();
+    try {
+      await fetchMainBranch(session.record.project, branch, settings.fetchTimeoutSec);
+    } catch (err) {
+      const failure = classifyFetchError(err);
+      await this.emitSystem(session, "workspace.main_sync_failed", { reason: failure.reason, ...(failure.detail ? { detail: failure.detail } : {}) });
+      throw new Error(`Fetch von origin/${branch} gescheitert (${failure.reason})`, { cause: err });
+    }
+    const measure = await engine.measure(session.workdir, branch);
+    const dry = await engine.dryRun(session.workdir, branch);
+    await this.emitSystem(session, "workspace.main_sync_checked", {
+      behind: measure.behind,
+      ahead: measure.ahead,
+      clean: measure.clean,
+      checkedAt: measure.checkedAt,
+    });
+    return {
+      sessionId,
+      branch,
+      behind: measure.behind,
+      ahead: measure.ahead,
+      clean: measure.clean,
+      conflicts: dry.clean ? null : dry.conflicts,
+      checkedAt: measure.checkedAt,
+      lastSyncedAt: await this.lastMainSyncAt(sessionId),
+    };
+  }
+
+  /**
+   * Anwenden (POST-Sicht): merge `origin/<Hauptbranch>` in den Session-Branch —
+   * nur auf wartender Session mit sauberem Worktree, bei Konflikt/Fehler sofort
+   * abgebrochen (Worktree unverändert, AC-P67-7). Ergebnis als Event im
+   * Verlauf; der nächste Zug sieht den neuen Stand (kein Prompt-Eingriff).
+   */
+  async mainSyncApply(sessionId: string): Promise<MainSyncApplyResult> {
+    const targets = this.mainSyncTargets(sessionId);
+    if ("error" in targets) throw new Error(targets.error);
+    const { session } = targets;
+    if (!this.mainSyncSessionWaiting(session)) {
+      const skipped = { outcome: "skipped" as const, reason: "session-busy", detail: `Session ist ${session.record.status} — Merge nur auf wartender Session (AC-P67-6)` };
+      await this.emitSystem(session, "workspace.main_sync_skipped", { reason: skipped.reason, detail: skipped.detail });
+      return skipped;
+    }
+    const settings = await this.mainSyncSettingsFor(session.record.project);
+    const branch = await resolveMainBranch(session.record.project, settings);
+    const engine = new MainSyncEngine();
+    try {
+      await fetchMainBranch(session.record.project, branch, settings.fetchTimeoutSec);
+    } catch (err) {
+      const failure = classifyFetchError(err);
+      const failed = { outcome: "failed" as const, reason: failure.reason, ...(failure.detail ? { detail: failure.detail } : {}) };
+      await this.emitSystem(session, "workspace.main_sync_failed", { reason: failed.reason, ...(failed.detail ? { detail: failed.detail } : {}) });
+      return failed;
+    }
+    let result: MainSyncApplyResult;
+    try {
+      result = (await engine.apply(session.workdir, branch)) as MainSyncApplyResult;
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      result = { outcome: "failed", reason: "unknown", detail: detail.slice(0, 500) };
+    }
+    if (result.outcome === "applied") {
+      await this.emitSystem(session, "workspace.main_sync_applied", { from: result.from, to: result.to, files: result.files });
+    } else if (result.outcome === "conflict") {
+      await this.emitSystem(session, "workspace.main_sync_conflict", { files: result.files });
+    } else {
+      await this.emitSystem(session, "workspace.main_sync_skipped", { reason: result.reason, ...(result.detail ? { detail: result.detail } : {}) });
+    }
+    return result;
   }
 
   /**

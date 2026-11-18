@@ -163,10 +163,11 @@ describe("EPIC-P67 T67.1: Main-Sync-Events und API (K5)", () => {
     expect(MainSyncCheckResult.safeParse({ sessionId: "s1" }).success).toBe(false);
   });
 
-  it("MainSyncApplyResult: diskriminiert nach outcome — applied/conflict/skipped", () => {
+  it("MainSyncApplyResult: diskriminiert nach outcome — applied/conflict/skipped/failed", () => {
     expect(MainSyncApplyResult.safeParse({ outcome: "applied", from: "a", to: "b", files: [] }).success).toBe(true);
     expect(MainSyncApplyResult.safeParse({ outcome: "conflict", files: ["x.ts"] }).success).toBe(true);
     expect(MainSyncApplyResult.safeParse({ outcome: "skipped", reason: "disabled" }).success).toBe(true);
+    expect(MainSyncApplyResult.safeParse({ outcome: "failed", reason: "offline", detail: "kein Netz" }).success).toBe(true);
     expect(MainSyncApplyResult.safeParse({ outcome: "applied", from: "a" }).success).toBe(false);
     expect(MainSyncApplyResult.safeParse({ outcome: "mercurial" }).success).toBe(false);
   });

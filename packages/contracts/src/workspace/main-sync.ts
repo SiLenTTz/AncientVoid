@@ -239,10 +239,11 @@ export const MainSyncCheckResult = z
   .strict();
 export type MainSyncCheckResult = z.infer<typeof MainSyncCheckResult>;
 
-/** POST-Ergebnis: angewendet, Konflikt (nichts verändert) oder übersprungen (mit Grund). */
+/** POST-Ergebnis: angewendet, Konflikt (nichts verändert), übersprungen (mit Grund) oder gescheitert (Git-Fehler, Worktree unverändert). */
 export const MainSyncApplyResult = z.discriminatedUnion("outcome", [
   z.object({ outcome: z.literal("applied"), from: z.string().min(1).max(64), to: z.string().min(1).max(64), files: MainSyncFilesList }).strict(),
   z.object({ outcome: z.literal("conflict"), files: MainSyncFilesList }).strict(),
   z.object({ outcome: z.literal("skipped"), reason: z.string().min(1).max(200), detail: z.string().max(500).optional() }).strict(),
+  z.object({ outcome: z.literal("failed"), reason: z.string().min(1).max(200), detail: z.string().max(500).optional() }).strict(),
 ]);
 export type MainSyncApplyResult = z.infer<typeof MainSyncApplyResult>;
