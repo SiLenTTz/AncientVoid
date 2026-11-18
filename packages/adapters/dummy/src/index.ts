@@ -46,6 +46,12 @@ const DummyConfig = z.object({
   /** ADR-0083: denkt der Adapter auch live (thinking-Frames)? Aus, weil sonst alle
    * bestehenden Frame-Zaehlungen ihre Zahlen behalten. */
   liveThinkingFrames: z.boolean().default(false),
+  /** BUG-0207: Anzahl Frames pro Block. >2 verteilt den Text ueber die Zeit wie ein
+   * echtes LLM — Tests sehen damit die Phase, in der Frames laufen aber keine neuen
+   * Ereignisse eintreffen. 2 erhaelt die bisherige Zwei-Frame-Form exakt. */
+  liveChunks: z.number().int().min(2).max(300).default(2),
+  /** BUG-0207: Abstand der Frames in ms (0 = alle sofort, wie bisher). */
+  liveChunkDelayMs: z.number().int().min(0).max(2000).default(0),
   failStart: z.boolean().default(false),
   resumeOnRecover: z.boolean().default(true),
 });
@@ -152,6 +158,30 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
   };
 
+  /** Frame-Teile eines Blocks: bei liveChunks=2 exakt die bisherige Zwei-Frame-Form. */
+  function frameParts(label: string, defaultTail: string): string[] {
+    if (cfg.liveChunks <= 2) return [`${label} `, defaultTail];
+    const parts = [`${label} `];
+    for (let i = 1; i < cfg.liveChunks; i++) parts.push(`Abschnitt ${i} fuellt die Zeile mit Denkworten `);
+    return parts;
+  }
+
+  /** BUG-0207: Frames zeitlich verteilt — delayMs 0 sendet alle sofort (altes Verhalten). */
+  function streamFrames(ctx: AdapterContext, turnId: string, kind: "thinking" | "assistant", parts: string[]): void {
+    const send = (i: number) => ctx.stream?.({ turnId, stream: kind, seq: i, text: parts[i]!, final: i === parts.length - 1 });
+    if (cfg.liveChunkDelayMs <= 0) {
+      for (let i = 0; i < parts.length; i++) send(i);
+      return;
+    }
+    let i = 0;
+    const step = () => {
+      if (ctx.signal.aborted || i >= parts.length) return;
+      send(i++);
+      if (i < parts.length) setTimeout(step, cfg.liveChunkDelayMs);
+    };
+    step();
+  }
+
   function startGenerating(handle: DummyHandle, ctx: AdapterContext): void {
     const interval = Math.max(10, Math.floor(1000 / cfg.eventsPerSecond));
     const timer = setInterval(() => {
@@ -186,10 +216,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       if (type === "thinking" && cfg.liveThinkingFrames && ctx.stream) {
         // Das Denk-Stueck laeuft als Frames, bevor der Block da ist — der Weg, auf dem
         // die PWA ihr "denkt" zeigt, ist genau dieser Frames-Kanal.
-        const head = `dummy thinking #${n} `;
-        ctx.stream({ turnId: `dummy-${n}`, stream: "thinking", seq: 0, text: head, final: false });
-        ctx.stream({ turnId: `dummy-${n}`, stream: "thinking", seq: 1, text: "gedanklich", final: true });
-        payload.text = `${head}gedanklich`;
+        const parts = frameParts(`dummy thinking #${n}`, "gedanklich");
+        streamFrames(ctx, `dummy-${n}`, "thinking", parts);
+        payload.text = parts.join("");
         if (cfg.blockLeadMs > 0) {
           const late = { ...payload };
           setTimeout(() => ctx.emit({ type, summary: `dummy ${type} #${n}`, payload: late, tokensEst: 10 + (n % 40), tokensSource: "estimated" }), cfg.blockLeadMs);
@@ -198,10 +227,9 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       }
       if (type === "assistant" && cfg.liveFrames && ctx.stream) {
         // ADR-0083: erst die Frames (zweiter final), dann der Block mit demselben Text.
-        const head = `dummy assistant #${n} `;
-        ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 0, text: head, final: false });
-        ctx.stream({ turnId: `dummy-${n}`, stream: "assistant", seq: 1, text: "live", final: true });
-        payload.text = `${head}live`;
+        const parts = frameParts(`dummy assistant #${n}`, "live");
+        streamFrames(ctx, `dummy-${n}`, "assistant", parts);
+        payload.text = parts.join("");
         if (cfg.blockLeadMs > 0) {
           // ADR-0083: Block spaeter als Frames — nur so ist die wachsende Blase beobachtbar.
           const late = { ...payload };
