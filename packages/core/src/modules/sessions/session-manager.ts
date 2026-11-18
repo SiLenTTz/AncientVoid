@@ -2472,6 +2472,15 @@ export class SessionManager {
       }
       const lastMain = events.findLast(e => e.payload.kind === "session.main_turn_end" || e.payload.kind === "session.main_turn_start");
       session.mainTurnIdle = lastMain?.payload.kind === "session.main_turn_end";
+      // BUG-0209: nach dem Hauptzugende offene Werkzeugaufrufe sind verwaist; steht die
+      // Session deshalb noch auf working, ist der Zug fertig — nicht ein Fall für Adoption.
+      if (session.mainTurnIdle && session.activities.size > 0) {
+        await this.dropOrphanedTools(session);
+        if (session.activities.size === 0 && record.status === "working") {
+          await this.setStatus(session, "idle");
+          await this.emitSystem(session, "session.turn_end", { code: 0 });
+        }
+      }
       // EPIC-P29 (K7, ADR-0051 §5): Workspace-Phase aus den Events falten
       // und hängengebliebene Operationen als unklar markieren — genau ein
       // needs_attention-Event je Operation, kein automatischer Re-Run.
@@ -3005,6 +3014,7 @@ export class SessionManager {
       session.mainTurnIdle = true;
       await this.emitSystem(session, "session.main_turn_end", {});
     }
+    await this.dropOrphanedTools(session);
     // ADR-0074 (BUG-0155): Zugende ≠ Arbeitsende — offene Aktivitäten halten
     // die Session ehrlich auf working; statt turn_end steht die Ausnahme im Strom.
     if (session.activities.size > 0) {
@@ -3018,6 +3028,18 @@ export class SessionManager {
     }
     await this.setStatus(session, "idle");
     await this.emitSystem(session, "session.turn_end", { code: 0 });
+  }
+
+  /** BUG-0209: Ein Werkzeugaufruf gehört zu einem Zug. Steht er nach dem Hauptzugende
+   * noch offen im Register, hat sein terminales Update nie den Hub erreicht (abgebrochener
+   * oder verlorener Aufruf) — ohne dieses Schließen blieb die Session für immer `working`.
+   * Subagenten (`task:`/`agent:`) und externe Jobs dürfen den Zug überleben und bleiben. */
+  private async dropOrphanedTools(session: LiveSession): Promise<void> {
+    for (const [id, work] of [...session.activities]) {
+      if (work.source !== "provider" || !id.startsWith("tool:")) continue;
+      session.activities.delete(id);
+      await this.emitSystem(session, "session.activity_end", { id, code: 0, orphaned: true });
+    }
   }
 
   private queueLifecycle(session: LiveSession, signal: AbortSignal, work: () => Promise<unknown>): void {

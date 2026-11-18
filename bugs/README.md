@@ -247,4 +247,4 @@ gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gem
 aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage;
 0189–0191 sind Dateibaum-Bugfarben und Git-Historie-Lesbarkeit/Blob-Sprung;
 0192 Slash-Commands; 0202 ist Cursor `interaction_query` unsichtbar im Chat; 0203 der Eltern-loser Commit im Aenderungsdiff; 0204 der uebergrosse Aenderungsdiff, der wegen maxBuffer komplett rausfaellt).
-
+| [BUG-0209](bug-0209-session-bleibt-working-nach-abschluss.md) | Sessions bleiben nach fertigem Zug auf „arbeitet“ (pi: recover ohne adoptWorker; ACP: Werkzeugaufruf ohne terminales Update hält das Register offen) | done | S2 | core | — |

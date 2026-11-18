@@ -280,8 +280,14 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const file = findSessionFile(sessionsDir, native);
       if (!file) return null;
       resumes.set(sessionId, { file, fork: false });
-      sessions.set(sessionId, { healthy: true, busy: false });
-      return { sessionId };
+      // BUG-0209: pi läuft one-shot je Zug. Der Hub muss wissen, ob der Worker des offenen
+      // Zugs den Neustart überlebt hat — sonst stand die Session ewig auf `working`, obwohl
+      // niemand mehr lief (kein Adoptions-Ergebnis → adopted=false → Zug wird unterbrochen).
+      const proc = (await ctx.adoptWorker?.()) ?? null;
+      const meta: SessionMeta = { healthy: true, busy: proc !== null };
+      sessions.set(sessionId, meta);
+      if (proc) attach(ctx, proc, meta);
+      return { sessionId, ...(proc?.pid !== undefined ? { pid: proc.pid } : {}) };
     },
 
     async stop(handle: SessionHandle): Promise<void> {
