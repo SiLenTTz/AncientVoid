@@ -154,7 +154,7 @@ Spec: [terminal.spec.ts](../../e2e/specs/terminal.spec.ts)
 ### page:releasenotes — Release notes
 
 `#/releasenotes`. Merged pull requests of a project, straight from the local
-git history (no network, ADR-0089): each PR as one line — risk, intent,
+git history (no network, ADR-0092): each PR as one line — risk, intent,
 area and summary from the commit notation, PR number, date, files and
 ±lines. Expand for the why (PR description) and the what (branch commits
 with their own notation and reasoning, changed files). Subjects without

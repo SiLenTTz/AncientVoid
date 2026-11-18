@@ -12,7 +12,7 @@ function formatDate(iso: string): string {
 }
 
 /**
- * EPIC-P68 (ADR-0089): Release-Notes — gemergte PRs eines Projekts chronologisch,
+ * EPIC-P70 (ADR-0092): Release-Notes — gemergte PRs eines Projekts chronologisch,
  * Kurzfassung aus der Commit-Notation; Details (Was: Commits/Dateien, Warum:
  * PR-Beschreibung) klappen auf und werden lazy geladen. Session-Worktrees zeigen
  * PRs nur bis zum Branch-Punkt — Regelfall ist die Projekt-Wahl.

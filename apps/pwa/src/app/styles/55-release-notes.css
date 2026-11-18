@@ -1,4 +1,4 @@
-/* EPIC-P68 (ADR-0089): Release-Notes-Seite — PR-Karten mit Klapp-Details.
+/* EPIC-P70 (ADR-0092): Release-Notes-Seite — PR-Karten mit Klapp-Details.
  * Nur Tokens aus 00-tokens.css (EPIC-P63-Ratchet: kein neuer Hex-Wert). */
 
 .rn-page {
@@ -91,7 +91,7 @@
   padding: 1px 8px;
 }
 
-/* Fail loud (AC-P68-3): Subject ohne Notation bleibt sichtbar und markiert. */
+/* Fail loud (AC-P70-3): Subject ohne Notation bleibt sichtbar und markiert. */
 .rn-unparsed {
   border-color: var(--warn);
   color: var(--warn);

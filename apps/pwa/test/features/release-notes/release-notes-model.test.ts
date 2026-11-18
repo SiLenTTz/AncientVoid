@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { INTENT_LABEL, notationLine, RISK_LABEL, statsLine, loadReleaseNotesPrefs, saveReleaseNotesPrefs } from "../../../src/features/release-notes/release-notes-model.ts";
 
-/** EPIC-P68 (ADR-0089): Klartext-Labels, Notations-Kurzzeile, Stats-Zeile und
+/** EPIC-P70 (ADR-0092): Klartext-Labels, Notations-Kurzzeile, Stats-Zeile und
  * die gerätelokale Projekt-Pinne (Muster git-model.ts). */
 
 const page = () => {
@@ -14,7 +14,7 @@ const page = () => {
   };
 };
 
-describe("release-notes-model (T68.4)", () => {
+describe("release-notes-model (T70.4)", () => {
   beforeEach(page);
 
   it("notationLine nennt Risiko · Absicht · Bereich in Klartext", () => {
