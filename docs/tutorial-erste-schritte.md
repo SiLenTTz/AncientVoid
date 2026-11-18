@@ -2,10 +2,11 @@
 
 **Art:** tutorial
 
-Stand 2026-11-18 (Frischhalte-Review nach EPIC-P63/P67/P68): Wizard-Pfad
+Stand 2026-11-18 (Frischhalte-Review nach P67/P68 und Explorer-blocked): Wizard-Pfad
 (`./setup.sh --yes --adapter=dummy`), Device-Token und `/api/ready` unverändert;
 die PWA-Oberfläche nutzt die Bausteine aus [`design-system.md`](design-system.md),
-der Ablauf dieses Tutorials bleibt derselbe. Neu für Erstnutzer: Sessions starten
+der Ablauf dieses Tutorials bleibt derselbe. Main-Sync und Prompt-Verbessern
+ändern den Erststart nicht. Neu für Erstnutzer: Sessions starten
 auf dem aktuellen `origin/main` ([`main-sync.md`](main-sync.md)), und der
 Dateibaum zeigt Statuspunkte für Epics und Bugs ([`epic-status.md`](epic-status.md)).
 
