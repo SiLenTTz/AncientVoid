@@ -112,4 +112,12 @@ describe("pi: Session aus der Datei übernehmen (ADR-0041)", () => {
     expect(calls[0]![2]).toContain(`_${ID}.jsonl`);
     expect(await adapter.recover!("s2", 0, makeRecordingContext({} as never))).toBeNull();
   });
+  it("BUG-0209: recover fragt den Hub nach einem überlebenden Worker — ohne ihn endet der offene Zug (adopted=false)", async () => {
+    const root = store();
+    let asked = 0;
+    const ctx = makeRecordingContext({ adoptWorker: async () => { asked += 1; return null; }, nativeSessionId: ID } as never);
+    const handle = await createAdapter({ sessionsDir: root }).recover!("s1", 0, ctx);
+    expect(asked).toBe(1);
+    expect(handle).not.toBeNull(); // der nächste Prompt setzt weiterhin fort
+  });
 });
