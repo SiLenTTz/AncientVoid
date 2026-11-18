@@ -23,6 +23,9 @@ const TAILSCALE_LOGIN_HEADER = "tailscale-user-login";
  */
 const WORKSPACE_PROXY_TICKET_PATH = /^\/api\/sessions\/[0-9a-fA-F-]{36}\/workspace\/services\/[a-z][a-z0-9-]{0,39}\/proxy(\/[^?]*)?$/;
 
+/** ADR-0087: der Terminal-Stream — ids wie in der Config (zod: kleine Buchstaben, Ziffern, -/_). */
+const TERMINAL_STREAM_PATH = /^\/api\/terminals\/[a-z0-9][a-z0-9_-]{0,63}\/stream$/;
+
 export function isWorkspaceProxyTicketRequest(method: string, url: string): boolean {
   if (method !== "GET" && method !== "HEAD") return false;
   const [path, query = ""] = url.split("?");
@@ -79,6 +82,11 @@ export function authHook(opts: AuthOptions) {
     // STT WebSocket upgrades authenticate with a short-lived, single-use
     // ticket instead of putting the reusable device token in the URL.
     if (req.method === "GET" && path === "/api/stt/stream") return;
+    // ADR-0087: Terminal-Streams genauso — ein Browser-WebSocket kann keinen
+    // Bearer-Header tragen, und das wiederverwendbare Device-Token gehört
+    // nie in die URL (BUG-0028). Die Route prüft ihr kurzlebiges, an die
+    // Ziel-id gebundenes Ticket selbst und weist alles Ungültige ab (4401).
+    if (req.method === "GET" && TERMINAL_STREAM_PATH.test(path)) return;
     // EPIC-P29 T29.6: preview iframe — ticket statt Bearer (s. oben). Die
     // Route prüft das Ticket selbst; jeder andere /api/-Pfad bleibt dicht.
     if (isWorkspaceProxyTicketRequest(req.method, req.url)) return;
