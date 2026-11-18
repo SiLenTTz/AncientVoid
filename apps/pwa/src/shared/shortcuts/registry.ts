@@ -39,7 +39,6 @@ export const CATALOG: ShortcutInfo[] = [
   { id: "command.toggle", combo: "Ctrl+K", label: "Strg+K", description: "Schnellsuche/Befehle öffnen und schließen", scope: "global" },
   { id: "command.close", combo: "Esc", label: "Esc", description: "Befehlsleiste schließen", scope: "overlay", inInput: true },
   { id: "files.toggle", combo: "Ctrl+Shift+E", label: "Strg+Umschalt+E", description: "Dateien-Seitenleiste ein-/ausblenden", scope: "global" },
-  { id: "git.toggle", combo: "Ctrl+Shift+G", label: "Strg+Umschalt+G", description: "Git-Struktur-Ansicht ein-/ausblenden", scope: "global" },
   { id: "workspace.tile-1", combo: "Alt+1", label: "Alt+1", description: "Kachel 1 fokussieren", scope: "global" },
   { id: "workspace.tile-2", combo: "Alt+2", label: "Alt+2", description: "Kachel 2 fokussieren", scope: "global" },
   { id: "workspace.tile-3", combo: "Alt+3", label: "Alt+3", description: "Kachel 3 fokussieren", scope: "global" },
