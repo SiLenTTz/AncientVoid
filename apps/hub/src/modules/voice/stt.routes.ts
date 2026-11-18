@@ -26,6 +26,9 @@ export interface SttConfig {
     url: string;
     apiKeyFile?: string;
     endpointingMs: number;
+    /** Wie die Streaming-Erkennung heisst — der Endtext soll nicht einen fremden
+     *  Produktnamen tragen, wenn unsere eigene Radeon-Erkennung geliefert hat. */
+    engine?: string;
   };
   fetch?: typeof fetch;
 }
@@ -111,7 +114,7 @@ export function registerSttRoutes(app: FastifyInstance, cfg: SttConfig | undefin
   });
   const streamConfig: SttStreamingConfig | undefined = cfg?.streaming ? {
     ...cfg.streaming,
-    engine: "Nemotron 3.5 ASR Streaming",
+    engine: cfg.streaming.engine ?? "Nemotron 3.5 ASR Streaming",
     language: cfg.language === "de" ? "de-DE" : cfg.language,
     vocabulary: cfg.vocabulary,
     speechContext: async () => [cfg.vocabulary, projectVocabulary(await projects().catch(() => []))].filter(Boolean).join(",").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 50),

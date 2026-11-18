@@ -159,6 +159,9 @@ export const HubConfig = z.object({
         url: z.string().url(),
         apiKeyFile: z.string().optional(),
         endpointingMs: z.number().int().min(100).max(5_000).default(800),
+        /** Name der Streaming-Erkennung, damit das Endtranskript den richtigen
+         *  Erkennungsnamen traegt (Default bleibt die bisherige Bezeichnung). */
+        engine: z.string().max(120).optional(),
       }).optional(),
     })
     .optional(),
