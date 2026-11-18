@@ -197,6 +197,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S77 | Ein langes Gespräch bleibt bis zu seinem Anfang lesbar: hochscrollen (oder der Knopf „frühere Einträge“) holt die früheren, die Lesestelle hält ihre Position | Session → Chat oder Verlauf → nach oben scrollen | BUG-0211 | spec:chat-aeltere-laden.spec.ts |
 | S78 | Kopiertes bleibt greifbar: die Ablage hält sechs sichtbare Stufen (Diktat, Markierung, Befehl, Eintrag, Kennung) und fügt sie wieder ein — Token bleiben draußen | Composer → Ablage-Knopf; oder Text markieren/kopieren | ADR-0090 | spec:clipboard-shelf.spec.ts |
 | S79 | Die Diktat-Aufnahme bleibt auf dem Gerät liegen (drei neueste, höchstens 12 MB) und lässt sich neu erkennen — auch nach einem Ausfall der eigenen Erkennung; ersetzt wird nur ein unveränderter Text | Nyx-FAB → „Aufnahme gemerkt — neu erkennen“ | ADR-0092 | spec:voice-local.spec.ts |
+| S80 | Die Ablage nimmt beim Wiederkommen auch extern Kopiertes auf — Text als „Andere App“, Screenshots als Bild-Stufe mit Vorschaubild — und hängt ein solches Bild an die Session an | Ablage-Blatt; automatisch beim Fokus | ADR-0093 | spec:clipboard-aussen.spec.ts |
 
 ## PC-Arbeitsfläche
 
