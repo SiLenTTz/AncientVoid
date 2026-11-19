@@ -537,3 +537,25 @@
   border-radius: 8px;
   padding: 8px 10px;
 }
+
+/* EPIC-P74 (ADR-0096): Wissensquellen — Fehlerdetails dürfen umbrechen, Treffer sind Knöpfe in Eintragsoptik. */
+.knowledge-status {
+  white-space: normal;
+  text-align: right;
+}
+
+.knowledge-hit {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.knowledge-doc-content {
+  max-height: 50vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+}

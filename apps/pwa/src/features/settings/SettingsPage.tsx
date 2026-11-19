@@ -1,4 +1,5 @@
 import { FleetSettings } from "../fleet/Fleet.tsx";
+import { KnowledgeSettings } from "../knowledge/KnowledgeSettings.tsx";
 import { PresetSettings } from "./PresetSettings.tsx";
 import { AppearanceSettings } from "./AppearanceSettings.tsx";
 import { ConnectionsSettings } from "./ConnectionsSettings.tsx";
@@ -33,6 +34,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
           <DevicesSettings />
           <FleetSettings />
           <ConnectionsSettings />
+          <KnowledgeSettings />
           <MainSyncSettings />
           <GeminiSettings />
           <SecuritySettings onSwitchToken={onSwitchToken} />

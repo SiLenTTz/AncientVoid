@@ -1,4 +1,5 @@
 import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine } from "@ancientvoid/contracts";
+import type { KnowledgeOverview, KnowledgeReadResult, KnowledgeSearchResult, KnowledgeSourceInputRaw, KnowledgeSourceView } from "@ancientvoid/contracts";
 export type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine };
 import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, ExternalJobsResponse, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, ReleaseNotesDetail, ReleaseNotesListReport, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
 export type { TerminalTarget };
@@ -988,6 +989,19 @@ function createHubApi(P: (path: string) => string) {
     api<{ endpoint: EndpointEntry }>(P(`/api/connections/endpoints/${id}`), { method: "PUT", body: JSON.stringify(body) }),
   removeEndpoint: (id: string) => api<{ ok: boolean }>(P(`/api/connections/endpoints/${id}`), { method: "DELETE", body: "{}" }),
   probeEndpoint: (id: string) => api<{ endpoint: EndpointEntry }>(P(`/api/connections/endpoints/${id}/probe`), { method: "POST", body: "{}" }),
+  /** EPIC-P74 (ADR-0096): Wissensquellen — Fehler kommen als 502, der Status steht danach in der Liste. */
+  knowledgeSources: () => api<{ sources: KnowledgeSourceView[] }>(P("/api/knowledge/sources")),
+  addKnowledgeSource: (body: KnowledgeSourceInputRaw) =>
+    api<{ source: KnowledgeSourceView }>(P("/api/knowledge/sources"), { method: "POST", body: JSON.stringify(body) }),
+  updateKnowledgeSource: (id: string, body: KnowledgeSourceInputRaw) =>
+    api<{ source: KnowledgeSourceView }>(P(`/api/knowledge/sources/${id}`), { method: "PUT", body: JSON.stringify(body) }),
+  removeKnowledgeSource: (id: string) => api<{ ok: boolean }>(P(`/api/knowledge/sources/${id}`), { method: "DELETE", body: "{}" }),
+  probeKnowledgeSource: (id: string) =>
+    api<{ source: KnowledgeSourceView; overview: KnowledgeOverview }>(P(`/api/knowledge/sources/${id}/probe`), { method: "POST", body: "{}" }),
+  searchKnowledge: (id: string, q: string) =>
+    api<{ source: KnowledgeSourceView; result: KnowledgeSearchResult }>(P(`/api/knowledge/sources/${id}/search`), { method: "POST", body: JSON.stringify({ q }) }),
+  readKnowledge: (id: string, ref: string) =>
+    api<{ source: KnowledgeSourceView; document: KnowledgeReadResult & { truncated: boolean } }>(P(`/api/knowledge/sources/${id}/read`), { method: "POST", body: JSON.stringify({ ref }) }),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   /** T-PJ1: create a project (git init) in the first projectRoot. */

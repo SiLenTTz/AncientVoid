@@ -1,7 +1,7 @@
 import type { HubTeam } from "./modules/team/index.ts";
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore, MainSyncSettingsService } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore, KnowledgeService, MainSyncSettingsService } from "@ancientvoid/core";
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
@@ -75,6 +75,8 @@ export interface RouteDeps {
   /** EPIC-P73 (ADR-0094): Forge-Token-Dateien aus der Config — die PWA darf
    * Tokens eintragen (Datei schreiben), sie aber nie zurücklesen. */
   forgeTokens?: { githubTokenFile?: string };
+  /** EPIC-P74 (ADR-0096): Wissensquellen — ohne Angabe aus `settings` gebaut, ohne beides 501. */
+  knowledge?: KnowledgeService;
   /** EPIC-P73 (ADR-0094): externe Auto-Jobs (GitHub-Actions, Issue-Bridge) —
    * immer vorhanden; ohne Quellen antwortet der Endpunkt ehrlich leer. */
   externalJobs?: ExternalJobsService;

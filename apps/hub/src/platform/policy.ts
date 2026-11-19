@@ -23,6 +23,8 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // Verbindungs-Registry (VoidWarden-Tokens, Endpoint-Schlüssel-Hinweise):
   // ebenfalls eine Menschenfläche — Lesen wie Schreiben (Muster Vault).
   if (path.startsWith("/api/connections")) return "settings.manage";
+  // EPIC-P74 (ADR-0096): Wissensquellen tragen Geheimnisse und fremden Text — Menschenfläche.
+  if (path.startsWith("/api/knowledge")) return "settings.manage";
   // EPIC-P40/EPIC-P60 (ADR-0064 §4, ADR-0077): Teams steuern nur Menschen;
   // Lesen ist eine eigene Operation mit dem Allow-Set des bisherigen generischen `read`.
   if (path.startsWith("/api/teams")) return method === "GET" || method === "HEAD" ? "team.read" : "team.manage";

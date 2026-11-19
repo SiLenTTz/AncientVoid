@@ -33,6 +33,7 @@ export * from "./devices/devices.ts";
 export * from "./push/push.ts";
 export * from "./models/custom-model.ts";
 export * from "./connections/connections.ts";
+export * from "./knowledge/knowledge.ts";
 export * from "./commands/commands.ts";
 export * from "./media/media.ts";
 export * from "./voice/stt.ts";
