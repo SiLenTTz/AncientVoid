@@ -108,7 +108,10 @@ Automations-Snapshot-Schlüssel (Version bumpen).
 1. **AC-P73-1 (Bridge):** Mit konfigurierter `issues`-Sektion startet der Hub für ein
    neu angelegtes, gelabeltes Issue genau eine Session (Dedupe über Neustarts), und auf
    dem Issue erscheinen Start- und Ergebnis-Kommentar mit Session-Link. Beleg:
-   Unit-Tests (Fake-GitHub/Fake-Sessions) + Live-Nachweis mit einem Test-Issue.
+   Unit-Tests (Fake-GitHub/Fake-Sessions) + **Live-Nachweis 19.11.2026: Test-Issue #190
+   (Label \`session\`) → Dispatch in \`data/issues/journal.jsonl\` (seq 89, Session
+   \`fdb360bb\`, omp, Worktree) → Start-Kommentar → \`settled: succeeded\` (seq 91) →
+   Ergebnis-Kommentar; ~70 s Sessions-Laufzeit.**
 2. **AC-P73-2 (Label-Gate):** Issues ohne Trigger-Label bekommen keine Session; der
    Issue-Body reist als Datenblock unter festen Arbeitsaufträgen. Beleg: Unit-Test +
    Prompt-Bau-Test.
