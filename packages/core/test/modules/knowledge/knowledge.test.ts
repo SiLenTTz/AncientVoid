@@ -105,6 +105,18 @@ describe("KnowledgeService — Prüfen über MCP", () => {
     expect(must(await knowledge.probe(id)).source.status).toMatchObject({ state: "unreachable", detail: expect.stringMatching(/Zeitüberschreitung/) });
   });
 
+  it("die Zeitgrenze gilt für den ganzen Aufruf, nicht je MCP-Schritt — ein zäher Server hält „Prüfen“ nicht n-fach auf", async () => {
+    // Jede Anfrage braucht 150 ms, jeder Schritt bliebe also unter 400 ms; Prüfen braucht aber ≥ 4 Anfragen.
+    const facade = createFakeFacade();
+    const slow = (async (input: string | URL | Request, init?: RequestInit) => {
+      await new Promise((r) => setTimeout(r, 150));
+      return facade.fetch(input, init);
+    }) as typeof fetch;
+    const { knowledge } = service(slow, 400);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    expect(must(await knowledge.probe(id)).source.status).toMatchObject({ state: "unreachable", detail: expect.stringMatching(/Zeitüberschreitung/) });
+  });
+
   it("fehlendes Tool → protocol mit Tool-Namen", async () => {
     const { knowledge } = service(createFakeFacade({ omitTool: "kb_read" }).fetch);
     const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));

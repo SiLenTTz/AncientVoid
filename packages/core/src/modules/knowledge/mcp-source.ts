@@ -98,7 +98,9 @@ function parseResult<T extends z.ZodType>(tool: string, raw: ToolResult, schema:
 export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource & { listTools(): Promise<string[]> } {
   const timeoutMs = cfg.timeoutMs ?? KNOWLEDGE_TIMEOUT_MS;
 
-  async function withClient<T>(fn: (client: Client) => Promise<T>): Promise<T> {
+  /** Eine Frist für den ganzen Aufruf (Verbinden + alle Schritte), nicht je MCP-Anfrage. */
+  async function withClient<T>(fn: (client: Client, opts: { timeout: number; signal: AbortSignal }) => Promise<T>): Promise<T> {
+    const opts = { timeout: timeoutMs, signal: AbortSignal.timeout(timeoutMs) };
     const client = new Client({ name: "ancientvoid-hub", version: "0.1.0" });
     const transport = new StreamableHTTPClientTransport(new URL(cfg.url), {
       // redirect "error": ein Umweg darf das Geheimnis nicht zu einem anderen Host tragen.
@@ -106,8 +108,8 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
       ...(cfg.fetch ? { fetch: cfg.fetch } : {}),
     });
     try {
-      await client.connect(transport, { timeout: timeoutMs });
-      return await fn(client);
+      await client.connect(transport, opts);
+      return await fn(client, opts);
     } catch (err) {
       throw classify(err, timeoutMs);
     } finally {
@@ -115,13 +117,15 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
     }
   }
 
-  async function call<T extends z.ZodType>(client: Client, tool: string, args: Record<string, unknown>, schema: T): Promise<z.infer<T>> {
-    const raw = (await client.callTool({ name: tool, arguments: args }, undefined, { timeout: timeoutMs })) as ToolResult;
+  type Opts = { timeout: number; signal: AbortSignal };
+
+  async function call<T extends z.ZodType>(client: Client, opts: Opts, tool: string, args: Record<string, unknown>, schema: T): Promise<z.infer<T>> {
+    const raw = (await client.callTool({ name: tool, arguments: args }, undefined, opts)) as ToolResult;
     return parseResult(tool, raw, schema);
   }
 
-  async function listTools(client: Client): Promise<string[]> {
-    const { tools } = await client.listTools(undefined, { timeout: timeoutMs });
+  async function listTools(client: Client, opts: Opts): Promise<string[]> {
+    const { tools } = await client.listTools(undefined, opts);
     return tools.map((t) => t.name);
   }
 
@@ -130,19 +134,19 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
 
     /** Prüfen: alle drei Tools vorhanden, dann kb_overview als Healthcheck (§3.3.1 Regel 4). */
     overview: () =>
-      withClient(async (client): Promise<KnowledgeOverview> => {
-        const tools = await listTools(client);
+      withClient(async (client, opts): Promise<KnowledgeOverview> => {
+        const tools = await listTools(client, opts);
         const missing = [cfg.tools.overview, cfg.tools.search, cfg.tools.read].filter((t) => !tools.includes(t));
         if (missing.length) throw new KnowledgeError("protocol", `Tool fehlt: ${missing.join(", ")}`);
-        const res = await call(client, cfg.tools.overview, {}, KnowledgeOverviewResult);
+        const res = await call(client, opts, cfg.tools.overview, {}, KnowledgeOverviewResult);
         const summary = cap(res.summary, KNOWLEDGE_SUMMARY_MAX_CHARS);
         const protocol = res.protocol === undefined ? undefined : cap(res.protocol, KNOWLEDGE_SUMMARY_MAX_CHARS);
         return { summary: summary.text, ...(protocol ? { protocol: protocol.text } : {}), tools, truncated: summary.cut || (protocol?.cut ?? false) };
       }),
 
     search: (query: KnowledgeQuery) =>
-      withClient(async (client) => {
-        const res = await call(client, cfg.tools.search, { q: query.q, topK: query.topK }, KnowledgeSearchResult);
+      withClient(async (client, opts) => {
+        const res = await call(client, opts, cfg.tools.search, { q: query.q, topK: query.topK }, KnowledgeSearchResult);
         let truncated = res.truncated || res.hits.length > query.topK;
         const hits = res.hits.slice(0, query.topK).map((h) => {
           const snippet = cap(h.snippet, KNOWLEDGE_SNIPPET_MAX_CHARS);
@@ -153,8 +157,8 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
       }),
 
     read: (ref: string) =>
-      withClient(async (client) => {
-        const res = await call(client, cfg.tools.read, { ref }, KnowledgeReadResult);
+      withClient(async (client, opts) => {
+        const res = await call(client, opts, cfg.tools.read, { ref }, KnowledgeReadResult);
         const content = cap(res.content, KNOWLEDGE_CONTENT_MAX_CHARS);
         return { ...res, content: content.text, truncated: content.cut || (res.truncated ?? false) };
       }),
