@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { basicFeatures, type Adapter } from "@ancientvoid/contracts";
+import { ActivityReport, basicFeatures, type Adapter } from "@ancientvoid/contracts";
 import { EventStore, HubDatabase, SessionManager, AdapterRegistry } from "../../../src/index.ts";
 import { ProcessRunner } from "@ancientvoid/workers";
 
@@ -90,6 +90,29 @@ function endsWithOpenActivity(id: string, kind: "tool" | "agent", out: { ctx?: P
   };
 }
 
+/** BUG-0220: Adapter, der denselben Running-Report wiederholt absetzt —
+ * Herzschlag im Regelbetrieb oder ein verklemmter Provider-Prozess. */
+function heartbeatAdapter(id: string, repeats: number, out: { ctx?: Parameters<Adapter["start"]>[1] } = {}): Adapter {
+  return {
+    id: "heartbeat",
+    version: "0.0.1",
+    capabilities: () => ({ reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures({ followUp: true, interrupt: true }) }),
+    async start(_spec, ctx) {
+      out.ctx = ctx;
+      ctx.turn?.("working");
+      for (let i = 0; i < repeats; i++) ctx.activity?.({ id, kind: "tool", state: "running", label: `läuft (${i})` });
+      return { sessionId: ctx.sessionId };
+    },
+    async steer() {
+      return { ok: true };
+    },
+    async status() {
+      return { state: "healthy" };
+    },
+    async stop() {},
+  };
+}
+
 async function waitFor(check: () => boolean, what: string): Promise<void> {
   const deadline = Date.now() + 5000;
   while (!check()) {
@@ -108,7 +131,69 @@ function setup(registry: AdapterRegistry, dir: string, store?: EventStore): { ma
 const kinds = async (manager: SessionManager, id: string) =>
   (await manager.tail(id, 0)).map((e) => (e.payload as { kind?: string }).kind ?? "");
 
+const begins = async (manager: SessionManager, id: string, activityId: string) =>
+  (await manager.tail(id, 0)).filter((e) => {
+    const p = e.payload as { kind?: string; id?: string };
+    return p.kind === "session.activity_begin" && p.id === activityId;
+  }).length;
+
 describe("Aktivitätsregister (ADR-0074, BUG-0155)", () => {
+  it("Wiederholte Provider-Running-Reports emittieren activity_begin genau einmal (BUG-0220)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    const out: { ctx?: Parameters<Adapter["start"]>[1] } = {};
+    registry.register("heartbeat", () => heartbeatAdapter("tool:dup", 3, out));
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "heartbeat", project: dir, prompt: "start" });
+      for (let i = 0; i < 250 && (await begins(manager, record.id, "tool:dup")) < 1; i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      expect(await begins(manager, record.id, "tool:dup")).toBe(1);
+      // Wiederbeginn nach Ende bleibt erlaubt: dieselbe ID darf erneut beginnen.
+      out.ctx?.activity?.({ id: "tool:dup", kind: "tool", state: "completed" });
+      out.ctx?.activity?.({ id: "tool:dup", kind: "tool", state: "running", label: "neuer Lauf" });
+      for (let i = 0; i < 250 && (await begins(manager, record.id, "tool:dup")) < 2; i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      expect(await begins(manager, record.id, "tool:dup")).toBe(2);
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("Externer Herzschlag (hubctl activity) emittiert activity_begin nur beim ersten Running-Report (BUG-0220)", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
+    const registry = new AdapterRegistry();
+    registry.register("persistent", persistentTurnAdapter);
+    const { manager, db } = setup(registry, dir);
+    try {
+      const record = await manager.create({ adapter: "persistent", project: dir, prompt: "start" });
+      const report = (state: "running" | "completed") =>
+        ActivityReport.parse({ id: "heartbeat", kind: "job", state, label: " langer Lauf " });
+      expect((await manager.activity(record.id, report("running"))).ok).toBe(true);
+      for (let i = 0; i < 250 && (await begins(manager, record.id, "job:heartbeat")) < 1; i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      for (let i = 0; i < 3; i++) {
+        expect((await manager.activity(record.id, report("running"))).ok).toBe(true); // Herzschlag
+      }
+      expect(await begins(manager, record.id, "job:heartbeat")).toBe(1);
+      expect((await manager.activity(record.id, report("completed"))).ok).toBe(true);
+      expect((await manager.activity(record.id, report("running"))).ok).toBe(true); // Wiederbeginn nach Ende
+      for (let i = 0; i < 250 && (await begins(manager, record.id, "job:heartbeat")) < 2; i++) {
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      expect(await begins(manager, record.id, "job:heartbeat")).toBe(2);
+    } finally {
+      await manager.shutdown();
+      db.close();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("Zugende bei laufender Aktivität bleibt working und nennt die offene Arbeit", async () => {
     const dir = await mkdtemp(join(tmpdir(), "av-activity-"));
     const registry = new AdapterRegistry();
