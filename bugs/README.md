@@ -252,7 +252,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0216](bug-0216-endtext-des-streamten-diktats-traegt-fremden-namen.md) | streamendes Diktat endet mit „engine=Nemotron 3.5 ASR Streaming“, obwohl `stt.streaming.engine` auf unsere Radeon-Erkennung steht — main.ts gibt den Schluessel nicht weiter |
 | [BUG-0217](bug-0217-aktivitaetsregister-zeitkritisch-auf-hosted-runner.md) | Aktivitätsregister-Test auf Hosted-Runnern zeitkritisch — 1 von 2139 rot, Neustart grün (Issue #83, nachgezogen EPIC-P71) | open | S3 | tests | [#83](https://github.com/securesight-ai/AncientVoid/issues/83) |
 | [BUG-0218](bug-0218-tier-a-parallel-zeitkritische-flakes.md) | drei Tests rotieren unter parallelem Tier A (8 Forks): handover, steer-wait-timeout, turn-state — je 1 von 3 Läufen rot (Issue #85, nachgezogen EPIC-P71) | open | S3 | tests | [#85](https://github.com/securesight-ai/AncientVoid/issues/85) |
-Die nächste freie Nummer ist **0219** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0219](bug-0219-mainsync-stand-gehoert-zur-auswahl.md) | Hinweis „N hinter main“ gehört nicht zur Auswahl: Abfrage läuft nur beim Mount, Kachelfokus und Rückkehr zur offenen Ansicht zeigen den Stand eines früheren Zeitpunkts/anderen Projekts (zuerst als 0217 geführt, nach Kollision mit main umnummeriert) | open | S3 | pwa | [#180](https://github.com/securesight-ai/AncientVoid/issues/180) |
+Die nächste freie Nummer ist **0220** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
