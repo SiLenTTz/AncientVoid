@@ -24,6 +24,16 @@ export class SessionActivities {
     const activity = ActivityReport.parse(raw);
     const id = source === "external" ? `job:${activity.id}` : activity.id;
     if (activity.state === "running") {
+      // BUG-0220: Ein Running-Report für eine bereits geführte Aktivität ist
+      // Herzschlag (hubctl alle 20 s; ein verklemmter Provider kann es in
+      // Burst-Geschwindigkeit sein) — startedAt auffrischen, damit die TTL
+      // weiterläuft, aber kein zweites activity_begin in den EventStore
+      // streuen. Erst nach activity_end darf dieselbe ID erneut beginnen.
+      const known = session.activities.get(id);
+      if (known) {
+        known.startedAt = new Date().toISOString();
+        return;
+      }
       const entry = { id, source, label: activity.label?.trim() || activity.id, startedAt: new Date().toISOString() };
       session.activities.set(id, entry);
       await this.host.emit(session, "session.activity_begin", { ...entry });
