@@ -173,19 +173,30 @@ self.addEventListener("push", (event) => {
   const text = data.test ? { title: "AncientVoid — Test", body: "Push kommt auf diesem Gerät an." } : PUSH_TEXT[data.category] ?? PUSH_TEXT.error;
   const host = data.hostId && data.hostId !== "local" ? `/hosts/${encodeURIComponent(data.hostId)}` : "";
   const url = data.sessionId ? `/#${host}/sessions/${encodeURIComponent(data.sessionId)}` : "/#/";
+  // BUG-0223: ist ein App-Fenster sichtbar, übernimmt der In-App-Toast —
+  // die OS-Meldung käme auf demselben Gerät sonst doppelt. Verdeckte oder
+  // geschlossene Fenster bekommen weiterhin Push (dort sieht niemand den
+  // Toast). Der Test-Push bleibt ausgenommen: der Testknopf in den
+  // Einstellungen soll die OS-Auslieferung gerade mit offener App prüfen.
+  const sichtbar = data.test
+    ? Promise.resolve(false)
+    : self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => wins.some((w) => w.visibilityState === "visible"));
   event.waitUntil(
-    self.registration.showNotification(text.title, {
-      body: text.body,
-      // One notification per hub notification, even if it arrives twice.
-      tag: data.id ? `ancientvoid-${data.hostId ?? ""}-${data.id}` : "ancientvoid-test",
-      data: { url },
-      icon: "/icons/icon-192.png",
-      badge: "/icons/favicon-32.png",
-      // Approvals block an agent: stay on screen and buzz; finished turns stay quiet.
-      vibrate: data.category === "approval" ? [200, 100, 200] : data.category === "error" ? [120, 60, 120] : [80],
-      requireInteraction: data.category === "approval",
-      renotify: true,
-      timestamp: Date.now(),
+    sichtbar.then((offen) => {
+      if (offen) return;
+      return self.registration.showNotification(text.title, {
+        body: text.body,
+        // One notification per hub notification, even if it arrives twice.
+        tag: data.id ? `ancientvoid-${data.hostId ?? ""}-${data.id}` : "ancientvoid-test",
+        data: { url },
+        icon: "/icons/icon-192.png",
+        badge: "/icons/favicon-32.png",
+        // Approvals block an agent: stay on screen and buzz; finished turns stay quiet.
+        vibrate: data.category === "approval" ? [200, 100, 200] : data.category === "error" ? [120, 60, 120] : [80],
+        requireInteraction: data.category === "approval",
+        renotify: true,
+        timestamp: Date.now(),
+      });
     }),
   );
 });

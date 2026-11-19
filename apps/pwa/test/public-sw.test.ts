@@ -39,3 +39,17 @@ describe("Service Worker: Manifest bleibt draußen (BUG-0186)", () => {
     expect(sw).toMatch(/event\.respondWith\(fetch\(req\)\)/);
   });
 });
+
+describe("Service Worker: Push nicht doppelt zur offenen App (BUG-0223)", () => {
+  it("der push-Handler prüft sichtbare Fenster, bevor er eine OS-Meldung zeigt", () => {
+    // Ist ein App-Fenster sichtbar, übernimmt der In-App-Toast — die OS-Meldung
+    // käme sonst auf demselben Gerät doppelt.
+    expect(sw).toMatch(/addEventListener\("push"[\s\S]*?visibilityState[\s\S]*?showNotification/);
+  });
+
+  it("der Test-Push bleibt von der Sichtbarkeitsprüfung ausgenommen", () => {
+    // Der Testknopf in den Einstellungen soll die OS-Auslieferung gerade dann
+    // zeigen, wenn die App offen ist.
+    expect(sw).toMatch(/data\.test[\s\S]*?visibilityState/);
+  });
+});
