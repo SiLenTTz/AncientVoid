@@ -7,8 +7,8 @@ import { Button } from "../../shared/ui/index.ts";
 import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS } from "./urgency.ts";
 import { SECTION_KEYS, defaultExpanded, sectionOf, type SectionKey } from "./sections.ts";
 import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
+import { applyNotificationPage, type FleetNotification } from "./merge.ts";
 import { soundCategoryOf } from "./sound-category.ts";
-
 const READ_KEY = "ancientvoid.notifications.readUpTo";
 /** EPIC-P6: read marks of other hosts, { hostId: lastReadId }. */
 const PEER_READ_KEY = "ancientvoid.notifications.readByHost";
@@ -29,9 +29,6 @@ interface Toast {
   sessionId: string | null;
   hostId: string | null;
 }
-
-/** A notification with the host it came from (null = this hub). */
-type FleetNotification = HubNotification & { hostId: string | null; key: string; actionBusy?: boolean };
 
 function readMarks(): Record<string, number> {
   let peers: Record<string, number> = {};
@@ -157,12 +154,17 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       key: `${key}#${n.id}`,
       title: hostId ? `${hostId} · ${n.title}` : n.title,
     }));
+    // BUG-0222: eine Seite, die ein überlappender Poll nochmal liefert, spielt
+    // nichts nach — bereits Gesehenes (id <= known) wird gefiltert, der
+    // Bestand behält jeden key genau einmal.
+    const prev = itemsRef.current;
+    const { added, next } = applyNotificationPage(prev, stamped, known);
     if (known !== null) {
       // T8.6: "Zug fertig" goes to the bell only — with many sessions its
       // toasts covered the controls at the top for seconds (P8 Messlauf).
       // EPIC-P65: der Sound dazu läuft trotzdem — pro neu ankommende Meldung
       // (nie beim Laden), Kategorie-Mapping im getesteten Modul, Rate-Limit im Modul.
-      for (const n of [...stamped].reverse()) {
+      for (const n of [...added].reverse()) {
         const show = () => toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
         // Premortem P8-2: an approval decided meanwhile (e.g. a peer's
         // notification that arrived late) is no toast any more.
@@ -183,8 +185,10 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         }
       }
     }
-    if (stamped.length > 0) {
-      setItems((prev) => [...stamped, ...prev].sort((x, y) => (x.createdAt < y.createdAt ? 1 : -1)).slice(0, 100));
+    // auch am 100er-Cap (gleiche Länge, neuer Kopf) wird die Liste neu gesetzt
+    if (added.length > 0 || next.length > prev.length) {
+      itemsRef.current = next;
+      setItems(next);
     }
     lastIds.current[key] = Math.max(known ?? 0, page.lastId);
   };
@@ -213,35 +217,46 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         .fleetPeers()
         .then((list) => (peers.current = list.map((p) => p.hostId)))
         .catch(() => undefined);
+    // BUG-0222: nie zwei Polls gleichzeitig — ein träger Peer macht einen
+    // Poll länger als POLL_MS; überlappende Antworten würden dieselben
+    // Meldungen nachspielen. Der nächste Tick holt nach, was diese Runde
+    // verpasst (der Cursor steht ja erst nach der Antwort).
+    let polling = false;
     const poll = async () => {
+      if (polling) return;
+      polling = true;
       try {
-        const page = await hubApi.notifications(lastIds.current[""] ?? 0);
-        if (!alive) return;
-        if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
-        failures.current = 0;
-        take(null, page);
-      } catch {
-        if (!alive) return;
-        failures.current += 1;
-        if (failures.current === HUB_DOWN_AFTER) {
-          toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
+        try {
+          const page = await hubApi.notifications(lastIds.current[""] ?? 0);
+          if (!alive) return;
+          if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
+          failures.current = 0;
+          take(null, page);
+        } catch {
+          if (!alive) return;
+          failures.current += 1;
+          if (failures.current === HUB_DOWN_AFTER) {
+            toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
+          }
         }
+        // EPIC-P6 T6.6: other hosts' notifications through this hub. A host
+        // that is away stays quiet here — the overview shows its state.
+        await Promise.all(
+          peers.current.map((hostId) =>
+            hostApi(hostId)
+              .notifications(lastIds.current[hostId] ?? 0)
+              .then((page) => alive && take(hostId, page))
+              .catch(() => undefined),
+          ),
+        );
+        // EPIC-P64 T64.3: offene Fragen werden im Hintergrund verfeinert — der
+        // action-Glow braucht die Pending-Menge, auch wenn niemand das Panel
+        // offen hat. Nur mit Kandidaten im Bestand (kein API-Ruf je 4 s ohne
+        // Anlass); bei offenem Panel wie bisher immer (feinere Liste).
+        if (alive && (openRef.current || hasApprovalCandidates(itemsRef.current))) refreshPending();
+      } finally {
+        polling = false;
       }
-      // EPIC-P6 T6.6: other hosts' notifications through this hub. A host
-      // that is away stays quiet here — the overview shows its state.
-      await Promise.all(
-        peers.current.map((hostId) =>
-          hostApi(hostId)
-            .notifications(lastIds.current[hostId] ?? 0)
-            .then((page) => alive && take(hostId, page))
-            .catch(() => undefined),
-        ),
-      );
-      // EPIC-P64 T64.3: offene Fragen werden im Hintergrund verfeinert — der
-      // action-Glow braucht die Pending-Menge, auch wenn niemand das Panel
-      // offen hat. Nur mit Kandidaten im Bestand (kein API-Ruf je 4 s ohne
-      // Anlass); bei offenem Panel wie bisher immer (feinere Liste).
-      if (alive && (openRef.current || hasApprovalCandidates(itemsRef.current))) refreshPending();
     };
     void loadPeers().then(() => poll());
     const timer = setInterval(() => void poll(), POLL_MS);

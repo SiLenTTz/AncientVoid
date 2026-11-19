@@ -167,6 +167,42 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await hub.restart();
     await expect(app.locator(".toast.success").filter({ hasText: "Verbindung zum Hub wieder da" })).toBeVisible({ timeout: 15_000 });
   });
+
+  test("überlappende Polls spielen dieselbe Meldung nicht doppelt (BUG-0222)", async ({ app, hub }) => {
+    test.setTimeout(75_000);
+    const titel = "Race-Meldung (BUG-0222)";
+    const page2 = {
+      items: [{ id: 1, sessionId: null, level: "error", title: titel, detail: null, kind: "process.exit", createdAt: new Date().toISOString() }],
+      lastId: 1,
+    };
+    let calls = 0;
+    // Executor-Form: das e2e-tsconfig zielt unter es2024, Promise.withResolvers ist dort nicht in der lib.
+    let dritterDa: (() => void) | undefined;
+    const dritter = new Promise<void>((r) => (dritterDa = r));
+    const verzoeger = new Promise((r) => setTimeout(r, 6000));
+    // Abruf 2 bleibt hängen, bis Abruf 3 eintrifft (überlappender Poll) oder
+    // 6 s vergehen (In-Flight-Guard hält 3 zurück) — dann löst sich 2 mit der
+    // neuen Meldung, und 3 bekommt denselben Stand nochmal.
+    await app.route("**/api/notifications*", async (route) => {
+      calls += 1;
+      if (calls === 1) return route.fulfill({ json: { items: [], lastId: 0 } });
+      if (calls === 2) {
+        await Promise.race([dritter, verzoeger]);
+        return route.fulfill({ json: page2 });
+      }
+      if (calls === 3) {
+        dritterDa?.();
+        return route.fulfill({ json: page2 });
+      }
+      return route.fulfill({ json: { items: [], lastId: 1 } });
+    });
+    await app.goto(`${hub.origin}/#/`);
+    await expect.poll(() => calls, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+    await app.waitForTimeout(7000); // Race ablaufen lassen: entweder kam 3 doppelt oder die Guard hielt ihn zurück
+    await expect(app.locator(".toast").filter({ hasText: titel })).toHaveCount(1);
+    await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
+    await expect(app.locator(".notif-item").filter({ hasText: titel })).toHaveCount(1);
+  });
 });
 
 test.describe("Benachrichtigungen bei UI-Skalierung (Nutzerfund 2026-10-30)", () => {
