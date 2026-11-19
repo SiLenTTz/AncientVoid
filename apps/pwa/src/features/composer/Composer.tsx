@@ -14,6 +14,7 @@ import { Button } from "../../shared/ui/index.ts";
 import { openClipboardShelf } from "../../shared/clipboard-shelf.ts";
 import { ShelfGlyph, useShelfCount } from "../clipboard/ClipboardShelf.tsx";
 import { discardReplay, reRecognize, useReplay } from "../stt/replay-recognize.ts";
+import { SttModeRow } from "../stt/SttModeRow.tsx";
 
 /** T1.5-8: enhance.ts only has a real implementation for these adapters —
  * never offer the button for an adapter it can't actually enhance for
@@ -346,6 +347,8 @@ export function Composer({
           )}
         </div>
       )}
+      {/* ADR-0094: welche Quelle der Spracheingabe dieses Geraet benutzt */}
+      <SttModeRow />
       {suggestions.length > 0 && (
         <div class="composer-notice" role="listbox" aria-label="Commands">
           {suggestions.map((c, i) => (
