@@ -120,3 +120,37 @@
 :root:has(.nyx-fab:is([data-bp="phone"], [data-bp="tablet"])) .tail-scroll {
   padding-bottom: 80px;
 }
+
+/* ADR-0095 (Nachtrag): Quellen-Menue — kommt nur beim Halten des Knopfs, damit es
+ * in der Eingabgegend keinen Dauerplatz kostet. */
+.stt-modus-menue {
+  position: fixed;
+  /* Erstanker fernab: erst die Messung am Knopf setzt link/oben — sonst ist kurz ein
+   * Kasten am Rand sichtbar. */
+  left: -999px;
+  top: -999px;
+  z-index: var(--z-popout);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 250px;
+  max-width: calc(100vw - 16px);
+  padding: var(--space-2);
+  background: var(--bg-elev);
+  border-radius: var(--radius);
+  /* Der Ring aus --shadow-elev: er erzaehlt am dunklen Chatgrund erst, wo die
+   * Flaeche aufhoert — ohne ihn schneidet das Menue Chattext einfach ab. */
+  box-shadow: var(--shadow-elev);
+}
+
+.stt-modus-head {
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stt-modus-note {
+  color: var(--fg-dim);
+  font-size: var(--text-xs);
+}

@@ -3,9 +3,16 @@ import { NyxSprite } from "../nyx/Nyx.tsx";
 import { clampFabPos, fabBreakpoint, hasStoredFabPos, loadFabPos, saveFabPos, type FabPos } from "./fab-position.ts";
 import { placeFabAvoiding, type FabRect } from "./fab-clearance.ts";
 import { installFocusTracker } from "./paste-target.ts";
+import { recordingSupported } from "../../shared/local-stt.ts";
+import { speechRecognitionSupported } from "../../shared/speech.ts";
 import { usePushToTalk } from "./use-push-to-talk.ts";
+import { SttModeMenu } from "./SttModeMenu.tsx";
 
 const DRAG_THRESHOLD = 8;
+// ADR-0095: wer den Knopf **gehalten** drueckt, will die Quelle waehlen — kurzes
+// Tippen nimmt weiter auf. 500 ms sind lang genug, um ein versehentliches
+// Quelle-Menue beim normalen Diktat-Start auszuschliessen.
+const HALTEN_MS = 500;
 
 /**
  * Globaler, verschiebbarer Nyx-FAB: einziger Auslöser für Speech-to-Text in die
@@ -20,6 +27,8 @@ export function NyxFab() {
   const drag = useRef<{ sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
   const [dragging, setDragging] = useState(false);
   const suppressClick = useRef(false);
+  const [quellenMenue, setQuellenMenue] = useState(false);
+  const halten = useRef<{ timer: ReturnType<typeof setTimeout>; ausgeloest: boolean } | null>(null);
   // BUG-0199: Ausweichplatz (wenn der FAB sonst ein Bedienelement zudecken wuerde) und ob
   // er ueberhaupt nicht zeigen kann. Die Nutzerposition `pos` bleibt davon unberuehrt.
   const [ausweg, setAusweg] = useState<FabPos | null>(null);
@@ -147,16 +156,37 @@ export function NyxFab() {
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const knopf = e.currentTarget as HTMLElement;
+    knopf.setPointerCapture(e.pointerId);
     drag.current = { sx: e.clientX, sy: e.clientY, ox: posRef.current.x, oy: posRef.current.y, moved: false };
     setDragging(true);
+    const timer = setTimeout(() => {
+      const d = drag.current;
+      if (d && d.moved) return;
+      // Auf einem Gerat ohne jedes Mikro und ohne Browser-Erkennung fragt das Menue
+      // nach nichts Sinnvollem. Aber: die Gerate-Faehigkeit zaehlt, nicht die gerade
+      // gewaehlte Quelle — sonst sperrt eine "lokal"-Wahl bei krankem Hub den Weg zurueck.
+      if (!recordingSupported() && !speechRecognitionSupported()) return;
+      if (halten.current) halten.current.ausgeloest = true;
+      drag.current = null;
+      setDragging(false);
+      setQuellenMenue(true);
+    }, HALTEN_MS);
+    halten.current = { timer, ausgeloest: false };
   };
   const onPointerMove = (e: PointerEvent) => {
     const d = drag.current;
     if (!d) return;
     const dx = e.clientX - d.sx;
     const dy = e.clientY - d.sy;
-    if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) d.moved = true;
+    if (Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) {
+      d.moved = true;
+      // Wer zieht, will nicht waehlen.
+      if (halten.current) {
+        clearTimeout(halten.current.timer);
+        halten.current = null;
+      }
+    }
     if (d.moved) {
       const next = clampFabPos({ x: d.ox + dx, y: d.oy + dy }, window.innerWidth, window.innerHeight);
       posRef.current = next;
@@ -167,6 +197,10 @@ export function NyxFab() {
     const d = drag.current;
     drag.current = null;
     setDragging(false);
+    const h = halten.current;
+    halten.current = null;
+    if (h) clearTimeout(h.timer);
+    if (h?.ausgeloest) suppressClick.current = true;
     if (!d) return;
     if (d.moved) {
       suppressClick.current = true;
@@ -196,6 +230,7 @@ export function NyxFab() {
 
   return (
     <>
+      {quellenMenue && <SttModeMenu onClose={() => setQuellenMenue(false)} />}
       <button
         type="button"
         data-nyx-fab
