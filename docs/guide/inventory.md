@@ -79,6 +79,7 @@ Regeln:
 | feature:forge | Forge context: issues, reviews, CI | forge-review |
 | feature:git-graph | Git history graph | git-graph |
 | feature:graph | Repository graph (pulsing network) | repo-graph |
+| feature:knowledge | Knowledge sources: connect an MCP knowledge server, check status, search and read | knowledge-sources |
 | feature:loops | Loop connectors (factory, orchestrators) | loops |
 | feature:media | Media uploads and video analysis | media |
 | feature:new-session | New-session form: project choice, workplace, start | session |

@@ -302,6 +302,10 @@ Git-Struktur layer is removed). Spec: [git-graph.spec.ts](../../e2e/specs/git-gr
 The repository graph: a pulsing network of files and references, with the
 galaxy view for orientation. Spec: [repo-graph.spec.ts](../../e2e/specs/repo-graph.spec.ts)
 
+### feature:knowledge
+
+Knowledge sources (Settings → Wissensquellen): connect an MCP knowledge server such as the HiveMind Librarian with URL and token (bearer, custom header or none; the token is write-only). "Prüfen" shows a status per source — reachable, unreachable, access denied, protocol error, source error. Search results and documents are shown as plain text, never as instructions. Spec: [knowledge-sources.spec.ts](../../e2e/specs/knowledge-sources.spec.ts)
+
 ### feature:loops
 
 Loop connectors (factory, orchestrators) as steer-able sessions. Spec: [loops.spec.ts](../../e2e/specs/loops.spec.ts)

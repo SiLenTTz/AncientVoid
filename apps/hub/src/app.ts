@@ -5,7 +5,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import fastifyStatic from "@fastify/static";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, MainSyncSettingsService } from "@ancientvoid/core";
+import type { ClaudeLive, DesktopService, AttachmentStore, PlannerModelConfig, PushService, SettingsStore, SessionManager, TokenService, AdapterRegistry, LoopRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, KnowledgeService, MainSyncSettingsService } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import type { ExternalJobsService } from "./modules/automations/external-jobs.ts";
@@ -37,6 +37,8 @@ export interface HubAppDeps {
   /** EPIC-P73 (ADR-0094): Forge-Token-Dateien aus der Config — die PWA darf
    * Tokens eintragen (Datei schreiben), sie aber nie zurücklesen. */
   forgeTokens?: { githubTokenFile?: string };
+  /** EPIC-P74 (ADR-0096): Wissensquellen (Tests injizieren hier ein fetch). */
+  knowledge?: KnowledgeService;
   /** EPIC-P73 (ADR-0094): externe Auto-Jobs (GitHub-Actions, Issue-Bridge). */
   externalJobs?: ExternalJobsService;
   team?: HubTeam;

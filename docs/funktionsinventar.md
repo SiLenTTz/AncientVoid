@@ -109,6 +109,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G74 | Töne: Master, Kategorien an/aus, Variante und Lautstärke mit Vorschau, Panel-Knopf stumm/laut | Einstellungen → Töne | EPIC-P65 | spec:sounds.spec.ts |
 | G75 | Main-Sync: neue Sessions starten auf origin/Hauptbranch (Fetch mit hartem Timeout, Fallback + sichtbares Event); laufende Prüfung je Projekt mit Modi melden/fragen/automatisch; Session-Hinweis „N hinter main“ mit Prüfen/Einmischen im ⋯-Menü; Benachrichtigung mit Aktionsknopf | Einstellungen → Main-Synchronisation · Session ⋯-Menü · `hubctl main-sync` | EPIC-P67 / ADR-0088 | spec:main-sync-session.spec.ts |
 | G76 | Release-Notes: pro PR Was (Commits, Dateien, ±Zeilen) und Warum (PR-Beschreibung) aus dem lokalen Git-Verlauf; Subjects ohne Notation bleiben roh sichtbar | Dock „Mehr“ → „Release-Notes“; PC: Leiste | — | spec:release-notes.spec.ts |
+| G77 | Wissensquellen: MCP-Wissensserver (z. B. Librarian) anbinden — Adresse, Anmeldung Bearer/eigener Header/keine, Token write-only; Prüfen mit sichtbarem Status je Quelle; durchsuchen und Treffer lesen (fremder Text, keine Anweisung) | Einstellungen → Wissensquellen | EPIC-P74 / ADR-0096 | spec:knowledge-sources.spec.ts |
 
 ## Session
 
