@@ -134,6 +134,20 @@ export const HubConfig = z.object({
        .default({ command: "glab" }),
    })
    .default({ gitlab: { command: "glab" } }),
+  /** EPIC-P73 (ADR-0094): Issue-Session-Bridge — der Hub pollt outbound nach
+   * gelabelten Issues und startet dafür je eine Session. Ohne Sektion bleibt
+   * alles beim alten Zustand; das Label ist das Freigabe-Gate (PRD §8.5). */
+  issues: z.object({
+    repo: z.string().regex(/^[^\s/]+\/[^\s/]+$/, "repo muss owner/name sein"),
+    /** GitHub-Token (Issues lesen/schreiben, Actions lesen) als Dateireferenz
+     * (erste Zeile) — nie in der Config selbst. */
+    tokenFile: z.string().min(1),
+    triggerLabel: z.string().min(1).max(64).default("session"),
+    adapter: z.string().min(1),
+    project: z.string().min(1),
+    model: z.string().optional(),
+    pollIntervalMs: z.number().int().min(10_000).max(3_600_000).default(60_000),
+  }).optional(),
   /** T9.2 (ADR-0027): local model for text commands and text edits;
    * absent → the gatekeeper's model, if any. Never a cloud fallback. */
   assistant: z

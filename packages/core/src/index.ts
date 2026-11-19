@@ -33,6 +33,7 @@ export * from "./modules/graph/index.ts";
 export * from "./modules/git-graph/index.ts";
 export * from "./modules/vault/index.ts";
 export * from "./modules/automations/index.ts";
+export * from "./modules/issues/index.ts";
 export * from "./modules/team/index.ts";
 
 export * from "./modules/aimetrics/index.ts";
