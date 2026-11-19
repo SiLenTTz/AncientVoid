@@ -28,12 +28,20 @@ describe("Verbindungs-Registry (Optionen: VoidWarden + Endpoints)", () => {
     return { status: res.statusCode, body: res.json() as Record<string, unknown> };
   }
 
-  async function build(withSettings = true): Promise<void> {
+  async function build(withSettings = true, githubTokenFile?: string): Promise<void> {
     const db = new HubDatabase(":memory:");
     tokens = new TokenService(db);
     const registry = new AdapterRegistry();
     sessions = new SessionManager(db, new EventStore(dir), registry, new ProcessRunner());
-    app = await createHubApp({ sessions, tokens, registry, auth: { tokens, enforceTailnetIdentity: false }, projectRoots: [dir], ...(withSettings ? { settings: new SettingsStore(db) } : {}) });
+    app = await createHubApp({
+      sessions,
+      tokens,
+      registry,
+      auth: { tokens, enforceTailnetIdentity: false },
+      projectRoots: [dir],
+      ...(withSettings ? { settings: new SettingsStore(db) } : {}),
+      ...(githubTokenFile ? { forgeTokens: { githubTokenFile } } : {}),
+    });
   }
 
   beforeEach(async () => {
@@ -63,6 +71,36 @@ describe("Verbindungs-Registry (Optionen: VoidWarden + Endpoints)", () => {
     expect((await call("POST", "/api/connections/voidwarden", agent, { name: "Nyx" })).status).toBe(403);
     const display = tokens.issue("display:kiosk").token;
     expect((await call("GET", "/api/connections", display)).status).toBe(403);
+  });
+
+  it("Forge GitHub-Token: ohne konfigurierte Datei ehrlich 422, sonst write-only mit Status", async () => {
+    // Ohne forgeTokens-Dep: der Pfad ist nicht konfiguriert — keine stillschweigende Annahme.
+    const unconfigured = await call("PUT", "/api/connections/forge/github", human, { token: "github_pat_abcdefghijklmnop" });
+    expect(unconfigured.status).toBe(422);
+    expect(unconfigured.body.error).toContain("forge.github.tokenFile");
+    expect(((await call("GET", "/api/connections", human)).body.forge as { github: { present: boolean } }).github).toMatchObject({ tokenFile: null, present: false });
+
+    // Mit konfigurierter Datei: PUT schreibt die erste Zeile, 0600, nie zurücklesen.
+    await sessions.shutdown();
+    await app.close();
+    const tokenFile = join(dir, "github.txt");
+    await build(true, tokenFile);
+    const humanToken = tokens.issue("pixel").token;
+    const saved = await call("PUT", "/api/connections/forge/github", humanToken, { token: "github_pat_erste_zeile\nangehaengte_zeile" });
+    expect(saved.status).toBe(200);
+    expect(saved.body).toMatchObject({ ok: true, tokenFile, present: true });
+    const { readFileSync, statSync } = await import("node:fs");
+    expect(readFileSync(tokenFile, "utf8")).toBe("github_pat_erste_zeile\n");
+    expect(statSync(tokenFile).mode & 0o777).toBe(0o600);
+    const status = (await call("GET", "/api/connections", humanToken)).body.forge as { github: { tokenFile: string; present: boolean } };
+    expect(status.github).toMatchObject({ tokenFile, present: true });
+    expect(JSON.stringify(status)).not.toContain("github_pat_erste_zeile"); // Token bleibt write-only
+    // Agenten dürfen den Token nicht setzen (settings.manage).
+    const agentToken = tokens.issue("agent:mcp").token;
+    expect((await call("PUT", "/api/connections/forge/github", agentToken, { token: "github_pat_anderer_token" })).status).toBe(403);
+    // Zu kurze/leere Eingaben scheitern laut, überschreiben nichts.
+    expect((await call("PUT", "/api/connections/forge/github", humanToken, { token: "kurz" })).status).toBe(400);
+    expect(readFileSync(tokenFile, "utf8")).toBe("github_pat_erste_zeile\n");
   });
 
   it("VoidWarden: Token einmalig sichtbar, liest read-only, Status = letzte Meldung; Erneuern legt still", async () => {

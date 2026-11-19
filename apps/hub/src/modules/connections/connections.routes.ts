@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
+import { chmodSync, closeSync, existsSync, openSync, readFileSync, writeSync } from "node:fs";
 import { z } from "zod";
 import { EndpointEntryInput, VoidWardenConnectionInput, CONNECTIONS_MAX_ENDPOINTS, CONNECTIONS_MAX_VOIDWARDEN } from "@ancientvoid/contracts";
 import { ConnectionStore, probeEndpoint, type StoredEndpoint, type StoredVoidWarden } from "@ancientvoid/core";
@@ -26,6 +27,7 @@ export function registerConnectionRoutes(app: FastifyInstance, ctx: RouteContext
       ["PUT", "/api/connections/endpoints/:id"],
       ["DELETE", "/api/connections/endpoints/:id"],
       ["POST", "/api/connections/endpoints/:id/probe"],
+      ["PUT", "/api/connections/forge/github"],
     ] as const) {
       app.route({ method, url: path, handler: async (_req, reply) => reply.code(501).send({ error: "Verbindungen nicht konfiguriert (keine Persistenz am Hub)" }) });
     }
@@ -61,7 +63,39 @@ export function registerConnectionRoutes(app: FastifyInstance, ctx: RouteContext
     probe: e.probe,
   });
 
-  app.get("/api/connections", async () => ({ voidwarden: store.listVoidWarden().map(voidWardenView), endpoints: store.listEndpoints().map(endpointView) }));
+  app.get("/api/connections", async () => ({
+    voidwarden: store.listVoidWarden().map(voidWardenView),
+    endpoints: store.listEndpoints().map(endpointView),
+    forge: { github: githubTokenStatus() },
+  }));
+
+  /** EPIC-P73 (ADR-0094): GitHub-Token über die UI eintragen — die Datei wird
+   * geschrieben, der Token selbst nie zurückgegeben (write-only wie Endpoint-Schlüssel). */
+  function githubTokenStatus(): { tokenFile: string | null; present: boolean } {
+    const tokenFile = deps.forgeTokens?.githubTokenFile ?? null;
+    return { tokenFile, present: tokenFile !== null && existsSync(tokenFile) && readFileSync(tokenFile, "utf8").split("\n", 1)[0]!.trim().length > 0 };
+  }
+
+  app.put("/api/connections/forge/github", async (req, reply) => {
+    const tokenFile = deps.forgeTokens?.githubTokenFile;
+    if (!tokenFile) return reply.code(422).send({ error: "forge.github.tokenFile ist nicht konfiguriert — Pfad zuerst in der Hub-Config eintragen." });
+    const body = z.object({ token: z.string().trim().min(10, "Token ist zu kurz").max(400) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: body.error.issues[0]?.message ?? "ungültiger Token" });
+    try {
+      // Nur die erste Zeile ist der Token (ADR-0094) — angehängte Zeilen fallen weg.
+      const first = body.data.token.split("\n", 1)[0]!.trim();
+      const fd = openSync(tokenFile, "w", 0o600);
+      try {
+        writeSync(fd, `${first}\n`);
+      } finally {
+        closeSync(fd);
+      }
+      chmodSync(tokenFile, 0o600);
+      return { ok: true, ...githubTokenStatus() };
+    } catch (err) {
+      return reply.code(500).send({ error: `Token-Datei nicht schreibbar (${tokenFile}): ${err instanceof Error ? err.message : String(err)}` });
+    }
+  });
 
   app.post("/api/connections/voidwarden", async (req, reply) => {
     const body = VoidWardenConnectionInput.safeParse(req.body);

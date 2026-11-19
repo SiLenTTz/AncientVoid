@@ -72,6 +72,9 @@ export interface RouteDeps {
   forge?: ForgeService;
   /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
   automations?: AutomationService;
+  /** EPIC-P73 (ADR-0094): Forge-Token-Dateien aus der Config — die PWA darf
+   * Tokens eintragen (Datei schreiben), sie aber nie zurücklesen. */
+  forgeTokens?: { githubTokenFile?: string };
   /** EPIC-P73 (ADR-0094): externe Auto-Jobs (GitHub-Actions, Issue-Bridge) —
    * immer vorhanden; ohne Quellen antwortet der Endpunkt ehrlich leer. */
   externalJobs?: ExternalJobsService;
