@@ -232,12 +232,14 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
       Tool-Schemas; Tenant-Mapping-Entscheidung mit Kerrigan; Health = `kb_overview`.
 - [ ] T74.5 Quellen-Konnektor-SDK + `filesystem-markdown`- und `git-repo`-Pilot;
       Checkpoint-/ID-Tests (Re-Index idempotent).
-- [ ] T74.6a Erster Anwendungsfall „HiveMind-Librarian anbinden" (Nutzerauftrag 19.11.2026):
+- [x] T74.6a Erster Anwendungsfall „HiveMind-Librarian anbinden" (Nutzerauftrag 19.11.2026):
       Quelle über die Einstellungen anlegen (URL, Auth `none|bearer|header`, Geheimnis
       write-only), prüfen (`tools/list` + `kb_overview`), suchen und lesen; Status je Quelle
       sichtbar (Fail loud). Generischer Client gegen §3.3.1, getestet gegen einen
       In-Process-MCP-Server; Live-Nachweis gegen den echten Librarian folgt mit T74.4.
       Messlatten: K5-Geist (Caps + `truncated`), K7 (config-Tabelle, Status abgeleitet).
+      **Umgesetzt 19.11.2026 (PR #201)** — offen bleibt der Live-Nachweis gegen den echten
+      Librarian (AC-P74-2, nach T74.4).
 - [ ] T74.6 Hub-Integration (Rest nach T74.6a): Knowledge-Panel im Vault-Tab,
       Freigaben-Dialog für `add`, Offline-Snapshot (K10).
 - [ ] T74.7 `gateway-mcp`-Operations-Ziel „knowledge" (Sessions/Agenten erreichen die
