@@ -12,16 +12,25 @@ export interface MainSyncCandidate {
   waiting: boolean;
 }
 
-/** Debounce-Zustand je Session — bewusst nur im Speicher (K7: kein persistenter Timer). */
-interface SeenState {
-  behind: number;
-  /** zuletzt gemeldeter Fetch-/Probelauf-Fehler — gleicher Fehler meldet sich nicht je Takt neu. */
+/** Debounce-Zustand je Projekt — bewusst nur im Speicher (K7: kein persistenter Timer). */
+interface ProjectSeen {
+  /** zuletzt gemeldeter Rückstand (Maximum über die Sessions) — gleicher Stand meldet nicht neu. */
+  behind?: number;
+  /** zuletzt gemeldeter Fetch-Fehler — gleiche Lage meldet sich nicht erneut (BUG-0224). */
   failure?: string;
+}
+
+/** Debounce-Zustand je Session — was wirklich nur diese Session betrifft (BUG-0224). */
+interface SessionSeen {
+  /** zuletzt gemeldete Konflikt-Dateiliste — gleiche Liste nicht erneut. */
+  conflict?: string;
+  /** zuletzt gemeldeter Fehler (`reason|detail`) — gleiche Ursache nicht erneut. */
+  failed?: string;
 }
 
 /** Was der Scheduler nach draußen meldet — T67.6 macht daraus Hub-Benachrichtigungen + Push. */
 export type MainSyncSchedulerNotice =
-  | { kind: "behind"; sessionId: string; projectPath: string; behind: number; branch: string; mode: "notify" | "ask" }
+  | { kind: "behind"; sessionId: string; projectPath: string; behind: number; branch: string; mode: "notify" | "ask"; sessions: number }
   | { kind: "conflict"; sessionId: string; projectPath: string; files: string[] }
   | { kind: "applied"; sessionId: string; projectPath: string; result: Extract<MainSyncApplyResult, { outcome: "applied" }> }
   | { kind: "failed"; sessionId: string; projectPath: string; reason: string; detail?: string };
@@ -62,7 +71,10 @@ export class MainSyncScheduler {
   private readonly pollMs: number;
   private readonly fetch: (projectPath: string, branch: string, timeoutSec: number) => Promise<void>;
   private readonly lastRun = new Map<string, number>();
-  private readonly seen = new Map<string, SeenState>();
+  /** BUG-0224: behind/Fetch-Fehler je Projekt deduplizieren — ein Fetch und ein
+   * Rückstand sind Projekt-Zustände; je Session meldeten 41 Sessions 41 Rows. */
+  private readonly seenProject = new Map<string, ProjectSeen>();
+  private readonly seenSession = new Map<string, SessionSeen>();
   private readonly running = new Set<string>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private ticking: Promise<void> | null = null;
@@ -131,44 +143,53 @@ export class MainSyncScheduler {
     try {
       await this.fetch(projectPath, branch, settings.fetchTimeoutSec);
     } catch {
-      // Fetch gescheitert: je Session einmal je Fehlerlage melden (Premortem 5), beim nächsten Takt erneut versuchen
-      for (const s of sessions) {
-        const seen = this.seen.get(s.sessionId);
-        const failure = "fetch-failed";
-        if (seen?.failure === failure) continue;
-        this.seen.set(s.sessionId, { behind: seen?.behind ?? 0, failure });
-        this.deps.notice({ kind: "failed", sessionId: s.sessionId, projectPath, reason: failure, detail: `Fetch von origin/${branch} gescheitert` });
+      // BUG-0224: ein Fetch je Projekt → eine Meldung je Projekt und Fehlerlage
+      // (vorher je Session); erfolgreiche Fetches löschen die Lage (Flattern
+      // meldet je Wechsel, aber je Projekt).
+      const seen = this.seenProject.get(projectPath);
+      if (seen?.failure === "fetch-failed") return;
+      this.seenProject.set(projectPath, { ...seen, failure: "fetch-failed" });
+      const anchor = sessions[0];
+      if (anchor) {
+        this.deps.notice({ kind: "failed", sessionId: anchor.sessionId, projectPath, reason: "fetch-failed", detail: `Fetch von origin/${branch} gescheitert${sessions.length > 1 ? ` (${sessions.length} Sessions betroffen)` : ""}` });
       }
       return;
     }
+    const { failure: _fetchLage, ...ohneLage } = this.seenProject.get(projectPath) ?? {};
+    if (_fetchLage !== undefined) this.seenProject.set(projectPath, ohneLage);
     const engine = new MainSyncEngine({ now: this.now });
+    const behind: { session: MainSyncCandidate; behind: number }[] = [];
     for (const session of sessions) {
-      await this.runSession(session, engine, branch, settings);
+      try {
+        const measure = await engine.measure(session.workdir, branch);
+        if (measure.behind > 0) behind.push({ session, behind: measure.behind });
+        else this.seenSession.delete(session.sessionId); // Stand aktuell — Session-Lagen zurücksetzen
+      } catch {
+        // Worktree weg/kaputt: Recovery der Session ist deren eigene Aufgabe
+      }
     }
-  }
-
-  private async runSession(session: MainSyncCandidate, engine: MainSyncEngine, branch: string, settings: MainSyncSettings): Promise<void> {
-    let behind: number;
-    try {
-      const measure = await engine.measure(session.workdir, branch);
-      behind = measure.behind;
-    } catch {
-      return; // Worktree weg/kaputt: Recovery der Session ist deren eigene Aufgabe
-    }
-    const previous = this.seen.get(session.sessionId);
-    if (behind === 0) {
-      this.seen.delete(session.sessionId); // Stand aktuell — der nächste Rückstand meldet sich wieder
+    if (behind.length === 0) {
+      const { behind: _stand, ...ohneStand } = this.seenProject.get(projectPath) ?? {};
+      if (_stand !== undefined) this.seenProject.set(projectPath, ohneStand);
       return;
     }
     const mode = resolveBehindMode(settings);
-    if (mode !== "auto-merge") {
-      this.notifyBehindOnce(session, branch, behind, previous, mode);
-      return;
-    }    // auto-merge: Mergen nur bei wartender Session und (im ersten Wurf) nur konfliktfrei
-    if (!session.waiting) {
-      this.notifyBehindOnce(session, branch, behind, previous, "notify");
-      return;
+    let remaining = behind;
+    if (mode === "auto-merge") {
+      const after: { session: MainSyncCandidate; behind: number }[] = [];
+      for (const entry of behind) {
+        const applied = await this.runAutoMerge(entry, engine, branch, projectPath);
+        if (!applied) after.push(entry);
+      }
+      remaining = after;
     }
+    if (remaining.length > 0) this.notifyBehindPerProject(projectPath, branch, remaining, mode === "auto-merge" ? "notify" : mode);
+  }
+
+  /** auto-merge: Probelauf + Merge nur bei wartender Session; true = Session ist aktuell. */
+  private async runAutoMerge(entry: { session: MainSyncCandidate; behind: number }, engine: MainSyncEngine, branch: string, projectPath: string): Promise<boolean> {
+    const { session } = entry;
+    if (!session.waiting) return false;
     let clean: boolean;
     let conflicts: string[];
     try {
@@ -176,31 +197,52 @@ export class MainSyncScheduler {
       clean = dry.clean;
       conflicts = dry.conflicts;
     } catch {
-      this.deps.notice({ kind: "failed", sessionId: session.sessionId, projectPath: session.projectPath, reason: "dry-run-failed" });
-      return;
+      this.noticeSessionFailureOnce(session, "dry-run-failed");
+      return false;
     }
     if (!clean) {
-      this.seen.set(session.sessionId, { behind });
-      this.deps.notice({ kind: "conflict", sessionId: session.sessionId, projectPath: session.projectPath, files: conflicts });
-      return;
+      this.noticeConflictOnce(session, conflicts);
+      return false;
     }
     const result = await this.deps.apply(session.sessionId);
     if (result.outcome === "applied") {
-      this.seen.delete(session.sessionId);
-      this.deps.notice({ kind: "applied", sessionId: session.sessionId, projectPath: session.projectPath, result });
-    } else if (result.outcome === "failed") {
-      this.deps.notice({ kind: "failed", sessionId: session.sessionId, projectPath: session.projectPath, reason: result.reason, ...(result.detail ? { detail: result.detail } : {}) });
-    } else {
-      // skipped/conflict (z. B. doch dirty geworden): beim nächsten Takt erneut bewerten
-      this.notifyBehindOnce(session, branch, behind, previous, "notify");
+      this.seenSession.delete(session.sessionId);
+      this.deps.notice({ kind: "applied", sessionId: session.sessionId, projectPath, result });
+      return true;
     }
+    if (result.outcome === "failed") {
+      this.noticeSessionFailureOnce(session, result.reason, result.detail ?? undefined);
+      return false;
+    }
+    return false; // skipped/conflict (z. B. doch dirty geworden): beim nächsten Takt erneut bewerten
   }
 
-  /** Premortem 5: eine Meldung je Session und behind-Stand — nicht je Takt. */
-  private notifyBehindOnce(session: MainSyncCandidate, branch: string, behind: number, previous: SeenState | undefined, mode: "notify" | "ask"): void {
-    if (previous && previous.behind === behind) return;
-    this.seen.set(session.sessionId, { behind });
-    this.deps.notice({ kind: "behind", sessionId: session.sessionId, projectPath: session.projectPath, behind, branch, mode });
+  /** BUG-0224 (Premortem 5): eine Meldung je Projekt und Stand — nicht je Session, nicht je Takt. */
+  private notifyBehindPerProject(projectPath: string, branch: string, remaining: { session: MainSyncCandidate; behind: number }[], mode: "notify" | "ask"): void {
+    const stand = Math.max(...remaining.map((r) => r.behind));
+    const seen = this.seenProject.get(projectPath);
+    if (seen?.behind === stand) return;
+    this.seenProject.set(projectPath, { ...seen, behind: stand });
+    const anchor = (remaining.find((r) => r.session.waiting) ?? remaining[0])!.session;
+    this.deps.notice({ kind: "behind", sessionId: anchor.sessionId, projectPath, behind: stand, branch, mode, sessions: remaining.length });
+  }
+
+  /** Konflikt je Session und Dateiliste einmal — steht er, meldet er sich nicht je Takt. */
+  private noticeConflictOnce(session: MainSyncCandidate, files: string[]): void {
+    const key = [...files].sort().join("\u0000");
+    const seen = this.seenSession.get(session.sessionId);
+    if (seen?.conflict === key) return;
+    this.seenSession.set(session.sessionId, { ...seen, conflict: key });
+    this.deps.notice({ kind: "conflict", sessionId: session.sessionId, projectPath: session.projectPath, files });
+  }
+
+  /** Fehler je Session und Ursache einmal — dauerhaft Gescheitertes meldet nicht je Takt. */
+  private noticeSessionFailureOnce(session: MainSyncCandidate, reason: string, detail?: string): void {
+    const key = `${reason}|${detail ?? ""}`;
+    const seen = this.seenSession.get(session.sessionId);
+    if (seen?.failed === key) return;
+    this.seenSession.set(session.sessionId, { ...seen, failed: key });
+    this.deps.notice({ kind: "failed", sessionId: session.sessionId, projectPath: session.projectPath, reason, ...(detail ? { detail } : {}) });
   }
 }
 
