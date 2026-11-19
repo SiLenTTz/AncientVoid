@@ -90,8 +90,11 @@ describe("EPIC-P67 T67.5 — MainSyncScheduler: Takt, Modi, Entprellen", () => {
     });
     await scheduler.tick();
     expect(counter.calls).toBe(1);
-    // notify-Default: 20 behind-Meldungen (je Session eine), kein Auto-Merge
-    expect(notices.filter((n) => n.kind === "behind")).toHaveLength(20);
+    // BUG-0224: eine behind-Meldung je Projekt und Stand — 20 Sessions
+    // erzeugen einen Row mit Anzahl, nicht 20 identische Rows.
+    const behind = notices.filter((n) => n.kind === "behind");
+    expect(behind).toHaveLength(1);
+    expect(behind[0]).toMatchObject({ behind: 1, sessions: 20 });
   });
 
   it("Intervall: zweiter Takt innerhalb des Intervalls fetcht nicht; nach Ablauf wieder — und 0 = aus", async () => {
@@ -300,6 +303,69 @@ describe("EPIC-P67 T67.5 — MainSyncScheduler: Takt, Modi, Entprellen", () => {
     });
     await scheduler.tick();
     expect(counter.calls).toBe(2);
+  });
+
+  it("BUG-0224 — Fetch-Fehler meldet je Projekt, nicht je Session; gleiche Lage nicht je Takt", async () => {
+    const { repo } = await mkProject(base, "fetchfail");
+    const notices: MainSyncSchedulerNotice[] = [];
+    const clock = { value: Date.parse("2026-11-19T12:00:00Z") };
+    const scheduler = new MainSyncScheduler({
+      settingsFor: () => settings({ checkIntervalMin: 5 }),
+      candidates: () => [fakeCandidate("s1", repo, repo, true), fakeCandidate("s2", repo, repo, true), fakeCandidate("s3", repo, repo, true)],
+      apply: async () => ({ outcome: "skipped", reason: "up-to-date" }),
+      notice: (n) => notices.push(n),
+      now: () => new Date(clock.value),
+      fetch: async () => {
+        throw new Error("netz weg");
+      },
+    });
+    await scheduler.tick();
+    clock.value += 10 * 60_000;
+    await scheduler.tick();
+    expect(notices.filter((n) => n.kind === "failed")).toHaveLength(1);
+  });
+
+  it("BUG-0224 — dauerhaft scheiterndes apply: eine Meldung je Ursache, nicht je Takt", async () => {
+    const { repo, origin } = await mkProject(base, "applyfail");
+    await advanceOrigin(origin, base, "applyfail", "neuer-stand");
+    const notices: MainSyncSchedulerNotice[] = [];
+    const wt = new WorktreeManager(join(out, "applyfail"));
+    const created = await wt.create("applyfail-session", repo);
+    const clock = { value: Date.parse("2026-11-19T12:00:00Z") };
+    const scheduler = new MainSyncScheduler({
+      settingsFor: () => settings({ checkIntervalMin: 5, behindAction: "auto", autoMerge: "clean-only" }),
+      candidates: () => [fakeCandidate("s1", repo, created!.path, true)],
+      apply: async () => ({ outcome: "failed", reason: "merge-lock" }),
+      notice: (n) => notices.push(n),
+      now: () => new Date(clock.value),
+      fetch: countingFetch({ calls: 0 }, repo),
+    });
+    await scheduler.tick();
+    clock.value += 10 * 60_000;
+    await scheduler.tick();
+    expect(notices.filter((n) => n.kind === "failed" && n.reason === "merge-lock")).toHaveLength(1);
+  });
+
+  it("BUG-0224 — stehender Konflikt: gleiche Dateiliste meldet sich je Session nur einmal", async () => {
+    const { repo, origin } = await mkProject(base, "conflictdedup");
+    const wt = new WorktreeManager(join(out, "conflictdedup"));
+    const created = await wt.create("conflictdedup-session", repo);
+    await commit(created!.path, "session-seite", "gemeinsam.txt", "session\n");
+    await advanceOrigin(origin, base, "conflictdedup", "origin-seite", "gemeinsam.txt");
+    const notices: MainSyncSchedulerNotice[] = [];
+    const clock = { value: Date.parse("2026-11-19T12:00:00Z") };
+    const scheduler = new MainSyncScheduler({
+      settingsFor: () => settings({ checkIntervalMin: 5, behindAction: "auto", autoMerge: "clean-only" }),
+      candidates: () => [fakeCandidate("s1", repo, created!.path, true)],
+      apply: async () => ({ outcome: "conflict", files: [] }),
+      notice: (n) => notices.push(n),
+      now: () => new Date(clock.value),
+      fetch: countingFetch({ calls: 0 }, repo),
+    });
+    await scheduler.tick();
+    clock.value += 10 * 60_000;
+    await scheduler.tick();
+    expect(notices.filter((n) => n.kind === "conflict")).toHaveLength(1);
   });
 });
 

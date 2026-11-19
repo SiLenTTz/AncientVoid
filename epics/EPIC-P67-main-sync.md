@@ -130,10 +130,12 @@ Gegenrichtung.
   persistenter Timer-Zustand nötig, K7). Gleichzeitige Läufe pro Projekt
   werden zusammengefasst.
 - Modi bei `behind > 0`:
-  - `notify`: Benachrichtigung „Session X ist N Commits hinter main“ (ein
-    Eintrag je Session, wird nicht mit jedem Takt neu erzeugt).
+  - `notify`: Benachrichtigung „Projekt X ist N Commits hinter main“ (ein
+    Eintrag je Projekt und Stand, Anzahl der Sessions im Detail — BUG-0224:
+    je Session meldeten 41 Sessions 41 identische Rows; erneut erst bei
+    Änderung des Standes, nicht mit jedem Takt).
   - `ask`: wie `notify`, mit Aktionsknopf „Jetzt aktualisieren“ (Probelauf
-    vorher sichtbar).
+    vorher sichtbar; führt zur Anker-Session des Projekts).
   - `auto`: Merge nach 3.3, sobald die Session wartet; Ergebnis als Event
     und Benachrichtigung (`info`, bei Konflikt `action`).
 - Auto-Merge hat eine eigene Einstellung (siehe 3.5): `off` / `nur sauber` /
@@ -242,8 +244,9 @@ T67.5/T67.6 → T67.7/T67.8 → T67.9 → T67.10. Je Aufgabe eigener Branch/PR.
    Rate-Limits des Git-Hosts.** → Ein Fetch je Projekt, zusammengefasste
    Läufe, Mindestintervall 5 min; K8-Test.
 5. **Benachrichtigungsflut („N hinter main“ bei jeder Prüfung).** → Eine
-   Meldung je Session und Zustand (erneut erst bei Änderung von `behind` oder
-   nach Quittieren); Zählung im Test.
+   Meldung je Projekt und Zustand (erneut erst bei Änderung von `behind`);
+   Konflikt-/Fehlerlagen je Session und Ursache genau einmal (BUG-0224);
+   Zählung im Test.
 6. **Commit-Hook lehnt die Merge-Nachricht ab (Commit-Notation) und der Sync
    bleibt hängen.** → Notation-konforme Nachricht (3.3), Hook-Ablehnung wird
    als `main_sync_failed` sichtbar, nicht verschluckt; Test mit aktivem Hook.

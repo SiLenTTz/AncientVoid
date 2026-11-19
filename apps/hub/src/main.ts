@@ -523,7 +523,12 @@ async function main(): Promise<void> {
             {
               level: "warning",
               title: `${projectName(n.projectPath)} · ${n.behind} ${n.behind === 1 ? "Commit" : "Commits"} hinter main`,
-              detail: `origin/${n.branch} ist vorgerückt — aktualisieren, wenn die Session wartet.`,
+              // BUG-0224: je Projekt und Stand eine Meldung — wie viele Sessions
+              // hinterherlaufen, steht im Detail (vorher: eine Row je Session).
+              detail:
+                n.sessions > 1
+                  ? `origin/${n.branch} ist vorgerückt — ${n.sessions} Sessions laufen hinterher.`
+                  : `origin/${n.branch} ist vorgerückt — aktualisieren, wenn die Session wartet.`,
               // ask-Modus = Rückfrage: eigener Kind, damit Glow/Sound die Aktions-Taxonomie trifft (P64/P65)
               kind: n.mode === "ask" ? "mainsync.behind_ask" : "mainsync.behind",
             },
