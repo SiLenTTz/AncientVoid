@@ -1,15 +1,18 @@
 import { createServer, type Server } from "node:http";
 import { WebSocketServer } from "ws";
 import { test, expect } from "../support/fixtures.ts";
+import type { Page } from "@playwright/test";
 import { freePort } from "../support/ports.ts";
 
 /**
- * ADR-0094: welche Spracheingabe ein Geraet benutzt, ist waehlbar — Automatisch,
- * Lokal (Hub) oder Browser (meist Cloud). Bewiesen wird der Unterschied, den Kai
- * zwischen Handy und Tablet erlebt:
- *  - Browser-Wahl: der Hub sieht KEINE einzige Diktat-Anfrage;
- *  - Lokal-Wahl: der Hub sieht die Anfrage und liefert den Text;
- *  - die Wahl ueberlebt ein Neuladen, und "lokal" faellt nie still in die Cloud.
+ * ADR-0095 (Nachtrag): die Quelle der Spracheingabe ist waehlbar, aber sie kostet
+ * keinen Platz in der Eingabgegend. Gewählt wird ueber **Lange-druecken auf den
+ * Mikro-Knopf** (Menue) und ueber die Einstellungen. Bewiesen wird hier:
+ *  - die feste Zeile unter der Eingabe ist weg;
+ *  - Lange-drueckenoeffnet das Menue, kurzes Tippen nimmt weiter auf;
+ *  - Browser-Wahl: der Hub bekommt keine Diktat-Anfrage ab;
+ *  - die Wahl ueberlebt Neuladen und ist in den Einstellungen dieselbe;
+ *  - "lokal" faellt nie still in die Cloud zurueck.
  */
 const port = await freePort();
 const streamPort = await freePort();
@@ -54,34 +57,84 @@ test.use({
   launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
 });
 
-test.describe("Spracherkennung: Quelle pro Geraet (ADR-0094)", () => {
-  test("die drei Quellen sind sichtbar und heiessen Automatisch, Lokal, Browser", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
-    await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByPlaceholder("Antworten…").click();
-    await expect(app.getByTestId("stt-modus")).toBeVisible();
-    await expect(app.getByRole("button", { name: "Automatisch" })).toBeVisible();
-    await expect(app.getByRole("button", { name: "Lokal" })).toBeVisible();
-    await expect(app.getByRole("button", { name: "Browser" })).toBeVisible();
-    await expect(app.getByRole("button", { name: "Automatisch" })).toHaveAttribute("aria-pressed", "true");
+async function sessionOffen(app: Page, hub: { origin: string; createSession: (o: { adapter: string; prompt: string }) => Promise<string> }) {
+  const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+  await app.goto(`${hub.origin}/#/sessions/${id}`);
+  await app.getByPlaceholder("Antworten…").click();
+}
+
+/** Lange auf den Mikro-Knopf druecken: das Menue kommt, die Aufnahme startet nicht. */
+async function langeDruecken(page: Page, app: Page) {
+  // Nach dem Seitenwechsel setzt der FAB seine Position neu (Dock-Oberkante, settle-Timer).
+  // Gedrueckt wird erst, wenn er stillsteht — sonst trifft der Druck ins Leere.
+  let knopf = await app.getByTestId("nyx-fab").boundingBox();
+  for (let i = 0; i < 12 && knopf; i += 1) {
+    await page.waitForTimeout(150);
+    const gleich = await app.getByTestId("nyx-fab").boundingBox();
+    if (gleich && gleich.x === knopf.x && gleich.y === knopf.y) break;
+    knopf = gleich;
+  }
+  if (!knopf) throw new Error("Mikro-Knopf nicht gefunden");
+  await page.mouse.move(knopf.x + knopf.width / 2, knopf.y + knopf.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(750);
+  await page.mouse.up();
+}
+
+test.describe("Spracheingabe-Quelle: Menue und Einstellungen (ADR-0095)", () => {
+  test("die feste Zeile unter der Eingabe ist weg, Lange-druecken gibt das Menue", async ({ app, hub, page }) => {
+    await sessionOffen(app, hub);
+    await expect(app.getByTestId("stt-modus")).toHaveCount(0);
+    await expect(app.getByTestId("stt-modus-menu")).toHaveCount(0);
+
+    await langeDruecken(page, app);
+    await expect(app.getByTestId("stt-modus-menu")).toBeVisible();
+    await app.waitForTimeout(1600); // der Knopf setzt sich nach dem Seitenwechsel, das Menue folgt
+    await expect(app.getByTestId("stt-modus-auto")).toBeVisible();
+    await expect(app.getByTestId("stt-modus-lokal")).toBeVisible();
+    await expect(app.getByTestId("stt-modus-browser")).toBeVisible();
     await expect(app.getByTestId("stt-modus-note")).toContainText("lokal am Hub");
+    // Das Menue ueberdeckt weder die Eingabe noch die Knopfleiste darunter.
+    const masse = await page.evaluate(() => {
+      const r = (s: string) => {
+        const e = document.querySelector(s)?.getBoundingClientRect();
+        return e ? { y: Math.round(e.y), x: Math.round(e.x), b: Math.round(e.width), h: Math.round(e.height) } : null;
+      };
+      return {
+        menue: r("[data-testid=stt-modus-menu]"),
+        knopf: r("[data-nyx-fab]"),
+        feld: r(".composer textarea"),
+        leiste: r(".composer-actions, .composer-bar"),
+        hoehe: window.innerHeight,
+      };
+    });
+    expect(masse.menue).not.toBeNull();
+    expect(masse.menue!.y).toBeGreaterThanOrEqual(0);
+    expect(masse.menue!.y + masse.menue!.h).toBeLessThanOrEqual(masse.hoehe!);
+    // Das Menue klebt am Knopf — es steht nicht "irgendwo in der Gegend".
+    const kn = masse.knopf!;
+    const oberhalb = masse.menue!.y + masse.menue!.h <= kn.y + 2;
+    const abstand = oberhalb ? kn.y - (masse.menue!.y + masse.menue!.h) : masse.menue!.y - (kn.y + kn.h);
+    expect(abstand, "Menue am Knopf, nicht frei schwebend").toBeGreaterThanOrEqual(2);
+    expect(abstand, "Menue am Knopf, nicht frei schwebend").toBeLessThanOrEqual(30);
+
+    // Die Wahl "Browser" schliesst das Menue, und die Aufnahme laeuft nicht einfach los.
+    await app.getByTestId("stt-modus-browser").click();
+    await expect(app.getByTestId("stt-modus-menu")).toHaveCount(0);
+    await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
   });
 
-  test("Browser-Wahl: der Hub bekommt keine Diktat-Anfrage ab", async ({ app, hub, page }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
-    await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByPlaceholder("Antworten…").click();
+  test("kurzes Tippen nimmt weiter auf; Browser-Wahl laesst den Hub aussen vor", async ({ app, hub, page }) => {
+    await sessionOffen(app, hub);
+    await langeDruecken(page, app);
+    await app.getByTestId("stt-modus-browser").click();
+    const vorher = erkannt;
     const anfragen: string[] = [];
     page.on("request", (r) => {
       const u = r.url();
       if (u.includes("/api/stt/") || u.includes("/api/stt/stream-ticket")) anfragen.push(u);
     });
-    const vorher = erkannt;
-    await app.getByRole("button", { name: "Browser" }).click();
-    await expect(app.getByTestId("stt-modus-note")).toContainText(/verlässt das Gerät/);
     await app.getByTestId("nyx-fab").click();
-    // Die App sagt offen, dass es jetzt ueber den Browser (Cloud) laeuft — und der
-    // Hub bekommt waehrend des Diktats keine einzige Anfrage ab.
     await expect(app.getByTestId("nyx-fab-cloud")).toBeVisible();
     await app.waitForTimeout(1200);
     expect(anfragen).toEqual([]);
@@ -89,12 +142,10 @@ test.describe("Spracherkennung: Quelle pro Geraet (ADR-0094)", () => {
     await app.getByTestId("nyx-fab").click();
   });
 
-  test("Lokal-Wahl erkennt am Hub und bleibt nach dem Neuladen gesetzt", async ({ app, hub, page }) => {
-    const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
-    await app.goto(`${hub.origin}/#/sessions/${id}`);
-    await app.getByPlaceholder("Antworten…").click();
-    await app.getByRole("button", { name: "Lokal" }).click();
-    await expect(app.getByRole("button", { name: "Lokal" })).toHaveAttribute("aria-pressed", "true");
+  test("Lokal-Wahl im Menue erkennt am Hub und bleibt nach dem Neuladen gesetzt", async ({ app, hub, page }) => {
+    await sessionOffen(app, hub);
+    await langeDruecken(page, app);
+    await app.getByTestId("stt-modus-lokal").click();
     await app.getByTestId("nyx-fab").click();
     await expect(app.getByTestId("nyx-fab")).toHaveClass(/recording/);
     await app.waitForTimeout(900);
@@ -105,26 +156,42 @@ test.describe("Spracherkennung: Quelle pro Geraet (ADR-0094)", () => {
 
     await page.reload();
     await app.getByPlaceholder("Antworten…").click();
-    await expect(app.getByRole("button", { name: "Lokal" })).toHaveAttribute("aria-pressed", "true");
+    await langeDruecken(page, app);
+    await expect(app.getByTestId("stt-modus-lokal")).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("die Einstellungen zeigen dieselbe Quelle und wirken sofort", async ({ app, hub, page }) => {
+    const sitzung = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+    const hash = `#/sessions/${sitzung}`;
+    await app.goto(`${hub.origin}/${hash}`);
+    await app.getByPlaceholder("Antworten…").click();
+    await app.goto(`${hub.origin}/#/einstellungen`);
+    await expect(app.getByTestId("settings-voice")).toBeVisible();
+    await expect(app.getByTestId("stt-modus-s-lokal")).toBeVisible();
+    await app.getByTestId("stt-modus-s-browser").click();
+    await expect(app.getByTestId("stt-modus-s-note")).toContainText(/verlässt das Gerät/);
+    // Der Mikro-Knopf weiss es sofort, ohne Neuladen.
+    await app.goto(`${hub.origin}/${hash}`);
+    await app.getByPlaceholder("Antworten…").click();
+    await langeDruecken(page, app);
+    await expect(app.getByTestId("stt-modus-browser")).toHaveAttribute("aria-pressed", "true");
   });
 
   test("Lokal-Wahl weicht nie in die Cloud aus, wenn der Hub nicht kann", async ({ app, hub, page }) => {
-    // Der Hub meldet keine lokale Erkennung: "lokal" darf nicht heimlich umschalten.
     await page.route((adresse) => adresse.pathname.endsWith("/api/stt"), (route) =>
       route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ available: false, local: true }) }),
     );
     const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
-    // Die App hat die Auskunft beim ersten Laden schon — ein echtes Neuladen holt
-    // sie neu, damit die Attrappe des Hubs (verfuegbar: false) zum Zug kommt.
+    // Die App hat die Auskunft beim ersten Laden schon — ein echtes Neuladen holt sie neu.
     await page.reload();
     await app.getByPlaceholder("Antworten…").click();
-    await app.getByRole("button", { name: "Lokal" }).click();
+    await langeDruecken(page, app);
+    await app.getByTestId("stt-modus-lokal").click(); // die Wahl schliesst das Menue
+    await langeDruecken(page, app); // erneut geoeffnet: die Wahl steht noch
+    await expect(app.getByTestId("stt-modus-lokal")).toHaveAttribute("aria-pressed", "true");
     await expect(app.getByTestId("stt-modus-note")).toContainText(/nicht erreichbar/);
-    // Der Knopf bleibt ehrlich blockiert und sagt, woran es liegt — kein stiller
-    // Schwenk auf die Cloud, obwohl "lokal" gewaehlt ist.
     await expect(app.getByTestId("nyx-fab")).toHaveAttribute("aria-disabled", "true");
     await expect(app.getByTestId("nyx-fab")).toHaveAttribute("data-tip", /nicht erreichbar/);
-    await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
   });
 });

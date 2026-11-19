@@ -110,7 +110,8 @@
   .setting-row:has(.scale-control),
   .setting-row:has(.quiet-control),
   .setting-row:has(.setting-control > .btn),
-  .setting-row:has(.setting-control > input[type="file"]) {
+  .setting-row:has(.setting-control > input[type="file"]),
+  .setting-row:has(.setting-control > .segmented) {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
@@ -118,7 +119,8 @@
   .setting-row:has(.scale-control) .setting-control,
   .setting-row:has(.quiet-control) .setting-control,
   .setting-row:has(.setting-control > .btn) .setting-control,
-  .setting-row:has(.setting-control > input[type="file"]) .setting-control {
+  .setting-row:has(.setting-control > input[type="file"]) .setting-control,
+  .setting-row:has(.setting-control > .segmented) .setting-control {
     justify-content: flex-start;
     text-align: left;
   }
