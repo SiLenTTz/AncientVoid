@@ -7,6 +7,7 @@ import { useHubStatus } from "../shell/hub-status.ts";
 import { AutomationForm } from "./AutomationForm.tsx";
 import { AutomationDetail } from "./AutomationDetail.tsx";
 import { automationCacheKey, readAutomationSnapshot, writeAutomationSnapshot } from "./automation-cache.ts";
+import { ExternalJobsSection } from "./ExternalJobsSection.tsx";
 import { outcomeLabel, REASON_LABEL, scheduleText, STATE_LABEL } from "./automation-labels.ts";
 import { Button } from "../../shared/ui/index.ts";
 
@@ -109,6 +110,7 @@ function AutomationsHostPane({ host }: { host: string | null }) {
         onSaved={() => { setShowNew(false); setEditing(null); void refresh().catch(err => setError(String(err))); }} onCancel={() => { setShowNew(false); setEditing(null); }} />}
       {/* Nutzerfinding: spontaner Lauf ohne Plan — normale Session, kein Automations-Claim (ADR-0080). */}
       <TempSessionCard adapters={adapters} projects={projects} disabled={offline} />
+      <ExternalJobsSection offline={offline} cacheKey={cacheKey} />
       {automations === null ? <div class="ui-empty">{offline && readError ? "Keine gespeicherte Projektion vorhanden." : "lade…"}</div>
         : automations.length === 0 ? <div class="ui-empty">Noch keine Automationen.</div>
         : <ul>{automations.map(info => <li key={info.definition.id}><div class={`team-row ${info.definition.id === selectedId ? "active" : ""}`}>
