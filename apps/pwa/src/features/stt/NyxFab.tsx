@@ -10,9 +10,10 @@ import { SttModeMenu } from "./SttModeMenu.tsx";
 
 const DRAG_THRESHOLD = 8;
 // ADR-0095: wer den Knopf **gehalten** drueckt, will die Quelle waehlen — kurzes
-// Tippen nimmt weiter auf. 500 ms sind lang genug, um ein versehentliches
-// Quelle-Menue beim normalen Diktat-Start auszuschliessen.
-const HALTEN_MS = 500;
+// Tippen nimmt weiter auf. 1500 ms (Kais Entscheidung nach dem ersten Live-Test):
+// 500 ms waren zu knapp — beim normalen Diktat-Start haelt man den Daumen leicht
+// laenger und landete im Menue statt in der Aufnahme.
+const HALTEN_MS = 1500;
 
 /**
  * Globaler, verschiebbarer Nyx-FAB: einziger Auslöser für Speech-to-Text in die

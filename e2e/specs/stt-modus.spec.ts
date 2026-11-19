@@ -77,11 +77,25 @@ async function langeDruecken(page: Page, app: Page) {
   if (!knopf) throw new Error("Mikro-Knopf nicht gefunden");
   await page.mouse.move(knopf.x + knopf.width / 2, knopf.y + knopf.height / 2);
   await page.mouse.down();
-  await page.waitForTimeout(750);
+  await page.waitForTimeout(1900); // ueber der Halte-Schwelle von 1500 ms
   await page.mouse.up();
 }
 
+
 test.describe("Spracheingabe-Quelle: Menue und Einstellungen (ADR-0095)", () => {
+  test("unter der Halte-Schwelle bleibt es ein Diktat-Start: 900 ms sind kein Menue", async ({ app, hub, page }) => {
+    await sessionOffen(app, hub);
+    const kn = await app.getByTestId("nyx-fab").boundingBox();
+    if (!kn) throw new Error("Mikro-Knopf nicht gefunden");
+    await page.mouse.move(kn.x + kn.width / 2, kn.y + kn.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(900);
+    await page.mouse.up();
+    await expect(app.getByTestId("stt-modus-menu")).toHaveCount(0);
+    await expect(app.getByTestId("nyx-fab")).toHaveClass(/recording/);
+    await app.getByTestId("nyx-fab").click(); // Aufnahme wieder stoppen
+  });
+
   test("die feste Zeile unter der Eingabe ist weg, Lange-druecken gibt das Menue", async ({ app, hub, page }) => {
     await sessionOffen(app, hub);
     await expect(app.getByTestId("stt-modus")).toHaveCount(0);
