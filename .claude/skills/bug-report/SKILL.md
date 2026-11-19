@@ -80,6 +80,12 @@ Frontmatter vollständig. Indexzeile in [`bugs/README.md`](../../../bugs/README.
 Schwere wie das Produkt: `S1` Ausfall · `S2` Kernfunktion · `S3` Workaround ·
 `S4` kosmetisch.
 
+**Sync-Marker (EPIC-P73):** Stammt der Defekt aus einer Issue-Session (Bridge,
+ADR-0094), trägt das Frontmatter zusätzlich `labels:` mit dem Trigger-Label
+(Standard `session`) neben `forge:` — dieselbe Zeile führt die Indexzeile. So
+hält der SSOT fest, welcher Tag die Session ausgelöst hat (`docs/issues.md` §
+Issue-Session-Bridge).
+
 ### 6. GitHub Issues (Tracker, nicht SSOT)
 
 ```bash

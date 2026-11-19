@@ -16,3 +16,9 @@
 .automation-tempsession { background: var(--bg-chip); }
 .automation-tempsession h4 { margin: 0; }
 .automation-tempsession textarea { resize: vertical; }
+
+/* EPIC-P73 (ADR-0094): externe Auto-Jobs — GitHub-Actions-Läufe und Issue-Bridge
+ * als eigene Sektion unter der Automationen-Liste (nur Ansehen und Verlinken). */
+.automation-external { display: flex; flex-direction: column; gap: 6px; padding: 10px 0 0; }
+.automation-external-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--text-sm); }
+.automation-external-list li { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }

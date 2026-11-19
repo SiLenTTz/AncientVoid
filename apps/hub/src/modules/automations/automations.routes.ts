@@ -21,6 +21,12 @@ const CreateBody = z.object({
 
 export function registerAutomationsRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps, projectRoots } = ctx;
+  // EPIC-P73 (ADR-0094): externe Auto-Jobs hängen nicht am Scheduler — der
+  // Endpunkt bleibt auch ohne Automationen ehrlich erreichbar.
+  app.get("/api/automations/external", async () => {
+    if (!deps.externalJobs) return { atUtc: new Date().toISOString(), staleError: null, jobs: [] };
+    return deps.externalJobs.list();
+  });
   const off = async (_req: FastifyRequest, reply: FastifyReply) => reply.code(501).send({ error: "Automations sind auf diesem Hub nicht eingerichtet." });
   if (!deps.automations) {
     // Ohne Dienst bleiben die Routen sichtbar, aber leer — 501, kein Absturz (Muster wie approvals/webauthn).

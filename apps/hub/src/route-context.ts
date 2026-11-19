@@ -5,6 +5,7 @@ import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, Se
 import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
+import type { ExternalJobsService } from "./modules/automations/external-jobs.ts";
 import { DEFAULT_HOST_ID } from "@ancientvoid/contracts";
 import type { ActionDefinition, HubMetrics, DiscoverySource, SessionRecord } from "@ancientvoid/contracts";
 import { TMUX_PREFIX } from "@ancientvoid/workers";
@@ -71,6 +72,9 @@ export interface RouteDeps {
   forge?: ForgeService;
   /** EPIC-P41 (ADR-0064): Automationen — ohne Angabe ehrliche Abschaltung (501). */
   automations?: AutomationService;
+  /** EPIC-P73 (ADR-0094): externe Auto-Jobs (GitHub-Actions, Issue-Bridge) —
+   * immer vorhanden; ohne Quellen antwortet der Endpunkt ehrlich leer. */
+  externalJobs?: ExternalJobsService;
   team?: HubTeam;
   /** EPIC-P59 (ADR-0078): Sampler für die Metrik-Seite; ohne Angabe leere Quelle-Liste. */
   aimetrics?: AiMetricsSampler;

@@ -45,6 +45,26 @@ Workflow, kein Auto-Labeling) zu zwei verpflichtenden Zeitpunkten:
 - Bug-Dateien (`bugs/`) führen den Fachstand (status, Fix, Tests); die
   Indexzeile in `bugs/README.md` wird mitgeführt.
 
+## Issue-Session-Bridge (EPIC-P73, ADR-0094)
+
+Eine Issue mit dem Label `session` bekommt automatisch eine eigene Hub-Session,
+die sie abarbeitet (Outbound-Poll des Hubs, kein Webhook). Das Label ist das
+Freigabe-Gate: Labeln braucht Schreibrechte am Repo — erst dann darf der
+Issue-Body (als klar abgegrenzter Datenblock, PRD §8.5) zum Session-Prompt
+werden. Konfiguration über die `issues`-Sektion der Hub-Config (ADR-0094 §1).
+
+- Die Bridge kommentiert Start und Ergebnis (`succeeded`/`failed`/`timeout`/
+  `cancelled`) auf der Issue; Schließen bleibt dem `Fixes #<nr>`-PR überlassen.
+- Sync-Marker: Legt die Session zu einem Defekt eine `bugs/bug-NNNN-slug.md`
+  an (Skill `bug-report`), tragen Frontmatter und Indexzeile zusätzlich
+  `labels:` mit dem Trigger-Label — so hält der SSOT fest, dass die Datei aus
+  einer Issue-Session stammt und welcher Tag sie ausgelöst hat.
+- CI-Bug-Issues (`nightly-bugs.yml`) bekommen das Label **nicht** automatisch:
+  ob Nightly-Fails eigene Sessions starten, ist eine separate Nutzerentscheidung
+  (Kosten-/Risikoabwägung), nicht Standard.
+- Sichtbar sind Bridge-Zustand und GitHub-Actions-Läufe in der PWA unter
+  Automatismen → „Externe Automatismen" (`GET /api/automations/external`).
+
 ## Bestand (Sichtung 18.11.2026, EPIC-P71 T71.6)
 
 | Issue | Klasse/Bezug | Entscheidung |

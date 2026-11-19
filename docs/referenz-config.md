@@ -37,6 +37,14 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `forge.gitlab.command` | string | "glab" |
 | `forge.gitlab.host` | string | — |
 | `forge.gitlab.tokenFile` | string | — |
+| `forge.github.tokenFile` | string | — |
+| `issues.repo` | string | — |
+| `issues.tokenFile` | string | — |
+| `issues.triggerLabel` | string | "session" |
+| `issues.adapter` | string | — |
+| `issues.project` | string | — |
+| `issues.model` | string | — |
+| `issues.pollIntervalMs` | integer | 60000 |
 | `assistant.model.url` | string | — |
 | `assistant.model.model` | string | "qwen3-coder" |
 | `assistant.model.apiKeyFile` | string | — |
