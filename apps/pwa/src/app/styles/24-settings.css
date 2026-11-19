@@ -103,21 +103,32 @@
   text-align: right;
 }
 
-/* Schmaler Container (Handy): Zeilen mit breitem Bedienelement stapeln, statt die Beschriftung zu quetschen. */
+/* Schmaler Container (Handy): Zeilen mit breitem Bedienelement stapeln, statt die Beschriftung zu quetschen.
+ * BUG-0221: file-Inputs gehören dazu — ihre native intrinsische Breite (plus
+ * gewählter Dateiname) frisst die auto-Spalte sonst komplett. */
 @container (max-width: 520px) {
   .setting-row:has(.scale-control),
   .setting-row:has(.quiet-control),
-  .setting-row:has(.setting-control > .btn) {
+  .setting-row:has(.setting-control > .btn),
+  .setting-row:has(.setting-control > input[type="file"]) {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
   }
 
   .setting-row:has(.scale-control) .setting-control,
   .setting-row:has(.quiet-control) .setting-control,
-  .setting-row:has(.setting-control > .btn) .setting-control {
+  .setting-row:has(.setting-control > .btn) .setting-control,
+  .setting-row:has(.setting-control > input[type="file"]) .setting-control {
     justify-content: flex-start;
     text-align: left;
   }
+}
+
+/* BUG-0221: auch in breiteren Spalten sprengt ein file-Input nie die Zeile —
+ * lange Dateinamen schrumpfen mit, statt die Beschriftung zu verdrängen. */
+.setting-control > input[type="file"] {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .settings-body .setting-control .btn {
