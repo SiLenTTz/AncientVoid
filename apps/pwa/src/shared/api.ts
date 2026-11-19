@@ -1038,7 +1038,9 @@ function createHubApi(P: (path: string) => string) {
   // Body "{}": Fastify rejects an empty body with a JSON content type (BUG-0011).
   fleetRemovePeer: (hostId: string) =>
     api<{ ok: boolean }>(P(`/api/fleet/peers/${encodeURIComponent(hostId)}`), { method: "DELETE", body: "{}" }),
-  notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}`)),
+  // BUG-0222: limit=200 (Route-Kappgrenze) — nach Hintergrund-Drossel des
+  // Browsers darf ein Rückstand nicht am 50er-Fenster vorbeilaufen.
+  notifications: (after = 0) => api<{ items: HubNotification[]; lastId: number }>(P(`/api/notifications?after=${after}&limit=200`)),
   /** EPIC-P67 T67.6: Aktionsknopf einer Benachrichtigung — ruft genau den
    * mitgelieferten Hub-Pfad (gleicher Endpunkt wie das Session-Menü). */
   runNotificationAction: (path: string) =>
