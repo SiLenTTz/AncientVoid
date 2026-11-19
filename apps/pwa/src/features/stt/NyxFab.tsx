@@ -231,7 +231,7 @@ export function NyxFab() {
               ⏹ {stt.recording ? "Aufnahme" : "Diktat"} läuft {mmss} — erneut tippen stoppt
             </div>
           )}
-          {stt.active && !stt.localAvailable && <div class="dim">Browser-Erkennung — läuft meist über einen Cloud-Dienst des Browsers</div>}
+          {stt.active && stt.browserPfad && <div class="dim" data-testid="nyx-fab-cloud">Browser-Erkennung — läuft meist über einen Cloud-Dienst des Browsers</div>}
           {stt.active && stt.streamNotice && <div class="dim">{stt.streamNotice}</div>}
           {stt.active && stt.restarts > 0 && <div class="dim">Erkennung {stt.restarts}× neu gestartet — nichts verloren</div>}
           {stt.partial && <div class="dim">Wort-für-Wort (Vorschau, wird nicht ausgeführt)</div>}

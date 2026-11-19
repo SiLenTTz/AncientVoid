@@ -4,6 +4,15 @@ import { LocalRecorder, recordingSupported, refreshSttStatus, sttStatus } from "
 import { pasteTranscript } from "./paste-target.ts";
 import { saveRecording } from "../../shared/stt-replay.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
+import {
+  EREIGNIS,
+  grund as ablehnungsGrund,
+  liesstModus,
+  titelDesKnopfs,
+  waehlePfad,
+  type SttFaehigkeiten,
+  type SttModus,
+} from "../../shared/stt-mode.ts";
 
 /** BUG-0157: Wie lange das Feedback nach dem Aufnahmeende sichtbar bleibt, bevor die Blende ausblendet. */
 const FEEDBACK_HIDE_MS = 10_000;
@@ -16,6 +25,15 @@ const FEEDBACK_HIDE_MS = 10_000;
  */
 const MAX_DICTATION_MS = 15 * 60_000;
 
+/** Was dieses Geraet gerade an Erkennung koennte (ADR-0094). */
+function ableitbar(status: { available: boolean }): SttFaehigkeiten {
+  return {
+    lokalVerfuegbar: status.available,
+    aufnahmeMoeglich: recordingSupported(),
+    browserFaehig: speechRecognitionSupported(),
+  };
+}
+
 type WakeLockSentinelLike = { release(): Promise<void>; addEventListener?(type: string, cb: () => void): void };
 
 /**
@@ -24,6 +42,14 @@ type WakeLockSentinelLike = { release(): Promise<void>; addEventListener?(type: 
  */
 export function usePushToTalk() {
   const [localStt, setLocalStt] = useState<{ available: boolean; engine?: string; streaming?: boolean }>({ available: false });
+  // ADR-0094: pro Geraet waehlbar, welche Quelle drankommt — und die Wahl lebt
+  // weiter, solange die App offen ist (andere Offnungen hoeren sofort mit).
+  const [modus, setModus] = useState<SttModus>(() => liesstModus());
+  useEffect(() => {
+    const horcht = () => setModus(liesstModus());
+    window.addEventListener(EREIGNIS, horcht);
+    return () => window.removeEventListener(EREIGNIS, horcht);
+  }, []);
   const [listening, setListening] = useState(false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState("");
@@ -166,12 +192,16 @@ export function usePushToTalk() {
       const fresh = await refreshSttStatus().catch(() => ({ available: false as const }));
       setLocalStt(fresh);
       const grund = err instanceof Error ? err.message : "Spracherkennung fehlgeschlagen.";
+      const faehigkeiten = ableitbar(localStt);
       setError(
         fresh.available
           ? grund
-          : speechRecognitionSupported()
-            ? `${grund} — eigene Erkennung nicht erreichbar; beim nächsten Drücken übernimmt die Browser-Erkennung.`
-            : `${grund} — eigene Erkennung ist gerade nicht erreichbar.`,
+          : modus === "lokal"
+            // Wer "lokal" gewaehlt hat, kriegt NICHT heimlich die Cloud untergeschoben.
+            ? `${grund} — ${ablehnungsGrund("lokal", { ...faehigkeiten, lokalVerfuegbar: false })}`
+            : speechRecognitionSupported()
+              ? `${grund} — eigene Erkennung nicht erreichbar; beim nächsten Drücken übernimmt die Browser-Erkennung.`
+              : `${grund} — eigene Erkennung ist gerade nicht erreichbar.`,
       );
       // ADR-0092: der Fehlversatz war umsonst, waere die Aufnahme weg — sie bleibt liegen
       // und darf neu erkannt werden, sobald die Erkennung wieder laeuft.
@@ -230,7 +260,14 @@ export function usePushToTalk() {
   }, [active]);
 
   const toggle = async () => {
-    if (localStt.available && recordingSupported()) {
+    const faehigkeiten = ableitbar(localStt);
+    const pfad = waehlePfad(modus, faehigkeiten);
+    if (pfad === "kein") {
+      // ADR-0094: kein stiller Ausweichpfad — die App sagt, woran es liegt.
+      setError(ablehnungsGrund(modus, faehigkeiten));
+      return;
+    }
+    if (pfad === "lokal") {
       if (recording) return void stopLocal();
       setError("");
       setInfo("");
@@ -256,12 +293,10 @@ export function usePushToTalk() {
     startBrowser();
   };
 
-  const supported = speechRecognitionSupported() || (localStt.available && recordingSupported());
-  const title = localStt.available
-    ? `Spracheingabe lokal (${localStt.engine ?? "whisper"})`
-    : speechRecognitionSupported()
-      ? "Spracheingabe (Browser, meist Cloud)"
-      : "Browser unterstützt keine Spracherkennung";
+  const faehigkeiten = ableitbar(localStt);
+  const pfad = waehlePfad(modus, faehigkeiten);
+  const supported = pfad !== "kein";
+  const title = pfad === "kein" ? ablehnungsGrund(modus, faehigkeiten) : titelDesKnopfs(pfad, localStt.engine);
 
   return {
     toggle,
@@ -277,6 +312,8 @@ export function usePushToTalk() {
     restarts,
     supported,
     title,
+    modus,
+    browserPfad: pfad === "browser",
     localAvailable: localStt.available,
   };
 }
