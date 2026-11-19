@@ -64,12 +64,17 @@ import {
   type HubConfig,
   MainSyncSettingsService,
   MainSyncScheduler,
+  GitHubClient,
+  IssueBridgeJournal,
+  IssueSessionBridge,
+  isProjectPathAllowed,
 } from "@ancientvoid/core";
 import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
 import { createHubApp } from "./app.ts";
 import { ForgeService } from "./modules/forge/forge-service.ts";
 import { createHubAutomationService } from "./modules/automations/automations-service.ts";
+import { ExternalJobsService } from "./modules/automations/external-jobs.ts";
 import { createAiMetricsSampler, type AiMetricsSamplerServer } from "@ancientvoid/core";
 import { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import { createPermissionBridge } from "./modules/approvals/permission-bridge.ts";
@@ -336,6 +341,41 @@ async function main(): Promise<void> {
     log: (line) => logger.info(`automations: ${line}`),
   });
 
+  // EPIC-P73 (ADR-0094): Issue-Session-Bridge — outbound, Label als Freigabe-
+  // Gate. Ohne `issues`-Sektion bleibt alles beim alten Zustand; ein Projekt
+  // außerhalb der projectRoots lässt die Bridge nicht starten (fail loud).
+  let issueBridge: IssueSessionBridge | undefined;
+  let issueClient: GitHubClient | undefined;
+  if (config.issues) {
+    const allowed = await isProjectPathAllowed(config.issues.project, config.projectRoots.map((root) => resolve(root)));
+    if (!allowed) {
+      logger.warn(`issues: Projekt ${config.issues.project} liegt außerhalb der projectRoots — Issue-Session-Bridge startet nicht`);
+    } else {
+      issueClient = new GitHubClient(config.issues.repo, config.issues.tokenFile);
+      issueBridge = new IssueSessionBridge(
+        {
+          repo: config.issues.repo,
+          tokenFile: config.issues.tokenFile,
+          triggerLabel: config.issues.triggerLabel,
+          adapter: config.issues.adapter,
+          project: config.issues.project,
+          pollIntervalMs: config.issues.pollIntervalMs,
+          ...(config.issues.model ? { model: config.issues.model } : {}),
+        },
+        {
+          client: issueClient,
+          journal: new IssueBridgeJournal(resolve(dataDir, "issues")),
+          sessions,
+          log: (line) => logger.info(`issue-bridge: ${line}`),
+        },
+      );
+    }
+  }
+  const externalJobs = new ExternalJobsService({
+    ...(issueClient ? { actions: issueClient } : {}),
+    ...(issueBridge ? { bridge: issueBridge } : {}),
+  });
+
   // EPIC-P59 (ADR-0078): Metrik-Sampler — nur konfigurierte Quellen plus die
   // dem Hub bekannten Modell-Server; Secrets nur als Dateireferenz (ADR-0011).
   const keyFile = (file: string | undefined) => (file ? resolve(file.replace(/^~(?=\/)/, homedir())) : undefined);
@@ -439,6 +479,7 @@ async function main(): Promise<void> {
     hostId: config.hostId ?? toHostId(hostname()),
     hostLabel: config.hostLabel ?? hostname(),
     automations,
+    externalJobs,
     team,
     ...(aimetrics ? { aimetrics, aimetricsMergePeers: config.aiMetrics?.mergePeers !== false } : {}),
     // EPIC-P56 T56.3: Statistik-Rollup — hält die Fakten-Caches frisch und
@@ -457,6 +498,7 @@ async function main(): Promise<void> {
     : config.server.host;
   await app.listen({ port: config.server.port, host: listen });
   automations.start();
+  issueBridge?.start();
   aimetrics?.start();
   // EPIC-P67 T67.5/T67.6: laufende Main-Synchronisation — ein Fetch je Projekt
   // je Takt (K8). Meldungen werden persistente Benachrichtigungen (mit
@@ -519,6 +561,7 @@ async function main(): Promise<void> {
 
   const shutdown = async (sig: string) => {
     automations.stop();
+    issueBridge?.stop();
     aimetrics?.stop();
     mainSyncScheduler.stop();
     logger.info("shutting down", { signal: sig });
