@@ -89,6 +89,7 @@ test.describe("Spracheingabe-Quelle: Menue und Einstellungen (ADR-0095)", () => 
 
     await langeDruecken(page, app);
     await expect(app.getByTestId("stt-modus-menu")).toBeVisible();
+    await app.waitForTimeout(1600); // der Knopf setzt sich nach dem Seitenwechsel, das Menue folgt
     await expect(app.getByTestId("stt-modus-auto")).toBeVisible();
     await expect(app.getByTestId("stt-modus-lokal")).toBeVisible();
     await expect(app.getByTestId("stt-modus-browser")).toBeVisible();
@@ -99,11 +100,23 @@ test.describe("Spracheingabe-Quelle: Menue und Einstellungen (ADR-0095)", () => 
         const e = document.querySelector(s)?.getBoundingClientRect();
         return e ? { y: Math.round(e.y), x: Math.round(e.x), b: Math.round(e.width), h: Math.round(e.height) } : null;
       };
-      return { menue: r("[data-testid=stt-modus-menu]"), feld: r(".composer textarea"), leiste: r(".composer-actions, .composer-bar"), hoehe: window.innerHeight };
+      return {
+        menue: r("[data-testid=stt-modus-menu]"),
+        knopf: r("[data-nyx-fab]"),
+        feld: r(".composer textarea"),
+        leiste: r(".composer-actions, .composer-bar"),
+        hoehe: window.innerHeight,
+      };
     });
     expect(masse.menue).not.toBeNull();
     expect(masse.menue!.y).toBeGreaterThanOrEqual(0);
     expect(masse.menue!.y + masse.menue!.h).toBeLessThanOrEqual(masse.hoehe!);
+    // Das Menue klebt am Knopf — es steht nicht "irgendwo in der Gegend".
+    const kn = masse.knopf!;
+    const oberhalb = masse.menue!.y + masse.menue!.h <= kn.y + 2;
+    const abstand = oberhalb ? kn.y - (masse.menue!.y + masse.menue!.h) : masse.menue!.y - (kn.y + kn.h);
+    expect(abstand, "Menue am Knopf, nicht frei schwebend").toBeGreaterThanOrEqual(2);
+    expect(abstand, "Menue am Knopf, nicht frei schwebend").toBeLessThanOrEqual(30);
 
     // Die Wahl "Browser" schliesst das Menue, und die Aufnahme laeuft nicht einfach los.
     await app.getByTestId("stt-modus-browser").click();
