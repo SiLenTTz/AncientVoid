@@ -30,6 +30,9 @@ function endpointStatus(e: EndpointEntry): { text: string; ok: boolean | null } 
 export function ConnectionsSettings() {
   const [voidwarden, setVoidwarden] = useState<VoidWardenConnection[] | null>(null);
   const [endpoints, setEndpoints] = useState<EndpointEntry[] | null>(null);
+  /** EPIC-P73 (ADR-0094): GitHub-Token-Status (write-only) + Eingabe. */
+  const [forgeGithub, setForgeGithub] = useState<{ tokenFile: string | null; present: boolean } | null>(null);
+  const [ghToken, setGhToken] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   /** Einmalig sichtbares Token nach Anlegen/Erneuern — nach dem Verlassen weg. */
@@ -56,6 +59,7 @@ export function ConnectionsSettings() {
       .then((c) => {
         setVoidwarden(c.voidwarden);
         setEndpoints(c.endpoints);
+        setForgeGithub(c.forge?.github ?? null);
       })
       .catch(() => {
         setVoidwarden(null);
@@ -139,6 +143,14 @@ export function ConnectionsSettings() {
       const res = await hubApi.probeEndpoint(e.id);
       setEndpoints((prev) => (prev ? prev.map((x) => (x.id === e.id ? res.endpoint : x)) : prev));
       setMessage(res.endpoint.probe?.ok ? { ok: true, text: `„${e.name}“ antwortet (HTTP ${res.endpoint.probe.httpStatus}).` } : { ok: false, text: `„${e.name}“ nicht erreichbar.` });
+    });
+
+  const saveGitHubToken = () =>
+    run(async () => {
+      const res = await hubApi.connectionSetGitHubToken(ghToken);
+      setGhToken("");
+      setMessage({ ok: true, text: `GitHub-Token gespeichert (${res.tokenFile}) — die Issue-Bridge übernimmt ihn mit dem nächsten Poll.` });
+      await reload();
     });
 
   return (
@@ -281,6 +293,34 @@ export function ConnectionsSettings() {
           )}
         </div>
         <div class="dim settings-intro">Der Hub speichert vom Schlüssel nur einen Hash — „Prüfen“ fragt nur Erreichbarkeit ab, ohne Schlüssel zu senden.</div>
+      </div>
+
+      <div class="connection-group" role="group" aria-label="Forge GitHub-Token">
+        <strong class="connection-group-title">Forge: GitHub</strong>
+        <div class="connection-entry">
+          <div class="connection-entry-head">
+            <span class="connection-name">Issue-Bridge &amp; Actions-Anzeige</span>
+            <span class={forgeGithub?.present ? "connection-status ok" : "connection-status dim"} data-testid="forge-github-status">
+              {forgeGithub === null ? "nicht konfiguriert" : forgeGithub.present ? "Token hinterlegt ✓" : "kein Token"}
+            </span>
+          </div>
+          {forgeGithub?.tokenFile && <div class="mono dim connection-url">{forgeGithub.tokenFile}</div>}
+          {forgeGithub === null && <div class="dim">forge.github.tokenFile fehlt in der Hub-Config — Pfad dort eintragen, dann hier den Token ablegen.</div>}
+        </div>
+        {forgeGithub !== null && (
+          <>
+            <label>
+              Token (github_pat_…)
+              <input type="password" value={ghToken} onInput={(e) => setGhToken((e.target as HTMLInputElement).value)} placeholder="github_pat_…" autocapitalize="off" spellcheck={false} autocomplete="off" data-testid="forge-github-token-input" />
+            </label>
+            <div class="row" style="gap: 8px">
+              <Button disabled={busy || ghToken.trim().length < 10} onClick={() => void saveGitHubToken()} variant="primary" data-testid="forge-github-save">
+                Token speichern
+              </Button>
+            </div>
+            <div class="dim settings-intro">Write-only: der Hub schreibt die erste Zeile der Token-Datei (0600) und liest sie nie wieder zurück — Ersetzen überschreibt den alten Token.</div>
+          </>
+        )}
       </div>
 
       {message && <div class={message.ok ? "fleet-message ok" : "fleet-message reply-error"}>{message.text}</div>}

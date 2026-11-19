@@ -531,6 +531,8 @@ export interface EndpointEntry {
 interface ConnectionsBody {
   voidwarden: VoidWardenConnection[];
   endpoints: EndpointEntry[];
+  /** EPIC-P73 (ADR-0094): Forge-Token-Status — write-only, nie der Token selbst. */
+  forge?: { github?: { tokenFile: string | null; present: boolean } };
 }
 
 /** ADR-0004 — account-level usage/quota window, e.g. claude's real
@@ -971,6 +973,10 @@ function createHubApi(P: (path: string) => string) {
     api<{ ok: boolean; created: boolean; backup: string | null }>(P(`/api/adapters/${encodeURIComponent(adapterId)}/provider`), { method: "POST", body: JSON.stringify(body) }),
   /** Verbindungs-Registry: VoidWarden-Instanzen (Token einmalig sichtbar) und Endpoints (Schlüssel write-only). */
   connections: () => api<ConnectionsBody>(P("/api/connections")),
+  /** EPIC-P73 (ADR-0094): GitHub-Token eintragen — schreibt die konfigurierte
+   * Token-Datei (erste Zeile, 0600); Lesen geht bewusst nicht. */
+  connectionSetGitHubToken: (token: string) =>
+    api<{ ok: true; tokenFile: string; present: boolean }>(P("/api/connections/forge/github"), { method: "PUT", body: JSON.stringify({ token }) }),
   addVoidWarden: (body: { name: string; endpoint?: string }) =>
     api<{ connection: VoidWardenConnection; token: string }>(P("/api/connections/voidwarden"), { method: "POST", body: JSON.stringify(body) }),
   updateVoidWarden: (id: string, body: { name: string; endpoint?: string; rotate?: boolean }) =>

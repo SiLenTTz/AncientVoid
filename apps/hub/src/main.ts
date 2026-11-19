@@ -348,15 +348,15 @@ async function main(): Promise<void> {
   // GitHub-Token: issues.tokenFile, sonst die Forge-Verknüpfung forge.github.
   let issueBridge: IssueSessionBridge | undefined;
   let issueClient: GitHubClient | undefined;
+  const ghTokenFile = resolveGitHubTokenFile(config.issues, config.forge);
   if (config.issues) {
     const allowed = await isProjectPathAllowed(config.issues.project, config.projectRoots.map((root) => resolve(root)));
-    const tokenFile = resolveGitHubTokenFile(config.issues, config.forge);
     if (!allowed) {
       logger.warn(`issues: Projekt ${config.issues.project} liegt außerhalb der projectRoots — Issue-Session-Bridge startet nicht`);
-    } else if (!tokenFile) {
+    } else if (!ghTokenFile) {
       logger.warn("issues: kein GitHub-Token (issues.tokenFile oder forge.github.tokenFile fehlt) — Issue-Session-Bridge startet nicht");
     } else {
-      issueClient = new GitHubClient(config.issues.repo, tokenFile);
+      issueClient = new GitHubClient(config.issues.repo, ghTokenFile);
       issueBridge = new IssueSessionBridge(
         {
           repo: config.issues.repo,
@@ -485,6 +485,9 @@ async function main(): Promise<void> {
     hostLabel: config.hostLabel ?? hostname(),
     automations,
     externalJobs,
+    forgeTokens: {
+      ...(ghTokenFile ? { githubTokenFile: ghTokenFile } : {}),
+    },
     team,
     ...(aimetrics ? { aimetrics, aimetricsMergePeers: config.aiMetrics?.mergePeers !== false } : {}),
     // EPIC-P56 T56.3: Statistik-Rollup — hält die Fakten-Caches frisch und
