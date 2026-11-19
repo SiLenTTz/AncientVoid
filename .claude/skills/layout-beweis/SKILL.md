@@ -78,3 +78,24 @@ ein Punkt, der nie angefahren wurde. Ergebnis war `null`, als „versteckt“ ge
 den Zustand **an jedem angefahrenen Punkt** zählen (`versteckt++`, `treffer += …`) und die
 Schiene mitzählen (`Punkte=20`), damit ein fehlender Punkt als fehlend sichtbar ist. Ein
 `null`/leerer Wert ist kein Befund, sondern ein Loch in der Messung.
+
+## Messfalle: schwebende Elemente am wandernden Anker
+
+PR #200 (Quellen-Menü am Nyx-FAB, 19.11.2026). Das Menü verortet sich am Mikro-Knopf.
+Im Bild hing es mit ~100 px Lücke über dem Knopf — gemessen 73 px Anker-Drift: der
+Anker war beim `pointerdown` abgegriffen worden, aber der FAB setzt sich nach dem
+Seitenwechsel/Tastatur/Dock-Wachstum neu (Settle-Timer bis 2,5 s). Regel:
+- **Anker beim Öffnen und danach erneut messen** (Intervall + Stichproben bei 60/220/700/1600 ms),
+  sonst steht das Popover „irgendwo in der Gegend“.
+- Den **Abstand als Vertragsfall** messen, nicht nur „sichtbar“: 2–30 px zum Anker.
+  Ein Screenshot allein sieht schwebend gut aus und ist trotzdem falsch.
+- Seitlich einklemmen (`min(8px …)`/`max(…)` gegen `innerWidth`) und die Richtung
+  wechseln (unter den Anker), wenn nach oben kein Platz ist.
+- Auf dunklem Chatgrund braucht ein Popover den **Ring aus `--shadow-elev`** (er enthält
+  den 1-px-Rand). Ohne eigene Schatten-Mischung wirkt der Rand unsichtbar und der Chattext
+  bricht mittendurch ab — wie ein Rendering-Fehler, war aber nur Kontrast.
+
+Und aus demselben Bildgang (PR #200): eine `SettingRow` mit langem Hinweis **und** breitem
+Bedienelement quetscht am Handy die Beschriftung auf acht Zeilen (`Mikro- / Knopf / …`).
+Behebung im Design-System: `24-settings.css` stapelt schmale Zeilen mit breitem
+Bedienelement (`:has(.setting-control > .segmented)`), Beschriftung oben, Schalter darunter.

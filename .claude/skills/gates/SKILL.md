@@ -113,3 +113,25 @@ da. Ein grüner Lauf belegt nur, was die Gates messen: Compiler, Typen, Tests,
 Durchsatz. Angemessenheit messen sie nicht.
 
 Index: [`.claude/skills/README.md`](../README.md).
+
+## PWA-Oberflächenwächter: was bei UI-PRs regelmäßig zuschlägt (PR #200, 19.11.2026)
+
+- `apps/pwa/test/css-tokens.test.ts` (AC-P63-3): jede in TSX benutzte Klasse braucht eine
+  CSS-Regel. Erwischt auch Klassen einer Komponente, die nur versehentlich im Zweig liegt.
+- `apps/pwa/test/ui-primitives.test.ts` (AC-P63-4): Ratchet für Inline-Style-Objekte
+  (Grenze in `apps/pwa/test/css-ratchet.json`, aktuell 24). Ein positioniertes Popover
+  positioniert deshalb imperativ (`el.style.left/top` nach der Messung), Grundposition aus
+  dem CSS. Der Zähler ist ein Regex — ein Kommentar, der das Literal nennt, zählt mit.
+- `e2e/specs/settings-layout.spec.ts`: die `GROUPS`-Liste ist das Inventar der
+  Einstellungen-Gruppen in Handy-Reihenfolge. Neue `SettingsSection` → dort eintragen.
+
+## Rot-Beweis: wiederhergestellte Dateien wieder loswerden
+
+`git checkout <basis> -- <produktdateien>` (Specs gegen den Stand vor dem Fix laufen
+lassen) holt auch gelöschte Dateien zurück. `git checkout HEAD -- .` entfernt sie danach
+**nicht** — in HEAD kommen sie nicht mehr vor. Sie bleiben im Arbeitsbaum, werden mit dem
+nächsten `git add <ordner>` wieder getrackt und laufen als tote Klassen in den css-tokens-
+Guard (PR #200: zwei verlorene CI-Läufe). Sicherer Weg: `git rm -f <die gelöschte Datei>`
+**vor** dem Zurückholen; danach zwei Checks — `git status --short` leer **und**
+`git ls-files | grep <datei>` leer (der Status-Check allein ist blind, weil die Datei im
+Index landen kann).
