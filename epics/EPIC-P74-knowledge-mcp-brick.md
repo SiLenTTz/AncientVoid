@@ -1,6 +1,6 @@
 # EPIC-P74 — Knowledge-Anbindung: MCP-Backends, modulare Quellen, teamübergreifender Brain
 
-**Status:** Planungsentwurf (Nutzerauftrag 19.11.2026) · **Phase:** P74 · **Dauer:** ~2–3 Agenten-Tage (AV-Seite) + ~1–2 (Librarian-Seite, Hivemind-Server) · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P73; baut auf `gateway-mcp` (Meta-Tool-Muster, Write-Gate), `LoopConnector`-Fabrikmuster (`packages/contracts`) und P49 (Vault-Tab, reiner Local-Store ohne Index) auf. ADR-0095 erforderlich (neuer Contract `KnowledgeSource`).
+**Status:** Planungsentwurf (Nutzerauftrag 19.11.2026) · **Phase:** P74 · **Dauer:** ~2–3 Agenten-Tage (AV-Seite) + ~1–2 (Librarian-Seite, Hivemind-Server) · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P73; baut auf `gateway-mcp` (Meta-Tool-Muster, Write-Gate), `LoopConnector`-Fabrikmuster (`packages/contracts`) und P49 (Vault-Tab, reiner Local-Store ohne Index) auf. ADR-0096 erforderlich (neuer Contract `KnowledgeSource`).
 
 ## 1. Ziel
 
@@ -24,16 +24,16 @@ Contract- und Auth-Grundlagen so, dass A2A ohne Refactor aufsetzen kann.
 **In:**
 
 - `KnowledgeSource`-Contract in `packages/contracts` (Fabrik-/Fähigkeiten-Muster analog
-  `LoopConnector`, ADR-0095): `capabilities()`, `search`, `read`, `graph` (Nachbarn/Pfad),
+  `LoopConnector`, ADR-0096): `capabilities()`, `search`, `read`, `graph` (Nachbarn/Pfad),
   `overview`; Write-Ops nur wenn `capabilities().write`, immer durch das bestehende
   Freigaben-Gate.
 - Erste Implementierung `McpKnowledgeSource`: verbindet sich als generischer MCP-Client
   (Streamable HTTP, Bearer) auf JEDEM MCP-Knowledge-Server — Referenz: der Librarian.
   Kein Librarian-Spezzialcode im AV-Core.
 - Anbindung in Hub/PWA: Knowledge-Panel (Vault-Tab erweitern oder neuer Tab, nach
-  ADR-0095-Entscheidung), Konfiguration pro User: MCP-URL + Token, geführt wie Loop-Onboarding.
+  ADR-0096-Entscheidung), Konfiguration pro User: MCP-URL + Token, geführt wie Loop-Onboarding.
 - Librarian-MCP-Fassade (Gegenstück auf Hivemind-Server): Streamable-HTTP-MCP-Server vor
-  dem bestehenden Librarian (`:18101`), Tools `kb_search/kb_read/kb_graph/kb_add/kb_overview`,
+  dem bestehenden Librarian, Tools `kb_search/kb_read/kb_graph/kb_add/kb_overview`,
   Bearer pro User, Tenant-Namespace im Graph. Deployment via Kerrigan/Nemesis-Konvention.
 - Quellen-Konnektor-SDK (Librarian-Seite): `discover → fetch → normalize`-Pipeline mit
   Checkpoint-Inkrementierung, deterministischen IDs, wegwerfbarem Index; Pilot-Konnektoren
@@ -57,7 +57,7 @@ Contract- und Auth-Grundlagen so, dass A2A ohne Refactor aufsetzen kann.
 
 ## 3. Design-Details
 
-### 3.1 Schichten (ADR-0095)
+### 3.1 Schichten (ADR-0096)
 
 ```
 AV-Hub/PWA ──KnowledgeSource-Contract (packages/contracts)
@@ -131,17 +131,47 @@ und können dort nicht vom anfragenden Agenten selbst entschieden werden (Muster
 
 ### 3.3 Librarian-MCP-Fassade (Hivemind-Server)
 
-- Transport: **Streamable HTTP, stateless** (MCP-Spec 2026-07-28: ein POST-Endpoint, keine
-  Session im Transport; State lebt im Librarian) — horizontale Skalierung trivial.
-- Auth: Bearer-Token pro Nutzer (Best Practice: MCP-Server als OAuth-2.1-Resource-Server
-  validiert nur; Login/Issuance beim Librarian/Betrieb). Token → `tenant_id`; jeder Graph-/Indexzugriff
+- Transport: **Streamable HTTP, stateless** (ein POST-Endpoint, keine Session im
+  Transport; State lebt im Librarian) — horizontale Skalierung trivial. Die Fassade muss
+  mindestens eine der Protokollversionen **2025-03-26 bis 2025-11-25** aushandeln: Das im Hub
+  eingesetzte `@modelcontextprotocol/sdk` 1.32.2 kennt nichts Neueres (Review 19.11.: das
+  zuvor genannte Spec-Datum „2026-07-28“ war im Repo nicht belegbar).
+- Auth: Der Hub ist pro Quelle konfigurierbar (`none` | `bearer` | `header` mit eigenem
+  Header-Namen — Nutzerentscheid 19.11.2026, ADR-0096 §3). Für die Librarian-Fassade
+  empfohlen: `Authorization: Bearer <token>` pro Nutzer (MCP-Server als
+  OAuth-2.1-Resource-Server validiert nur; Login/Issuance beim Librarian/Betrieb).
+  Fehlendes/falsches Token → HTTP 401. Token → `tenant_id`; jeder Graph-/Indexzugriff
   wird mit Tenant gefiltert (Namespace-Präfix oder Property — Entscheidung bei T74.4 mit
   Kerrigan, Neo4j-Label vs. Qdrant-Payload).
-- Tools: `kb_overview` (Statistik + PROTOCOL-String, erster Call jeder Session — Muster
-  second-brain-mcp), `kb_search`, `kb_read`, `kb_graph` (optional), `kb_add` (write-gated:
-  Freigabe erfolgt beim Librarian-Betreiber, nicht im MCP-Tool).
 - Lesbarkeit für fremde Clients: Claude-Code/Cursor-Config-Snippet in der Doku
   (URL + Token + Tool-Namen), identisch zum `gateway-mcp`-README-Stil.
+
+#### 3.3.1 Tool-Schnittstelle v1 (verbindlich für T74.4 — Übergabe an den Fassaden-Agenten)
+
+Festgelegt 19.11.2026 (Nutzerauftrag: „im Epic anpassen, damit ich es dem anderen Agent
+geben kann“); der Hub-Client (T74.6a) ist dagegen gebaut und getestet. Änderungen nur
+gemeinsam mit einem Nachtrag zu ADR-0096.
+
+| Tool | Argumente (JSON-Schema-Kern) | `structuredContent` der Antwort |
+|---|---|---|
+| `kb_overview` | `{}` | `{ summary: string, protocol?: string, stats?: object }` — `summary` kurz (≤ 2 KB), `protocol` = Nutzungsregeln < 600 Token |
+| `kb_search` | `{ q: string (1–500), topK?: integer (1–50), fusion?: "sequential"\|"rrf", minScore?: number }` | `{ hits: [{ ref: string, title: string, score?: number, snippet: string, source?: string }], truncated: boolean }` |
+| `kb_read` | `{ ref: string }` (ein `ref` aus `kb_search`) | `{ ref: string, title?: string, content: string, outlinks?: string[], backlinks?: string[], truncated?: boolean }` |
+| `kb_graph` | später (T74.4/T74.6, Nachtrag ADR-0096) | — |
+| `kb_add` | später; write-gated, Freigabe beim Librarian-Betreiber | — |
+
+Regeln für die Fassade:
+
+1. Ergebnis immer als `structuredContent` (MCP 2025-06-18+) **und** gespiegelt als ein
+   `text`-Block mit demselben JSON (ältere Clients). Der Hub liest `structuredContent`,
+   sonst den ersten Text-Block als JSON.
+2. Fachfehler (unbekannte `ref`, Backend down) → `isError: true` plus Text-Block mit
+   einer kurzen, secret-freien Meldung. Kein HTTP-500 für Fachfehler.
+3. Unbekannte Zusatzfelder sind erlaubt (der Hub ignoriert sie); Pflichtfelder fehlen nie —
+   sonst meldet der Hub einen Protokollfehler.
+4. `kb_overview` ist zugleich Healthcheck: es muss ohne Argumente schnell antworten.
+5. Die Tool-Namen sind im Hub pro Quelle überschreibbar; die Fassade hält trotzdem die
+   `kb_*`-Namen ein (Interop mit Claude Code/Cursor, AC-P74-2).
 
 ### 3.4 Quellen-Konnektor-SDK (Librarian-Seite)
 
@@ -165,8 +195,12 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
 
 ### 3.5 Anbindung im Hub (AV-Seite)
 
-- Konfiguration pro Hub-User: Liste von Knowledge-Quellen `{ label, type: "mcp", url,
-  token }` — Server-seitig gespeichert, Token nie in die PWA (AdapterContext-Geist).
+- Konfiguration pro Hub: Liste von Knowledge-Quellen `{ label, url, auth: { kind:
+  "none" | "bearer" | "header", header? }, secret (write-only), tools? }` — über die
+  Oberfläche anlegbar (Nutzerentscheid 19.11.2026), serverseitig in der git-ignorierten
+  `config`-Tabelle gespeichert (Geheimnis getrennt von der Liste, ADR-0096 §4), Geheimnis
+  nie in die PWA (AdapterContext-Geist). Status je Quelle (`ok | unreachable |
+  unauthorized | protocol | tool-error`) ist sichtbar — Fail loud.
 - UI: Knowledge-Panel im bestehenden Vault-Tab-Bereich (P49-Fläche): Quell-Auswahl,
   Suche mit sichtbaren Fusion-Parametern, Treffer → Read → Graph; `add` nur als
   Freigaben-Dialog. Offline-Kopie der letzten Übersicht (Snapshot-Muster P73).
@@ -187,20 +221,28 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
 
 ## 4. Aufgaben (Checkliste T74.m)
 
-- [ ] T74.1 ADR-0095: `KnowledgeSource`-Contract + Schichten- und Auth-Entscheidung
+- [ ] T74.1 ADR-0096: `KnowledgeSource`-Contract + Schichten- und Auth-Entscheidung
       (MCP-only Phase 1+2; A2A-vorbereitend) — Review durch Nutzer (Gate).
-- [ ] T74.2 `packages/contracts/src/knowledge/source.ts` + Formprüfung
-      `isValidKnowledgeFactory`; `check:contracts`/Gate erweitert.
+- [ ] T74.2 `packages/contracts/src/knowledge/` (Contract + Schemas, Kern liegt mit T74.6a
+      vor) + Formprüfung `isValidKnowledgeFactory` (**offen**, siehe §8 F5); Contract-Test in
+      `packages/contracts/test/`, Grenze über `check:arch` (ein `check:contracts` gibt es nicht).
 - [ ] T74.3 `packages/`-Implementierung `McpKnowledgeSource` (Streamable-HTTP-Client,
       Bearer, Fusion-Parameter, truncated-Caps) + Unit-Tests gegen MCP-Test-Server.
 - [ ] T74.4 Librarian-MCP-Fassade (Hivemind-Server): Server, Bearer/Tenant-Filter,
       Tool-Schemas; Tenant-Mapping-Entscheidung mit Kerrigan; Health = `kb_overview`.
 - [ ] T74.5 Quellen-Konnektor-SDK + `filesystem-markdown`- und `git-repo`-Pilot;
       Checkpoint-/ID-Tests (Re-Index idempotent).
-- [ ] T74.6 Hub-Integration: Quellen-Config (serverseitig), Knowledge-Panel (Vault-Tab),
-      Freigaben-Dialog für `add`, Offline-Snapshot.
+- [ ] T74.6a Erster Anwendungsfall „HiveMind-Librarian anbinden" (Nutzerauftrag 19.11.2026):
+      Quelle über die Einstellungen anlegen (URL, Auth `none|bearer|header`, Geheimnis
+      write-only), prüfen (`tools/list` + `kb_overview`), suchen und lesen; Status je Quelle
+      sichtbar (Fail loud). Generischer Client gegen §3.3.1, getestet gegen einen
+      In-Process-MCP-Server; Live-Nachweis gegen den echten Librarian folgt mit T74.4.
+      Messlatten: K5-Geist (Caps + `truncated`), K7 (config-Tabelle, Status abgeleitet).
+- [ ] T74.6 Hub-Integration (Rest nach T74.6a): Knowledge-Panel im Vault-Tab,
+      Freigaben-Dialog für `add`, Offline-Snapshot (K10).
 - [ ] T74.7 `gateway-mcp`-Operations-Ziel „knowledge" (Sessions/Agenten erreichen die
-      k-Tools via Meta-Tools; Default OFF bleibt).
+      k-Tools via Meta-Tools; Default OFF bleibt; K4: Schema-Kosten bleiben < 1.000 Tokens
+      statisch, < 300 pro Lookup).
 - [ ] T74.8 Retrieval-Benchmark: Sequenz vs. RRF, Schwellen-Sweep auf echten Vault-Daten
       (EPIC-134-Messlatte); Defaults dokumentiert, Parameter im Tool sichtbar.
 - [ ] T74.9 Doku: README-Sektion „Knowledge-Backends anbinden" (fremde User: MCP-URL+Token
@@ -209,7 +251,7 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
 ## 5. Acceptance Criteria (AC-P74-k)
 
 1. Contract: `KnowledgeSource` + Fabrik-Formprüfung im `packages/contracts`, Gate grün;
-   Contract-Änderung nur via ADR-0095-Erweiterung.
+   Contract-Änderung nur via ADR-0096-Erweiterung.
 2. Interop-Beweis: Ein fremder MCP-Client (Claude Code ODER MCP Inspector) verbindet sich
    mit URL+Token auf die Librarian-Fassade, führt `kb_overview → kb_search → kb_read`
    aus; Beleg (Transkript/Screenshot) im Epic verlinkt.
@@ -254,9 +296,75 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
   echten Librarian (oder ehrliche Benennung, was auf Hivemind-Seite noch aussteht —
   Deployment liegt bei Kerrigan/Nemesis).
 - AC-P74-1 bis -P74-8 mit Belegen hier vermerkt; `epics/README.md` aktualisiert;
-  ADR-0095 final; Menschen-Abnahme (Knowledge-Panel im Handy-Blick) nach P000, wenn nötig.
+  ADR-0096 final; Menschen-Abnahme (Knowledge-Panel im Handy-Blick) nach P000, wenn nötig.
 - Keine Contract-Änderung ohne ADR; keine Direktverbindung AV → Neo4j/Qdrant/PostgreSQL
   (Librarian-Regel unangetastet, Code-Review-Punkt).
 - Referenz-Messlatten eingehalten: K5 (Caps + `truncated`), K7 (Journal/Evidenz für
   Auto-Aktionen), ADR-0007 (Freigaben-Queue), PRD §8.5 (Injektions-Grenze), EPIC-134
   (Retrieval-Fusion benchmark-bewiesen), P73 (Snapshot-Muster Offline-Kopie).
+
+## 8. Review 19.11.2026 (vor T74.6a)
+
+Geprüft gegen PRD §9 (K1–K10), `AGENTS.md`-Architekturregeln und ADR-0020. Eindeutige
+Befunde sind oben eingearbeitet (✅), offene Designfragen bleiben markiert (❓).
+
+- ✅ F1 **ADR-Nummer kollidierte:** ADR-0095 ist die Spracheingabe-Quelle (#199) → ADR-0096.
+- ✅ F2 **Spec-Datum nicht belegbar:** „MCP-Spec 2026-07-28“ → Protokollversionen
+  2025-03-26…2025-11-25, die das SDK 1.32.2 im Repo tatsächlich spricht (§3.3).
+- ✅ F3 **`check:contracts` existiert nicht** (T74.2) → Contract-Test + `check:arch`.
+- ✅ F4 **Fassaden-Schnittstelle fehlte als Vertrag:** Tool-Namen standen nur als Liste,
+  ohne Argumente/Antwortform → §3.3.1 verbindlich; Auth pro Quelle (Nutzerentscheid).
+- ✅ F6 **Server-Detail im Repo:** konkrete Librarian-Port-Angabe entfernt (keine
+  HiveMind-Adressen in Commits).
+- ✅ F7 **Messlatten-Bezüge lückenhaft:** K10 (Offline-Snapshot) an T74.6, K4
+  (Schema-Kosten) an T74.7 ergänzt; K5 gilt für Events — für HTTP-Antworten hier als
+  Caps + `truncated` (K5-Geist), K7 als config-Tabelle + abgeleiteter Status.
+- ❓ F5 **Fabrik-Formprüfung `isValidKnowledgeFactory` ist mit „generischer MCP-Client“
+  (§3.1 Entscheidung 2) überflüssig:** Quellen sind Konfiguration, kein ladbarer Code.
+  Vorschlag: streichen, bis ein Nicht-MCP-Backend als Code-Modul kommt. Nicht still
+  entschieden — T74.6a baut ohne sie.
+- ❓ F8 **Scope-Schnitt AV ↔ HiveMind:** T74.4, T74.5, T74.8 und AC-P74-6/-7/-8 sind
+  Arbeit und Belege im HiveMind-Repo; `npm run gate` (DoD) kann sie nicht prüfen.
+  Vorschlag: eigenes HiveMind-Epic, hier bleiben §3.3.1 als Schnittstelle und AC-P74-2 als
+  Interop-Beleg. Bis zur Entscheidung zählt das Epic sie mit.
+- ❓ F9 **„multi-user-fähig“:** Der Hub kennt Geräte-Tokens, keine Nutzerkonten. „Pro
+  Hub-User“ (§3.5) wurde zu „pro Hub“ präzisiert; Mehrnutzerfähigkeit heißt hier: jeder
+  Nutzer betreibt eigenen Hub mit eigenem Token gegen die geteilte Fassade (Tenant per
+  Token). Bestätigung offen.
+- ❓ F10 **Snapshot-Muster P73 für die Offline-Kopie** (T74.6) — P73 ist selbst noch offen;
+  Abhängigkeit benennen oder Muster aus P49/K10 nehmen.
+- Ansatz insgesamt **schlüssig:** MCP als einziges Fernprotokoll, generischer Client,
+  Fassade statt Librarian-Umbau, Quellen-Plugability auf Server-Seite. Die Schnitte passen
+  zu ADR-0020 (Contract `packages/contracts/src/knowledge/`, Core-Modul `knowledge`,
+  Route `apps/hub/src/modules/knowledge/`, PWA-Feature `knowledge`).
+
+**Gating:** Formal nicht erfüllt — P73 ist offen (begonnen 19.11.2026). Das Epic beruft
+sich wie P58–P73 auf die Quer-Epic-Praxis („keine blockierende“); gemeinsame Codeflächen
+mit P73 gibt es nicht. T74.6a läuft auf ausdrücklichen Nutzerauftrag vom 19.11.2026; ob
+die Quer-Epic-Ausnahme für P74 gilt, bleibt Nutzerentscheid (❓ G1). Internes Gate: ADR-0096
+steht auf „Vorgeschlagen“, T74.1 (Nutzer-Review) ist offen. P30/P31 unberührt (On hold).
+
+## 9. Schnitt T74.6a (Skill `concept-phase`, 19.11.2026)
+
+Evidence: §3.3.1, §3.5; Muster `packages/core/src/modules/connections/` (config-Tabelle,
+write-only Geheimnis), `apps/hub/src/platform/policy.ts` (Menschenfläche),
+`apps/gateway-mcp` (SDK 1.32.2 im Workspace).
+
+| Slice | Vertikal | Testanker |
+|---|---|---|
+| S1 Quelle anlegen, Geheimnis bleibt write-only | contracts-Schema → core-Store → Route → PWA-Formular | `packages/contracts/test/knowledge.test.ts`, `apps/hub/test/modules/knowledge/knowledge.test.ts` |
+| S2 Prüfen + Status (Fail loud) | core-MCP-Client → Status → Route 502 → PWA-Statuszeile | `packages/core/test/modules/knowledge/mcp-source.test.ts` (In-Process-MCP-Server: ok, 401, unerreichbar, fehlendes Tool, Protokollbruch) |
+| S3 Suchen + Lesen mit Caps | core → Route → PWA-Trefferliste/Leseansicht (Text, nie Instruktion) | dieselben Dateien + `e2e/specs/knowledge-sources.spec.ts` |
+
+Dimensionen: *Fidelity* — echter MCP-Protokollpfad (SDK-Server in-process), kein echter
+Librarian (folgt T74.4). *Scope* — nur lesen; `graph`/`add`/gateway-Ziel/Vault-Panel
+draußen. *Reuse* — SDK aus `gateway-mcp`, Store-Muster aus `connections`. *Edges* —
+Server weg, Timeout, 401, Tool fehlt, Antwort ohne Pflichtfeld, `isError`, Riesen-Snippet,
+leere Trefferliste, Geheimnis-Wechsel/-Entfernen, Quelle gelöscht während Anfrage.
+*Dependencies* — Fassade (T74.4, paralleler Agent). *Non-functional* — Timeout 10 s,
+keine Retries, Caps aus ADR-0096 §7.
+
+Fragility: Ändert die Fassade Feldnamen, meldet der Hub `protocol` statt still leerer
+Treffer; Tool-Umbenennung ist pro Quelle konfigurierbar. Ein künftiger Agentenzugang
+(T74.7) darf Inhalte nur als Daten zurückgeben (PRD §8.5). Out of scope: weitere Backends,
+A2A, P30/P31.
