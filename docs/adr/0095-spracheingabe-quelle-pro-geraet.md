@@ -2,7 +2,7 @@
 
 ## Kontext
 
-BUG-0224: Am Handy kam das Diktat sofort, am Tablet lahm. Beide Geräte hängen an
+BUG-0225: Am Handy kam das Diktat sofort, am Tablet lahm. Beide Geräte hängen an
 demselben Hub. Der Grund ist nicht die Geschwindigkeit, sondern die Quellenwahl: Die
 PWA hält ihre Entscheidung nur an einer Auskunft (`GET /api/stt`), die sie beim Start
 **einmal** holt und bis zum kompletten Schliessen der App behält. Ein Gerät, das vor
@@ -55,7 +55,7 @@ Wer nicht fragen kann, kann nicht entscheiden. Also fragen.
   lokales Tablet haben darf. Eine Konto-Einstellung würde das eine gegen das andere
   ausspielen.
 - **Warum nicht "immer lokal, wenn möglich"?** Genau das war der alte Zustand und das
-  ist BUG-0224. Schnelligkeit ist hier ein echtes Qualitätskriterium.
+  ist BUG-0225. Schnelligkeit ist hier ein echtes Qualitätskriterium.
 - **Warum blockiert "lokal" statt auszuweichen?** Weil ein unaufgeforderter Wechsel in
   die Cloud eine Konsequenz hat, die niemand unbemerkt tragen sollte.
 

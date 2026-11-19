@@ -1,5 +1,5 @@
 ---
-id: BUG-0224
+id: BUG-0225
 slug: gerät-hält-an-der-cloud-erkennung-fest
 status: open
 severity: S3
@@ -12,7 +12,7 @@ created: 2026-11-19
 reporter: Kai
 ---
 
-# BUG-0224 — ein Gerät hält an der Browser-/Cloud-Erkennung fest, obwohl längst lokal erkannt wird
+# BUG-0225 — ein Gerät hält an der Browser-/Cloud-Erkennung fest, obwohl längst lokal erkannt wird
 
 ## Gesehen
 
