@@ -13,6 +13,9 @@ import { freePort } from "../support/ports.ts";
 const port = await freePort();
 let server: Server;
 let busy = false;
+/** Nutzerauftrag 19.11.2026: hält die Optimierung künstlich offen, damit der
+ * Spinner statt der Verbessern-Taste sichtbar geprüft werden kann. */
+let slow = false;
 
 test.beforeAll(async () => {
   server = createServer((req, res) => {
@@ -35,7 +38,9 @@ test.beforeAll(async () => {
       } else {
         content = `Ziel: ${user} (lokal)\nScope: Projekt alpha\nConstraints: keine\nErfolgskriterium: sichtbar`;
       }
-      res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+      const send = () => res.end(JSON.stringify({ choices: [{ message: { content } }] }));
+      if (slow) setTimeout(send, 700);
+      else send();
     });
   });
   await new Promise<void>((r) => server.listen(port, "127.0.0.1", r));
@@ -43,6 +48,7 @@ test.beforeAll(async () => {
 test.afterAll(() => server?.close());
 test.afterEach(() => {
   busy = false;
+  slow = false;
 });
 
 test.use({ hubOptions: { assistantUrl: `http://127.0.0.1:${port}/v1` } });
@@ -139,6 +145,21 @@ test.describe("Prompt verbessern lokal + Skill-Pflege (EPIC-P68)", () => {
     await expect(card).toContainText("Die Datei wurde inzwischen geändert");
     await expect(card.locator(".recommend-content")).toContainText("Neuer Stand vor dem Vorschlag.");
     expect(readFileSync(file, "utf8")).toBe(changed);
+  });
+
+  test("während der Optimierung steht ein Spinner statt der Verbessern-Taste (Nutzerauftrag 19.11.2026)", async ({ app }) => {
+    slow = true;
+    await app.getByRole("button", { name: "Neue Session" }).click();
+    await app.getByLabel("Adapter").selectOption("opencode");
+    await app.getByPlaceholder("Refactore den Auth-Flow…").fill("mach den suchindex schneller");
+    await app.getByRole("button", { name: "Verbessern" }).click();
+    const spinner = app.locator('[data-testid="enhance-spinner"]');
+    await expect(spinner).toBeVisible();
+    await expect(app.getByRole("button", { name: "Verbessern" })).toBeHidden();
+    const preview = app.locator(".enhance-preview");
+    await expect(preview).toContainText("Ziel: mach den suchindex schneller (lokal)");
+    await expect(spinner).toBeHidden();
+    await expect(app.getByRole("button", { name: "Verbessern" })).toBeVisible();
   });
 
 });

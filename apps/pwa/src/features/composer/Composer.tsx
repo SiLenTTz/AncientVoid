@@ -440,15 +440,28 @@ export function Composer({
          icon class="composer-expand">
           {expanded ? "⤡" : "⤢"}
         </Button>
-        <Button
-          aria-busy={enhancing}
-          aria-label={enhancing ? "lädt…" : "Verbessern"}
-          onClick={enhance}
-          disabled={disabled || !enhanceSupported || enhancing || !value.trim()}
-          title={enhanceSupported ? "Prompt verbessern (lokales Modell zuerst, sonst Kontingent des Adapters)" : "Für diesen Adapter nicht verfügbar"}
-         icon class={enhancing ? "icon-btn composer-more busy" : "icon-btn composer-more"}>
-          {enhancing ? "…" : <WandGlyph />}
-        </Button>
+        {/* Nutzerauftrag 19.11.2026: Während die Optimierung läuft, steht hier
+         * statt der Taste ein kleiner Spinner in Akzentfarbe (gleiche Fläche,
+         * kein Layout-Sprung — Styling in 05-composer.css). */}
+        {enhancing ? (
+          <span
+            class="enhance-spinner"
+            role="status"
+            aria-label="Prompt wird verbessert"
+            data-testid="enhance-spinner"
+          />
+        ) : (
+          <Button
+            aria-label="Verbessern"
+            onClick={enhance}
+            disabled={disabled || !enhanceSupported || !value.trim()}
+            title={enhanceSupported ? "Prompt verbessern (lokales Modell zuerst, sonst Kontingent des Adapters)" : "Für diesen Adapter nicht verfügbar"}
+            icon
+            class="icon-btn composer-more"
+          >
+            <WandGlyph />
+          </Button>
+        )}
         {extraActions}
       </div>
     </div>

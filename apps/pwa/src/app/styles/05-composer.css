@@ -64,6 +64,49 @@
   border-color: currentColor;
 }
 
+/* Nutzerauftrag 19.11.2026: Akzent-Spinner statt der Verbessern-Taste, solange
+ * die Optimierung läuft. Nimmt die Icon-Tasten-Fläche ein (44×40), damit die
+ * Aktionszeile nicht springt. Nur transform (K2); ohne Bewegung Standbild,
+ * bei getrennter Verbindung angehalten (K10). */
+.enhance-spinner {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.enhance-spinner::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-top-color: var(--accent);
+  animation: enhance-rotate 0.8s linear infinite;
+}
+
+@keyframes enhance-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+:root[data-conn="off"] .enhance-spinner::before {
+  animation-play-state: paused;
+}
+
+:root[data-ctx-motion="off"] .enhance-spinner::before {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enhance-spinner::before {
+    animation: none;
+  }
+}
+
 /* T7.5: observer sessions — say why there is no Stop. */
 .composer-actions .observer-note {
   flex: 2 1 0;
