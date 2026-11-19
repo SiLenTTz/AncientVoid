@@ -27,17 +27,20 @@ Wer nicht fragen kann, kann nicht entscheiden. Also fragen.
 1. **Gespeicherte Wahl pro Gerät** in `localStorage`
    (`ancientvoid.stt-modus.v1`): `auto` (bisheriges Verhalten), `lokal`, `browser`.
    Kein Hub-Sync: die Wahl hängt an Hardware und Mikrofon, nicht am Konto.
-2. **Sichtbar an der Eingabe**: ein Segment-Schalter (Design-System `Segmented`) plus ein
-   Hinweis, der die Quelle beim Namen nennt — bei Browser explizit
-   "dein Gesprochenes verlässt das Gerät". Die Entscheidung darf nicht im
-   Mikro-Knopf versteckt stecken.
+2. **Sichtbar, aber nicht im Weg**: ein Menü mit den drei Quellen (Design-System
+   `Segmented`) und einem Hinweis, der die Quelle beim Namen nennt — bei Browser
+   explizit „dein Gesprochenes verlässt das Gerät“. Es kommt, wenn man den
+   Mikro-Knopf **gedrückt hält**, und steht zusätzlich in den Einstellungen
+   (Gruppe „Spracheingabe“). Die Entscheidung darf nicht unsichtbar im Mikro-Knopf
+   stecken — sichtbar heißt aber nicht: dauerhaft platziert.
 3. **Der Knopf beschreibt, was ein Druck tut** (Titel "Spracheingabe lokal (…)"/
    "(Browser, meist Cloud)"), nicht die Einstellung dahinter.
 4. **Kein stiller Quellenwechsel.** Bei "lokal" und unerreichbarer eigener Erkennung
    bleibt der Knopf blockiert und sagt, woran es liegt. Wer "browser" gewählt hat,
    bekommt nicht heimlich den Hub. Der Auto-Pfad bleibt der einzige, der ausweicht —
    und sagt danach beim nächsten Drücken, was er tut.
-5. **Ohne Mikrofon und ohne Browser-Erkennung** erscheint die Zeile gar nicht.
+5. **Ohne Mikrofon und ohne Browser-Erkennung** erscheint das Menü gar nicht — wo
+   keine Quelle zur Wahl steht, fragt das Menü nach nichts Sinnvollem.
 
 ## Folgen
 
@@ -68,3 +71,25 @@ Wer nicht fragen kann, kann nicht entscheiden. Also fragen.
   Lokal-Wahl weicht bei unerreichbarem Hub nicht in die Cloud aus).
 - Regressionsfrei: `e2e/specs/voice-local.spec.ts` 7 Fälle und
   `e2e/specs/stt-ausfall-rückfall.spec.ts` 2 Fälle bleiben grün.
+
+## Nachtrag (19.11.2026): die Wahl kostet keinen Dauerplatz mehr
+
+Die erste Fassung stellte den Segment-Schalter **fest unter die Eingabe**. Im Live-Bild
+zeigte sich: diese Zeile kostet in der Eingabgegend 60 px Höhe — genau dort, wo Composer,
+Vorlage-Zeile und Dock um jeden Streifen ringen. Kai: „nimmt viel zu viel space ein“.
+Deshalb:
+
+- Die feste Zeile ist **weg**; die Eingabgegend ist wieder so hoch wie vorher.
+- **Mikro-Knopf gedrückt halten (500 ms)** öffnet das Menü am Knopf. Wer zieht
+  (Knopf positionieren), bricht das Halten ab; kurzes Tippen nimmt weiter auf.
+- Das Menü **klebt am Knopf**: es misst die Knopfposition beim Öffnen und danach erneut
+  (der Knopf setzt sich beim Seitenwechsel, bei Tastatur und beim Wachsen des Docks neu),
+  klemmt sich seitlich ins Bild und rutscht nach unten, wenn nach oben kein Platz ist.
+  Es schließt nach der Wahl, bei Escape und bei einem Druck außerhalb.
+- Dieselbe Wahl steht in **Einstellungen → Spracheingabe** — der nachschlagbare Ort,
+  damit man sie auch ohne Kenntnis der Geste findet.
+- Ohne jede Quelle (kein Mikrofon, keine Browser-Erkennung) öffnet das Menü nicht.
+- Nebenbefund, mit behoben: eine `Segmented`-Zeile in den Einstellungen quetschte am
+  Handy ihre Beschriftung auf acht Zeilen („Mikro- / Knopf / gedrückt / halten …“). Jetzt
+  stapeln schmale Zeilen mit breitem Bedienelement (`24-settings.css`): Beschriftung
+  oben, Schalter darunter.

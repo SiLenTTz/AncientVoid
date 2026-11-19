@@ -10,6 +10,7 @@ import { PreviewSettings } from "./PreviewSettings.tsx";
 import { PushSettings } from "./PushSettings.tsx";
 import { SecuritySettings } from "./SecuritySettings.tsx";
 import { SoundSettings } from "./SoundSettings.tsx";
+import { VoiceSettings } from "./VoiceSettings.tsx";
 
 /**
  * Die Einstellungen als eine Seite — dieselbe am Handy (Listenseite) und am Desktop (Werkzeugfläche).
@@ -28,6 +29,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
           <PreviewSettings />
           <PushSettings />
           <SoundSettings />
+          <VoiceSettings />
         </div>
         <div class="settings-col">
           <DevicesSettings />
