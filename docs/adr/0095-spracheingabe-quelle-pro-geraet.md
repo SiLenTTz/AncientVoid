@@ -80,8 +80,12 @@ Vorlage-Zeile und Dock um jeden Streifen ringen. Kai: „nimmt viel zu viel spac
 Deshalb:
 
 - Die feste Zeile ist **weg**; die Eingabgegend ist wieder so hoch wie vorher.
-- **Mikro-Knopf gedrückt halten (500 ms)** öffnet das Menü am Knopf. Wer zieht
+- **Mikro-Knopf gedrückt halten (1500 ms)** öffnet das Menü am Knopf. Wer zieht
   (Knopf positionieren), bricht das Halten ab; kurzes Tippen nimmt weiter auf.
+- Die Schwelle ist von 500 ms auf **1500 ms** gesetzt (Kais Entscheid nach dem ersten
+  Live-Test, 19.11.): beim normalen Diktat-Start hält man den Daumen unwillkürlich etwas
+  länger und landete im Menü statt in der Aufnahme. Bewiesen als Spec-Fall: 900 ms Halten
+  startet weiter die Aufnahme (kein Menü), 1900 ms öffnen das Menü.
 - Das Menü **klebt am Knopf**: es misst die Knopfposition beim Öffnen und danach erneut
   (der Knopf setzt sich beim Seitenwechsel, bei Tastatur und beim Wachsen des Docks neu),
   klemmt sich seitlich ins Bild und rutscht nach unten, wenn nach oben kein Platz ist.
