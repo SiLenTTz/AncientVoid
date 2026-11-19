@@ -28,6 +28,16 @@ export interface GitHubClientDeps {
   baseUrl?: string;
 }
 
+/** ADR-0094: Der GitHub-Token liegt neben der GitLab-Forge-Verknüpfung
+ * (ADR-0056) — issues.tokenFile gewinnt, sonst forge.github.tokenFile.
+ * Ohne Token gibt es keine GitHub-Verbindung (fail loud beim Start). */
+export function resolveGitHubTokenFile(
+  issues: { tokenFile?: string | undefined } | undefined,
+  forge: { github?: { tokenFile?: string | undefined } | undefined } | undefined,
+): string | null {
+  return issues?.tokenFile ?? forge?.github?.tokenFile ?? null;
+}
+
 /**
  * ADR-0094: dünner GitHub-REST-Client (fetch, token aus Datei — nie aus der
  * Config). Kein SDK, kein Cache: die Bridge pollt outbound, der TTL-Cache für

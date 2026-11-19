@@ -18,7 +18,12 @@ unerfragt als Instruktion an den Agenten laufen.
 1. **Outbound-Poll statt Webhook.** Der Hub fragt `api.github.com` an
    (`GET /repos/{repo}/issues?state=open&labels={trigger}&since={lastCheck}`, alle 60 s,
    Jitter). Kein eingehender Port, kein neuer Auth-Typ. Der Token liegt wie beim Forge
-   in einer Datei (`tokenFile`), nie im Config-Commit.
+   in einer Datei (`tokenFile`), nie im Config-Commit. Er trägt zwei Adressen:
+   `issues.tokenFile` (spezifisch) und `forge.github.tokenFile` (die GitHub-Verknüpfung
+   neben `forge.gitlab`, ADR-0056 — beide parallel nutzbar); die spezifische Angabe
+   gewinnt, ohne beide startet die Bridge nicht (fail loud im Log). Ein volles
+   ForgePanel für GitHub-Remotes (PRs/Actions je Session) ist Out — der GitHub-Token
+   speist Bridge und Actions-Anzeige, nicht die Session-Forge-Ansicht.
 2. **Das Label ist das Freigabe-Gate.** Nur Issues mit dem Trigger-Label (Standard
    `session`) bekommen eine Session. Labeln braucht Schreibrechte am Repo — damit ist die
    menschliche Freigabe der Nachweis, bevor fremder Text zum Agenten-Prompt wird. Der

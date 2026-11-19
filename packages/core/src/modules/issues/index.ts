@@ -1,4 +1,4 @@
-export { GitHubClient, type IssueView, type WorkflowRunView, type GitHubClientDeps } from "./github-client.ts";
+export { GitHubClient, resolveGitHubTokenFile, type IssueView, type WorkflowRunView, type GitHubClientDeps } from "./github-client.ts";
 export { IssueBridgeJournal, BRIDGE_ENTRY_KEEP, BRIDGE_ERROR_KEEP, type BridgeEntry, type BridgeOutcome } from "./issue-journal.ts";
 export {
   IssueSessionBridge,

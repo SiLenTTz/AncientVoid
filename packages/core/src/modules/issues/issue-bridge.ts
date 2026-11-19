@@ -2,10 +2,12 @@ import type { ExternalJobInfo } from "@ancientvoid/contracts";
 import type { IssueView } from "./github-client.ts";
 import type { BridgeEntry, BridgeOutcome, IssueBridgeJournal } from "./issue-journal.ts";
 
-/** ADR-0094 (EPIC-P73): Konfiguration der Bridge aus der `issues`-Sektion. */
+/** ADR-0094 (EPIC-P73): Konfiguration der Bridge aus der `issues`-Sektion.
+ * Der Token selbst lebt im GitHubClient (issues.tokenFile oder
+ * forge.github.tokenFile) — hier nur, was die Bridge direkt betrifft. */
 export interface IssueBridgeConfig {
   repo: string;
-  tokenFile: string;
+  tokenFile?: string;
   triggerLabel: string;
   adapter: string;
   project: string;

@@ -132,16 +132,28 @@ export const HubConfig = z.object({
          tokenFile: z.string().min(1).optional(),
        })
        .default({ command: "glab" }),
+      /** EPIC-P73 (ADR-0094): GitHub als zweiter Forge neben GitLab — beide
+       * parallel möglich. Der Token speist die Issue-Session-Bridge und die
+       * GitHub-Actions-Anzeige; ein volles ForgePanel für GitHub-Remotes ist
+       * bewusst nicht Teil davon (Out, siehe ADR-0094 Abgewogen). */
+      github: z
+        .object({
+          /** GitHub-Token (Issues lesen/schreiben, Actions lesen) als
+           * Dateireferenz (erste Zeile) — nie in der Config selbst. */
+          tokenFile: z.string().min(1).optional(),
+        })
+        .default({}),
    })
-   .default({ gitlab: { command: "glab" } }),
+   .default({ gitlab: { command: "glab" }, github: {} }),
   /** EPIC-P73 (ADR-0094): Issue-Session-Bridge — der Hub pollt outbound nach
    * gelabelten Issues und startet dafür je eine Session. Ohne Sektion bleibt
    * alles beim alten Zustand; das Label ist das Freigabe-Gate (PRD §8.5). */
   issues: z.object({
     repo: z.string().regex(/^[^\s/]+\/[^\s/]+$/, "repo muss owner/name sein"),
-    /** GitHub-Token (Issues lesen/schreiben, Actions lesen) als Dateireferenz
-     * (erste Zeile) — nie in der Config selbst. */
-    tokenFile: z.string().min(1),
+    /** GitHub-Token als Dateireferenz (erste Zeile) — nie in der Config
+     * selbst. Optional: fehlt die Angabe, greift forge.github.tokenFile
+     * (parallele Forge-Verknüpfung, ADR-0094). */
+    tokenFile: z.string().min(1).optional(),
     triggerLabel: z.string().min(1).max(64).default("session"),
     adapter: z.string().min(1),
     project: z.string().min(1),

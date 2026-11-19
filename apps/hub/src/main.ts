@@ -68,6 +68,7 @@ import {
   IssueBridgeJournal,
   IssueSessionBridge,
   isProjectPathAllowed,
+  resolveGitHubTokenFile,
 } from "@ancientvoid/core";
 import { TmuxRunner, ProcessRunner } from "@ancientvoid/workers";
 import type { AdapterFactory } from "@ancientvoid/contracts";
@@ -344,18 +345,22 @@ async function main(): Promise<void> {
   // EPIC-P73 (ADR-0094): Issue-Session-Bridge — outbound, Label als Freigabe-
   // Gate. Ohne `issues`-Sektion bleibt alles beim alten Zustand; ein Projekt
   // außerhalb der projectRoots lässt die Bridge nicht starten (fail loud).
+  // GitHub-Token: issues.tokenFile, sonst die Forge-Verknüpfung forge.github.
   let issueBridge: IssueSessionBridge | undefined;
   let issueClient: GitHubClient | undefined;
   if (config.issues) {
     const allowed = await isProjectPathAllowed(config.issues.project, config.projectRoots.map((root) => resolve(root)));
+    const tokenFile = resolveGitHubTokenFile(config.issues, config.forge);
     if (!allowed) {
       logger.warn(`issues: Projekt ${config.issues.project} liegt außerhalb der projectRoots — Issue-Session-Bridge startet nicht`);
+    } else if (!tokenFile) {
+      logger.warn("issues: kein GitHub-Token (issues.tokenFile oder forge.github.tokenFile fehlt) — Issue-Session-Bridge startet nicht");
     } else {
-      issueClient = new GitHubClient(config.issues.repo, config.issues.tokenFile);
+      issueClient = new GitHubClient(config.issues.repo, tokenFile);
       issueBridge = new IssueSessionBridge(
         {
           repo: config.issues.repo,
-          tokenFile: config.issues.tokenFile,
+          ...(config.issues.tokenFile ? { tokenFile: config.issues.tokenFile } : {}),
           triggerLabel: config.issues.triggerLabel,
           adapter: config.issues.adapter,
           project: config.issues.project,

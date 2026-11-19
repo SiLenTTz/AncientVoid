@@ -37,6 +37,7 @@ Felder von `hub.config.json`; Erklärung und Beispiele: [`configuration.md`](con
 | `forge.gitlab.command` | string | "glab" |
 | `forge.gitlab.host` | string | — |
 | `forge.gitlab.tokenFile` | string | — |
+| `forge.github.tokenFile` | string | — |
 | `issues.repo` | string | — |
 | `issues.tokenFile` | string | — |
 | `issues.triggerLabel` | string | "session" |
