@@ -195,7 +195,7 @@
 
 .graph-search,
 .graph-side button,
-.graph-float,
+.graph-fullclose,
 .graph-actions .btn {
   min-height: 44px;
 }
@@ -287,19 +287,23 @@
   white-space: nowrap;
 }
 
-.graph-float {
+/* BUG-0230: beschriftet und oben rechts — der Rückweg muss auffindbar sein,
+ * auch über dem Hit-Overlay. */
+.graph-fullclose {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   z-index: var(--z-sticky);
   min-width: 44px;
 }
 
+/* BUG-0230: Höhe geteilt durch --ui-zoom wie jede Vollfläche (BUG-0122-Familie)
+ * — sonst ragt das Vollbild bei erhöhtem UI-Zoom unten aus dem Bildschirm. */
 .graph-pane[data-fullscreen="1"] {
   position: fixed;
   inset: 0;
   z-index: var(--z-popout);
-  height: 100dvh;
+  height: calc(100dvh / var(--ui-zoom));
   background: var(--bg);
 }
 

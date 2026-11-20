@@ -874,8 +874,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       {/* Zoom an der ganzen Fläche: über einem Stern liegt dessen Klick-Knopf, nicht das Canvas. */}
       <div class="graph-wrap" ref={wrapRef} onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={onPointerLeave}>
         {full && (
-          <Button aria-label="Vollbild verlassen" onClick={() => setFull(false)} class="graph-float">
-            ←
+          <Button aria-label="Vollbild verlassen" title="Vollbild verlassen (Esc)" onClick={() => setFull(false)} class="graph-fullclose">
+            ✕ Vollbild verlassen
           </Button>
         )}
         {!report && !loadErr && <div class="graph-state">Lade Graph …</div>}

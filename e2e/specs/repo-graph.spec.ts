@@ -51,6 +51,22 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect.poll(async () => (await readTx()) - before).toBeGreaterThan(50);
   });
 
+  // BUG-0230: Vollbild braucht einen beschrifteten, auffindbaren Rückweg — „←“ allein war keiner.
+  test("Vollbild zeigt beschrifteten Schließen-Knopf und kehrt damit zurück @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Vollbild Auftrag" });
+    await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
+    await expect(app.locator(".graph-canvas")).toBeVisible();
+    if ((await app.locator(".graph-pane").getAttribute("data-fullscreen")) !== "1") {
+      await app.getByRole("button", { name: "Vollbild", exact: true }).click();
+    }
+    await expect(app.locator(".graph-pane[data-fullscreen='1']")).toBeVisible();
+    const close = app.locator(".graph-fullclose");
+    await expect(close).toBeVisible();
+    await expect(close).toHaveText(/Vollbild verlassen/);
+    await close.click();
+    await expect(app.locator(".graph-pane[data-fullscreen='0']")).toBeVisible();
+  });
+
   test("Prüfen: JSON-Fehler markiert die Datei rot, Gegenprobe wird wieder normal", async ({ app, hub }) => {
     writeFileSync(join(hub.alpha, "kaputt.json"), "{\n");
     const id = await hub.createSession({ adapter: "dummy", prompt: "Diagnose", workspaceMode: "direct", confirmDirty: true });
