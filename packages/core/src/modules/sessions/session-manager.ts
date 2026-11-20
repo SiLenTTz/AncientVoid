@@ -1,10 +1,11 @@
-import { win32 } from "node:path";
+import { join, win32 } from "node:path";
 import { SessionInterruption } from "./session-interruption.ts";
 import { SessionRecovery } from "./session-recovery.ts";
 import { SessionActivities } from "./session-activity.ts";
 import type { ActivityReport, SessionActivity } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
+import { readdir, rm } from "node:fs/promises";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, NotificationAction, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings, MainSyncApplyResult, MainSyncCheckResult } from "@ancientvoid/contracts";
 import { actorKind, blobRefToString, classifyProviderError, countMetrics, currentProviderFailureFromEvents, emptyMetricCounters, metricsState, promptWithAttachments, providerErrorEvent, DEFAULT_HOST_ID, MAIN_SYNC_DEFAULTS, RESUME_SCHEMA_VERSION, SessionSpec as SessionSpecSchema, isLoopAdapter, unsupportedResume, EmittedStreamFrame as StreamFrameSchema } from "@ancientvoid/contracts";
 import type { EventStore } from "../../platform/index.ts";
@@ -2410,7 +2411,9 @@ export class SessionManager {
     // nachweisbar eigene Prozesse beendet, dann erst der Worktree entfernt.
     try {
       await this.workspaceServices.stopAll(sessionId, (kind, payload) => (live ? this.emitSystem(live, kind, payload) : Promise.resolve()));
-      if (record.worktreeSha !== null && this.worktrees && existsSync(this.worktrees.pathFor(sessionId))) {
+      // BUG-0246: auch ohne worktreeSha aufräumen, falls der Ordner noch liegt;
+      // remove ist resilient gegen tote/fehlende Projekt-Repos.
+      if (this.worktrees && (record.worktreeSha !== null || existsSync(this.worktrees.pathFor(sessionId)))) {
         await this.worktrees.remove(sessionId, record.project);
       }
     } catch (err) {
@@ -2426,14 +2429,51 @@ export class SessionManager {
     // T17.4: no attempt can settle for a deleted session — its reserved
     // input ids would leak into the map forever.
     this.inFlightInputs.delete(sessionId);
-    // EPIC-P29: Workspace-Journal und -Servicezeilen gehören zur Session —
-    // sie gehen mit ihr, sonst wachsen verwaiste Zeilen.
-    this.db.prepare("DELETE FROM workspace_services WHERE session_id = ?").run(sessionId);
-    this.db.prepare("DELETE FROM workspace_operations WHERE session_id = ?").run(sessionId);
+    // EPIC-P29 / BUG-0246: alle session-gebundenen Zeilen und Dateien mitnehmen.
+    this.purgeSessionSidecars(sessionId);
+    await this.purgeSessionFiles(sessionId);
     this.db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
     this.metrics?.inc("sessions_deleted");
     this.logger.info("session deleted", { sessionId, adapter: record.adapter });
     return { ok: true };
+  }
+
+  /** SQLite-Zeilen, die sonst nach dem Löschen als Orphans wachsen. */
+  private purgeSessionSidecars(sessionId: string): void {
+    for (const table of [
+      "workspace_services",
+      "workspace_operations",
+      "notifications",
+      "drafts",
+      "session_inputs",
+      "approvals",
+      "operations",
+      "turn_metrics",
+      "session_stat_facts",
+      "gate_wait_facts",
+      "tool_stat_facts",
+      "recovery_facts",
+      "checkout_tenants",
+    ] as const) {
+      this.db.prepare(`DELETE FROM ${table} WHERE session_id = ?`).run(sessionId);
+    }
+  }
+
+  /** Worker-Logs und MCP-Bridge-Dateien der Session unter dem Datadir. */
+  private async purgeSessionFiles(sessionId: string): Promise<void> {
+    const root = this.store.directory();
+    const workers = join(root, "workers");
+    const bridges = join(root, "bridges");
+    try {
+      for (const name of await readdir(workers)) {
+        if (name === `ancientvoid-${sessionId}.log` || name.startsWith(`ancientvoid-${sessionId}.`)) {
+          await rm(join(workers, name), { force: true }).catch(() => undefined);
+        }
+      }
+    } catch {
+      /* workers-Dir fehlt — nichts zu tun */
+    }
+    await rm(join(bridges, `${sessionId}.mcp.json`), { force: true }).catch(() => undefined);
   }
 
   /** ADR-0009: fire-and-forget, best-effort. A throwing/rejecting sink

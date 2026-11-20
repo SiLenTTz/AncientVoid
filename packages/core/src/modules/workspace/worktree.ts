@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { lstat, mkdir, readdir, realpath } from "node:fs/promises";
-import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { lstat, mkdir, readdir, realpath, rm } from "node:fs/promises";
+import { join, sep } from "node:path";
 import type { MainSyncSettings } from "@ancientvoid/contracts";
 import { classifyFetchError, currentGitBranch, fetchMainBranch, resolveMainBranch } from "./main-sync-git.ts";
 
@@ -211,16 +212,46 @@ export class WorktreeManager {
   }
 
   /**
-   * Removes the worktree and its branch. Best-effort on the branch delete
-   * (a worktree can be removed even if the branch was already cleaned up
-   * by something else) — but the worktree removal itself is not swallowed,
-   * since a leftover worktree directory is exactly the disk-usage problem
-   * this task exists to avoid.
+   * Removes the worktree and its branch. Permanent delete must succeed even
+   * when the project path is gone or no longer a git repo (BUG-0246) — we own
+   * `data/worktrees/<id>` and may remove it after a best-effort git unregister.
+   * Only fails if that owned directory still exists afterwards.
    */
   async remove(sessionId: string, projectPath: string): Promise<void> {
     const path = this.worktreePath(sessionId);
-    await execFileAsync("git", ["-C", projectPath, "worktree", "remove", "--force", path]);
-    await execFileAsync("git", ["-C", projectPath, "branch", "-D", this.branchName(sessionId)]).catch(() => undefined);
+    await this.assertOwnedPath(path);
+    const isGit = await this.isGitRepo(projectPath);
+    if (isGit && existsSync(path)) {
+      await execFileAsync("git", ["-C", projectPath, "worktree", "unlock", path]).catch(() => undefined);
+      try {
+        await execFileAsync("git", ["-C", projectPath, "worktree", "remove", "--force", path]);
+      } catch {
+        await rm(path, { recursive: true, force: true });
+        await execFileAsync("git", ["-C", projectPath, "worktree", "prune"]).catch(() => undefined);
+      }
+      await execFileAsync("git", ["-C", projectPath, "branch", "-D", this.branchName(sessionId)]).catch(() => undefined);
+    } else if (existsSync(path)) {
+      await rm(path, { recursive: true, force: true });
+    } else if (isGit) {
+      await execFileAsync("git", ["-C", projectPath, "worktree", "prune"]).catch(() => undefined);
+      await execFileAsync("git", ["-C", projectPath, "branch", "-D", this.branchName(sessionId)]).catch(() => undefined);
+    }
+    if (existsSync(path)) {
+      await rm(path, { recursive: true, force: true });
+    }
+    if (existsSync(path)) {
+      throw new Error(`Worktree-Verzeichnis konnte nicht gelöscht werden: ${path}`);
+    }
+  }
+
+  /** Refuse deleting anything outside the configured worktree base. */
+  private async assertOwnedPath(path: string): Promise<void> {
+    const base = await realpath(this.baseDir).catch(() => this.baseDir);
+    const resolved = await realpath(path).catch(() => path);
+    const prefix = base.endsWith(sep) ? base : `${base}${sep}`;
+    if (resolved !== base && !resolved.startsWith(prefix)) {
+      throw new Error(`refuse to remove path outside worktree base: ${path}`);
+    }
   }
 
   /**
