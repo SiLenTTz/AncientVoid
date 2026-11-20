@@ -73,7 +73,10 @@ const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pend
 /** `corner`: the list column is folded away, so bell and gear sit in the window corner.
  * EPIC-P64 T64.4: `flow` — am PC mit sichtbarer Liste sitzt die Glocke als
  * Flusselement im Kopf der Listenspalte (App-Topbar), nicht als Overlay. */
-export const SECTION_LABEL: Record<SectionKey, string> = { errors: "Fehler", questions: "Offene Fragen", rest: "Übrige Meldungen" };
+/** Nutzerwunsch 2026-11-20: vier Abschnitte mit fester Farbbedeutung —
+ * Fehler (rot), Rückfrage (blau), Fertig (grün), Sonstiges (gelb); die Farbe
+ * trägt die CSS-Klasse je Abschnitt (14-notifications.css). */
+export const SECTION_LABEL: Record<SectionKey, string> = { errors: "Fehler", questions: "Rückfrage", done: "Fertig", rest: "Sonstiges" };
 export function NotificationCenter({ corner = false, flow = false }: { corner?: boolean; flow?: boolean }) {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -81,7 +84,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   const [read, setRead] = useState(readMarks);
   /** Nutzerwunsch 2026-11-18: einklappbare Abschnitte — Vorgabe beim Öffnen
    * (und bei Neuankünften im offenen Panel): nur Ungesehenes steht offen. */
-  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ errors: true, questions: true, rest: true });
+  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ errors: true, questions: true, done: true, rest: true });
   /** Sessions mit noch offener Freigabe/Frage — live geprüft, damit eine
    * beantwortete Frage aus dem angepinnten Abschnitt verschwindet. */
   const [pendingApprovals, setPendingApprovals] = useState<ReadonlySet<string>>(new Set());
@@ -144,7 +147,6 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
     setToasts((prev) => [t, ...prev].slice(0, 4));
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), TOAST_MS[t.level]);
   };
-
   const take = (hostId: string | null, page: { items: HubNotification[]; lastId: number }) => {
     const key = hostId ?? "";
     const known = lastIds.current[key] ?? null;
@@ -273,7 +275,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   /** EPIC-P64 T64.2: höchste offene Dringlichkeit steuert den Glow der Glocke. */
   const urgency = urgencyOf(items, read, pendingApprovals);
 
-  const sections: Record<SectionKey, FleetNotification[]> = { errors: [], questions: [], rest: [] };
+  const sections: Record<SectionKey, FleetNotification[]> = { errors: [], questions: [], done: [], rest: [] };
   for (const n of items) sections[sectionOf(n, pendingApprovals)].push(n);
   const toggleSection = (key: SectionKey) =>
     setExpanded((prev) => {
@@ -418,7 +420,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
                 const list = sections[key];
                 if (list.length === 0) return null;
                 return (
-                  <section key={key} class="notif-section" aria-label={SECTION_LABEL[key]}>
+                  <section key={key} class={`notif-section ${key}`} aria-label={SECTION_LABEL[key]}>
                     {/* Nutzerwunsch 2026-11-18: ganze Kopfzeile klappt den Abschnitt
                      * (Muster .section-fold der Übersicht, EPIC-P43 T43.3). */}
                     <h3 class="section-title">

@@ -192,6 +192,30 @@
   min-height: 0;
   margin-top: 4px;
 }
+/* Nutzerwunsch 2026-11-20: vier Abschnitte mit fester Farbbedeutung —
+ * Fehler rot, Rückfrage blau (--info), Fertig grün, Sonstiges gelb.
+ * Muster .section-braucht der Übersicht: Farbe auf der Abschnitts-Überschrift
+ * (inkl. Zähler und Falt-Marker über currentColor). Die Item-Ränder bleiben
+ * nach Level gefärbt — nur Rückfragen overrideen, damit der blaue Abschnitt
+ * nicht gelb geränderte Einträge zeigt (Level warning, Sektion blau). */
+.notif-section.errors {
+  --notif-section: var(--err);
+}
+.notif-section.questions {
+  --notif-section: var(--info);
+}
+.notif-section.done {
+  --notif-section: var(--ok);
+}
+.notif-section.rest {
+  --notif-section: var(--warn);
+}
+.notif-section .section-fold {
+  color: var(--notif-section);
+}
+.notif-section.questions .notif-item {
+  border-left-color: var(--info);
+}
 .notif-item {
   display: grid;
   gap: 2px;
