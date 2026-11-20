@@ -4,6 +4,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { hubApi, type TerminalTarget } from "../../shared/api.ts";
 import { Button, EmptyState } from "../../shared/ui/index.ts";
+import { TERMINAL_CLOSE_END } from "@ancientvoid/contracts";
 
 function cssColor(name: string, fallback: string): string {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -11,6 +12,24 @@ function cssColor(name: string, fallback: string): string {
 }
 
 type ConnState = "idle" | "connecting" | "open" | "closed" | "error";
+
+/** Letzte Hub-Sitzung: Tab verlassen trennt nur, Zurückkommen hängt wieder an. */
+const LAST_KEY = "ancientvoid.terminal.last";
+type LastSession = { target: string; session: string };
+
+function readLast(): LastSession | null {
+  try {
+    const v = JSON.parse(localStorage.getItem(LAST_KEY) ?? "null") as LastSession | null;
+    return v && typeof v.target === "string" && typeof v.session === "string" ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeLast(v: LastSession | null): void {
+  if (v) localStorage.setItem(LAST_KEY, JSON.stringify(v));
+  else localStorage.removeItem(LAST_KEY);
+}
 
 /**
  * ADR-0087: Allowlist-Terminals über Hub-SSH/`script`.
@@ -26,6 +45,7 @@ export function TerminalPage() {
   const fitRef = useRef<FitAddon | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const dataDispRef = useRef<{ dispose(): void } | null>(null);
+  const connectRef = useRef<(target: string) => Promise<void>>(async () => {});
 
   useEffect(() => {
     let alive = true;
@@ -33,7 +53,12 @@ export function TerminalPage() {
       .then((list) => {
         if (!alive) return;
         setTargets(list.terminals);
-        if (list.terminals[0]) setSelected(list.terminals[0].id);
+        const last = readLast();
+        const resume = last && list.terminals.some((t) => t.id === last.target) ? last : null;
+        if (resume) {
+          setSelected(resume.target);
+          void connectRef.current(resume.target);
+        } else if (list.terminals[0]) setSelected(list.terminals[0].id);
       })
       .catch((err: unknown) => {
         if (!alive) return;
@@ -76,16 +101,18 @@ export function TerminalPage() {
     };
   }, []);
 
-  const disconnect = () => {
+  /** Beendet die Shell im Hub; bloßes Verlassen des Tabs trennt nur. */
+  const endSession = () => {
     dataDispRef.current?.dispose();
     dataDispRef.current = null;
-    wsRef.current?.close();
+    wsRef.current?.close(TERMINAL_CLOSE_END, "end");
     wsRef.current = null;
+    writeLast(null);
     setState("closed");
   };
 
-  const connect = async () => {
-    if (!selected || !termRef.current) return;
+  const connect = async (target: string) => {
+    if (!target || !termRef.current) return;
     setError(null);
     setState("connecting");
     termRef.current.reset();
@@ -96,8 +123,10 @@ export function TerminalPage() {
       fitRef.current?.fit();
       const cols = termRef.current.cols;
       const rows = termRef.current.rows;
-      const { ticket } = await hubApi.terminalTicket(selected);
-      const ws = new WebSocket(hubApi.terminalStreamUrl(selected, ticket, cols, rows));
+      const last = readLast();
+      const resume = last?.target === target ? last.session : undefined;
+      const { ticket } = await hubApi.terminalTicket(target);
+      const ws = new WebSocket(hubApi.terminalStreamUrl(target, ticket, cols, rows, resume));
       wsRef.current = ws;
       ws.addEventListener("open", () => {
         setState("open");
@@ -105,13 +134,15 @@ export function TerminalPage() {
       });
       ws.addEventListener("message", (ev) => {
         try {
-          const frame = JSON.parse(String(ev.data)) as { t: string; d?: string; m?: string; code?: number };
+          const frame = JSON.parse(String(ev.data)) as { t: string; d?: string; m?: string; code?: number; id?: string };
           if (frame.t === "o" && frame.d) termRef.current?.write(frame.d);
+          else if (frame.t === "s" && frame.id) writeLast({ target, session: frame.id });
           else if (frame.t === "e") {
             setError(frame.m ?? "Fehler");
             setState("error");
           } else if (frame.t === "x") {
             termRef.current?.writeln(`\r\n[exit ${frame.code ?? "?"}]`);
+            writeLast(null);
             setState("closed");
           }
         } catch {
@@ -137,6 +168,21 @@ export function TerminalPage() {
     }
   };
 
+  connectRef.current = connect;
+
+  // Zurück in die App (Handy war im Hintergrund): getrennte Sitzung wieder anhängen.
+  useEffect(() => {
+    const onVisible = () => {
+      const last = readLast();
+      if (document.visibilityState === "visible" && !wsRef.current && last) {
+        setSelected(last.target);
+        void connectRef.current(last.target);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
   const empty = targets !== null && targets.length === 0;
 
   return (
@@ -157,9 +203,9 @@ export function TerminalPage() {
           </select>
         </label>
         {state === "open" || state === "connecting" ? (
-          <Button onClick={disconnect} disabled={state === "connecting"}>Trennen</Button>
+          <Button onClick={endSession} disabled={state === "connecting"}>Beenden</Button>
         ) : (
-          <Button variant="primary" onClick={() => void connect()} disabled={!selected || empty}>
+          <Button variant="primary" onClick={() => void connect(selected)} disabled={!selected || empty}>
             Verbinden
           </Button>
         )}

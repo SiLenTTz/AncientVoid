@@ -30,3 +30,27 @@ Addon neben `node:sqlite`).
 - Contracts + Config + Route-Tests; Inventar-Eintrag.
 - Ohne `terminals[]`: leere Liste, Seite erklärt die Config.
 - Fail loud: SSH-Fehler / Exit als Stream-Ereignis sichtbar.
+
+## Nachtrag 2026-11-20 — Sitzung überlebt das Trennen
+
+Nutzerwunsch: Die letzte Terminal-Sitzung bleibt offen, auch wenn man den
+Tab oder die App verlässt.
+
+- Die Shell gehört einer **Hub-Sitzung** (id per Frame `{t:"s",id}`), nicht
+  der WebSocket. Schließt der Browser normal oder bricht die Verbindung ab,
+  läuft die Shell weiter; nach `TERMINAL_DETACH_TTL_MS` (60 min) ohne
+  Verbindung beendet der Hub sie.
+- Wiederanhängen: `…/stream?ticket=…&session=<id>` (Ticket bleibt Pflicht).
+  Der Hub sendet zuerst `{t:"s"}`, dann den Ausgabe-Puffer
+  (`TERMINAL_BACKLOG_CHARS`). Ein zweiter Client übernimmt, der alte bekommt
+  Close-Code 4409.
+- Beenden: Der Client schließt mit `TERMINAL_CLOSE_END` (4000), dann endet
+  die Shell sofort. In der PWA heißt der Knopf „Beenden“.
+- Grenze: `TERMINAL_MAX_ACTIVE` zählt laufende Sitzungen. Ist sie erreicht,
+  weicht die am längsten getrennte Sitzung.
+- PWA: `localStorage["ancientvoid.terminal.last"]` merkt sich `{target, session}`.
+  Beim Öffnen des Tabs und bei `visibilitychange → visible` wird automatisch
+  wieder angehängt.
+- K7: Sitzungen sind flüchtig. Ein Hub-Neustart beendet sie, und der Client
+  startet dann eine neue Shell. Wer Sitzungen über Hub-Neustarts hinweg
+  braucht, nutzt tmux auf dem Ziel.
