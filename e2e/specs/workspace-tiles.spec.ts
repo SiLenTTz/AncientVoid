@@ -131,6 +131,26 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     await expect(app.locator(".session-top-title")).toHaveText("Schmal");
     await expect(app.locator(".tile-workspace")).toHaveCount(0);
   });
+
+  test("Archivieren aus der Kachel heraus leert die Kachel; die Karte verschwindet", async ({ app, hub }) => {
+    await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Adé" });
+    await card(app, "Aufgabe Adé").click();
+    await expect(tile(app, 1).locator(".session-top-title")).toHaveText("Aufgabe Adé");
+    await tile(app, 1).getByLabel("Weitere Aktionen").click();
+    await tile(app, 1).locator(".session-menu").getByRole("button", { name: "Archivieren" }).click();
+    await expect(tile(app, 1).locator(".tile-empty")).toContainText("Kachel 1 ist frei");
+    await expect(app.locator(".split-list .session-card").filter({ hasText: "Aufgabe Adé" })).toHaveCount(0);
+  });
+
+  test("Von einem anderen Gerät archiviert (Handy): die Kachel räumt sich selbst ab", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Aufgabe Fernarchiv" });
+    await card(app, "Aufgabe Fernarchiv").click();
+    await expect(tile(app, 1).locator(".session-top-title")).toHaveText("Aufgabe Fernarchiv");
+    // Archivierung passiert außerhalb dieses Fensters — der 3-s-Poll der
+    // Ansicht meldet den Übergang und die Kachel gibt die Session frei.
+    await hub.api(`/api/sessions/${id}/archive`, { body: { archived: true } });
+    await expect(tile(app, 1).locator(".tile-empty")).toContainText("Kachel 1 ist frei");
+  });
 });
 
 test.describe("Desktop-Workspace: Kacheln ohne Fokus (EPIC-P18 T18.6)", () => {

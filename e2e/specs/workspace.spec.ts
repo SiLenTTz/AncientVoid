@@ -33,13 +33,13 @@ test.describe("Archiv (P5 §9)", () => {
     expect((await hub.api(`/api/sessions/${id}/events`)).status).toBe(404);
   });
 
-  test("Archivieren aus der Session heraus bleibt nach Reload", async ({ app, hub }) => {
+  test("Archivieren aus der Session heraus bringt das Handy in die Übersicht; die Karte ist weg", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "dummy" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByLabel("Weitere Aktionen").click();
     await app.locator(".session-menu").getByRole("button", { name: "Archivieren" }).click();
-    await app.getByLabel("Weitere Aktionen").click();
-    await expect(app.locator(".session-menu").getByRole("button", { name: "Zurückholen" })).toBeVisible();
+    await expect(app).toHaveURL(/#\/$/);
+    await expect(app.locator(".session-card")).toHaveCount(0);
     expect((await hub.api<{ archived: boolean }>(`/api/sessions/${id}`)).body.archived).toBe(true);
   });
 

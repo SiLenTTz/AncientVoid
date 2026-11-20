@@ -333,7 +333,7 @@ function Tile({
           </Button>
         </div>
       ) : session ? (
-        <SessionTail key={session.id} session={session} onNavigate={onNavigate} tile={{ active, compact, head: { start: headStart, end: headEnd } }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
+        <SessionTail key={session.id} session={session} onNavigate={onNavigate} onArchived={onClose} tile={{ active, compact, head: { start: headStart, end: headEnd } }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
       ) : (
         <EmptyState class="tile-empty dim" text="lädt…" />
       )}
