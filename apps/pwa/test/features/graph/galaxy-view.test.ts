@@ -1,7 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { SCALE_MAX, SCALE_MIN, detailLevel, fitCircle, flightAt, placeLabels, zoomAt } from "../../../src/features/graph/galaxy-view.ts";
+import { SCALE_MAX, SCALE_MIN, backingScale, detailLevel, fitCircle, flightAt, pinchStep, placeLabels, zoomAt } from "../../../src/features/graph/galaxy-view.ts";
 
 describe("Galaxie-Kamera (EPIC-P52 T52.2)", () => {
+  it("BUG-0231: erlaubt tiefes Hineinzoomen bis Datei-Niveau (Handy)", () => {
+    expect(SCALE_MAX).toBeGreaterThanOrEqual(24);
+    expect(zoomAt({ scale: 8, tx: 0, ty: 0 }, 0, 0, 1e6).scale).toBe(SCALE_MAX);
+  });
+
+  it("BUG-0231: Pinch zoomt um den Fingermittelpunkt und schwenkt mit", () => {
+    const cam = { scale: 0.5, tx: 30, ty: -40 };
+    // Abstand verdoppelt → Skala ×2, gezoomt um den neuen Mittelpunkt (130, 96), plus dessen Bewegung (+10, +6).
+    const next = pinchStep(cam, { dist: 100, mx: 120, my: 90 }, { dist: 200, mx: 130, my: 96 });
+    expect(next.scale).toBeCloseTo(1);
+    expect(next.tx).toBeCloseTo(130 - (130 - 30) * 2 + 10);
+    expect(next.ty).toBeCloseTo(96 - (96 + 40) * 2 + 6);
+    // Ein Pinch ohne Abstandsänderung ist reiner Schwenk um die Mittelpunkt-Bewegung.
+    const pan = pinchStep({ scale: 2, tx: -5, ty: 7 }, { dist: 150, mx: 10, my: 10 }, { dist: 150, mx: 34, my: -2 });
+    expect(pan).toEqual({ scale: 2, tx: -5 + 24, ty: 7 - 12 });
+  });
+
+  it("BUG-0231: Backing-Store-Faktor kombiniert Gerätepixel mit UI-Zoom, gedeckelt", () => {
+    expect(backingScale(2.625, 1)).toBeCloseTo(2.625);
+    expect(backingScale(2, 1.5)).toBeCloseTo(3);
+    expect(backingScale(3, 2.5)).toBe(6);
+    expect(backingScale(0, 0)).toBe(1);
+  });
+
   it("passt den Galaxie-Kreis mittig und vollständig ein", () => {
     const cam = fitCircle(0, 0, 1000, 400, 800, 20);
     // Weltursprung liegt in der Bildmitte, der Rand des Kreises innerhalb der schmalen Seite.

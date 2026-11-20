@@ -92,13 +92,14 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  /* 1-Finger-Pan/Pinch geht an die Karte (inkl. Treffer-Knöpfe), nicht an die Seite */
+  touch-action: none;
 }
 
 .graph-canvas {
   display: block;
   width: 100%;
   height: 100%;
-  touch-action: none; /* 1-Finger-Pan/Tap geht an den Canvas, nicht an die Seite */
   cursor: crosshair;
 }
 
@@ -129,13 +130,21 @@
   word-break: break-all;
 }
 
-/* DOM-Hit-Flächen (E2E/Tastatur): transparent über dem Canvas, nur Klick/Fokus. */
+/* DOM-Hit-Flächen (E2E/Tastatur): transparent über dem Canvas, nur Klick/Fokus.
+ * BUG-0229: Die Fläche selbst lässt Pointer-Events durch — Pan/Tap gehört zum Wrap. */
 .graph-node-hits {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
-.graph-node-hits-dragging {
+.graph-node-hits .graph-node-hit,
+.graph-node-hits .graph-system-hit {
+  pointer-events: auto;
+}
+
+.graph-node-hits-dragging .graph-node-hit,
+.graph-node-hits-dragging .graph-system-hit {
   pointer-events: none; /* Panning geht durch, kein Flackern von Hit-Buttons */
 }
 
@@ -186,7 +195,7 @@
 
 .graph-search,
 .graph-side button,
-.graph-float,
+.graph-fullclose,
 .graph-actions .btn {
   min-height: 44px;
 }
@@ -225,6 +234,11 @@
 
 .graph-chip-btn[aria-pressed="true"] {
   outline: 1px solid var(--accent);
+}
+
+/* BUG-0232: Kategorie-Chips in eigener Zeile unter den Gruppen. */
+.graph-cat-filters {
+  margin-top: 2px;
 }
 
 .graph-empty {
@@ -278,19 +292,23 @@
   white-space: nowrap;
 }
 
-.graph-float {
+/* BUG-0230: beschriftet und oben rechts — der Rückweg muss auffindbar sein,
+ * auch über dem Hit-Overlay. */
+.graph-fullclose {
   position: absolute;
   top: 8px;
-  left: 8px;
+  right: 8px;
   z-index: var(--z-sticky);
   min-width: 44px;
 }
 
+/* BUG-0230: Höhe geteilt durch --ui-zoom wie jede Vollfläche (BUG-0122-Familie)
+ * — sonst ragt das Vollbild bei erhöhtem UI-Zoom unten aus dem Bildschirm. */
 .graph-pane[data-fullscreen="1"] {
   position: fixed;
   inset: 0;
   z-index: var(--z-popout);
-  height: 100dvh;
+  height: calc(100dvh / var(--ui-zoom));
   background: var(--bg);
 }
 

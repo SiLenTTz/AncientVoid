@@ -170,6 +170,19 @@ Nicht im Gate: Passkey-Registrierung und biometrische Freigabe (WebAuthn)
 sind nur bis „Passkey registrieren“ sichtbar geprüft. Echte Provider und
 echte Geräte bleiben manuelle Abnahme (AC-P5-2).
 
+## Review-Notizen
+
+- **2026-11-20 (BUG-0229–0233, PR #223):** `repo-graph.spec.ts` deckt jetzt
+  Pan statt Klick (Ziehen am Stern verschiebt die Kamera, gespeicherter
+  Ansichtsstand wandert mit), den beschrifteten Vollbild-Exit, Kategorie-Chips
+  aus den Top-Level-Bereichen des Repos (desktop) und den direkten
+  Datei-Klick (Öffnen im Datei-Tab, ab 700 px mit Dateibaum-Layer) ab.
+  `repo-galaxie.spec.ts` baut Auswahl-Zustände seitdem über die Suche auf —
+  der Stern-Klick öffnet die Datei und eignet sich nicht mehr zum puren
+  Selektieren.
+- **2026-11-20 (BUG-0234, PR #224):** `layout.spec.ts` prüft, dass der
+  Zurück-Pfeil der Session-Topbar nur unter 700 px Breite existiert.
+
 ## Live-Smoke nach jedem Epic
 
 Nach dem Neustart der echten Hubs (`scripts/hub.sh stop && scripts/hub.sh start`,

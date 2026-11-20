@@ -1,5 +1,5 @@
 import type { GraphGroup, GraphNode } from "@ancientvoid/contracts";
-import type { GalaxyNeighbor } from "./galaxy-query.ts";
+import type { GalaxyCategory, GalaxyNeighbor } from "./galaxy-query.ts";
 import { systemLabel, type GalaxySystem } from "./galaxy-layout.ts";
 import { Button } from "../../shared/ui/index.ts";
 
@@ -19,6 +19,10 @@ export function GalaxyPanel(props: {
   onTwoHop: (on: boolean) => void;
   groups: GraphGroup[];
   onToggleGroup: (group: GraphGroup) => void;
+  /** BUG-0232: dynamisch erkannte Kategorie-Bereiche des Repos (epics, bugs, …). */
+  categories: GalaxyCategory[];
+  cats: string[];
+  onToggleCategory: (cat: string) => void;
   deadOnly: boolean;
   onDeadOnly: (on: boolean) => void;
   errorOnly: boolean;
@@ -51,6 +55,21 @@ export function GalaxyPanel(props: {
           Nur Fehler
         </button>
       </div>
+      {props.categories.length > 1 && (
+        <div class="graph-filters graph-cat-filters" role="group" aria-label="Kategorien">
+          {props.categories.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              class="graph-chip graph-chip-btn"
+              aria-pressed={props.cats.includes(c.name)}
+              onClick={() => props.onToggleCategory(c.name)}
+            >
+              {c.name} {c.count}
+            </button>
+          ))}
+        </div>
+      )}
       {!props.systemId && props.systems.length > 0 && (
         <ul class="graph-systems-list">
           {props.systems.map((s) => (

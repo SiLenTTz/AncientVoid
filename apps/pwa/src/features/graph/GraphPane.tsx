@@ -4,8 +4,8 @@ import { hostApi } from "../../shared/api.ts";
 import { ctxMotionOn } from "../../app/ui-scale.ts";
 import { GalaxyPanel } from "./GalaxyPanel.tsx";
 import { galaxyLayout, systemLabel } from "./galaxy-layout.ts";
-import { loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
-import { FLIGHT_MS, baseName, detailLevel, fitCircle, flightAt, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
+import { ROOT_CATEGORY, categoriesOf, loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
+import { FLIGHT_MS, backingScale, baseName, detailLevel, fitCircle, flightAt, pinchStep, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
 import { Button } from "../../shared/ui/index.ts";
 
 /** EPIC-P48 (ADR-0062 §3.4) + EPIC-P52: Repo-Graph als Galaxie auf einem Canvas.
@@ -41,6 +41,12 @@ function cssVar(name: string, fallback: string): string {
   return v || fallback;
 }
 
+/** BUG-0231: aktueller UI-Zoom (root.style.zoom, gespiegelt in --ui-zoom). */
+function uiZoom(): number {
+  const v = parseFloat(cssVar("--ui-zoom", "1"));
+  return Number.isFinite(v) && v > 0 ? v : 1;
+}
+
 /** Schätzung statt measureText — pro Bild hunderte Namen, und die Schrift ist schmal genug. */
 const textWidth = (text: string, px: number) => text.length * px * 0.58;
 
@@ -63,6 +69,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const [query, setQuery] = useState("");
   const [twoHop, setTwoHop] = useState(false);
   const [groups, setGroups] = useState<GraphGroup[]>([]);
+  // BUG-0232: aktive Kategorie-Filter (dynamisch aus dem Repo erkannt).
+  const [cats, setCats] = useState<string[]>([]);
   const [deadOnly, setDeadOnly] = useState(false);
   const [errorOnly, setErrorOnly] = useState(false);
   const [sheet, setSheet] = useState<"line" | "open">("line");
@@ -79,8 +87,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const persistReady = useRef(false);
   const skipSave = useRef(true);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const focusRef = useRef<{ selected: string | null; bright: Set<string> | null; system: string | null; groups: GraphGroup[]; deadOnly: boolean; errorOnly: boolean }>({
-    selected: null, bright: null, system: null, groups: [], deadOnly: false, errorOnly: false,
+  const focusRef = useRef<{ selected: string | null; bright: Set<string> | null; system: string | null; groups: GraphGroup[]; cats: string[]; deadOnly: boolean; errorOnly: boolean }>({
+    selected: null, bright: null, system: null, groups: [], cats: [], deadOnly: false, errorOnly: false,
   });
 
   useEffect(() => {
@@ -126,6 +134,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     };
     window.addEventListener("ancientvoid:appearance", bump);
     window.addEventListener("ancientvoid:theme", bump);
+    // BUG-0231: UI-Zoom ändert die Canvas-Auflösung — Backing-Store neu vermessen.
+    window.addEventListener("ancientvoid:scale", bump);
     window.addEventListener("storage", onStorage);
     // ctxMotion wird ohne Event gesetzt — der Dataset-Attributwechsel ist das Signal.
     const mo = new MutationObserver(() => setMotionOn(!matchMedia("(prefers-reduced-motion: reduce)").matches && ctxMotionOn()));
@@ -136,6 +146,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     return () => {
       window.removeEventListener("ancientvoid:appearance", bump);
       window.removeEventListener("ancientvoid:theme", bump);
+      window.removeEventListener("ancientvoid:scale", bump);
       window.removeEventListener("storage", onStorage);
       mo.disconnect();
       mq.removeEventListener("change", onMq);
@@ -204,6 +215,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       setSystemId(saved.system && layout.systems.some((s) => s.id === saved.system) ? saved.system : null);
       setTwoHop(saved.twoHop);
       setGroups(saved.groups);
+      // BUG-0232: nur Kategorien restaurieren, die es im aktuellen Repo noch gibt — sonst dimmt ein Relikt alles.
+      const present = new Set(report.nodes.map((n) => n.category ?? ROOT_CATEGORY));
+      setCats(saved.cats.filter((c) => present.has(c)));
       setDeadOnly(saved.deadOnly);
       setErrorOnly(saved.errorOnly);
       skipSave.current = true;
@@ -221,8 +235,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       skipSave.current = false;
       return;
     }
-    saveGalaxyView(target, { camera: viewRef.current, selected, system: systemId, twoHop, groups, deadOnly, errorOnly });
-  }, [viewTick, selected, systemId, twoHop, groups, deadOnly, errorOnly, target, report]);
+    saveGalaxyView(target, { camera: viewRef.current, selected, system: systemId, twoHop, groups, cats, deadOnly, errorOnly });
+  }, [viewTick, selected, systemId, twoHop, groups, cats, deadOnly, errorOnly, target, report]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -234,7 +248,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     const { xs, ys, radii, core, sysOf, sysGroup, edgeIdx } = geo;
     const w = size.w;
     const h = size.h;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    // BUG-0231: Backing-Store in Gerätepixeln × UI-Zoom — sonst zeichnet die Karte
+    // bei erhöhtem UI-Zoom hochskaliert und wirkt unscharf.
+    const dpr = backingScale(window.devicePixelRatio || 1, uiZoom());
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
 
@@ -359,6 +375,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
           if (star && star.system !== f.system) return true;
         }
         if (f.groups.length > 0 && !f.groups.includes(n.group)) return true;
+        if (f.cats.length > 0 && !f.cats.includes(n.category ?? ROOT_CATEGORY)) return true;
         if (f.deadOnly && !(n.in === 0 && !n.entry)) return true;
         if (f.errorOnly && !errIdx.has(i)) return true;
         return false;
@@ -545,12 +562,13 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     bright: selected ? new Set([selected, ...neighborList.map((n) => n.path)]) : null,
     system: systemId,
     groups,
+    cats,
     deadOnly,
     errorOnly,
   };
   useEffect(() => {
     drawRef.current?.();
-  }, [selected, systemId, twoHop, groups, deadOnly, errorOnly, neighborList]);
+  }, [selected, systemId, twoHop, groups, cats, deadOnly, errorOnly, neighborList]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -597,6 +615,11 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     const scale = Math.max(viewRef.current.scale, 1.2);
     flyTo({ scale, tx: size.w / 2 - star.x * scale, ty: size.h / 2 - star.y * scale });
   };
+  /** BUG-0233: Datei anklicken heißt anschauen — Auswahl plus Viewer/Editor. */
+  const openPath = (path: string) => {
+    selectPath(path);
+    onOpenFile(path);
+  };
   const enterSystem = (id: string) => {
     const s = layout?.systems.find((x) => x.id === id);
     if (!s || size.w === 0) return;
@@ -642,15 +665,44 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   };
 
   const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  // BUG-0231: aktive Zeiger für Pinch (zwei Finger = Zoom + Schwenk um den Mittelpunkt).
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ dist: number; mx: number; my: number } | null>(null);
+  const pinchGeom = () => {
+    const [a, b] = [...pointersRef.current.values()];
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  };
+  // Nach einem Pan darf der browser-eigene Klick auf dem Stern-Knopf nicht mehr als Auswahl zählen.
+  const suppressClickRef = useRef(false);
   const onPointerDown = (e: PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2) {
+      pinchRef.current = pinchGeom();
+      if (dragRef.current) dragRef.current.moved = true;
+      return;
+    }
+    // BUG-0229: Capture nur außerhalb der Treffer-Knöpfe — sonst schluckt sie der Wrap-Klick.
+    if (!(e.target as Element).closest?.("button")) (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     cancelAnimationFrame(flightRef.current);
     dragRef.current = { x: e.clientX, y: e.clientY, moved: false };
+    suppressClickRef.current = false;
     setDragging(true);
   };
   const onPointerMove = (e: PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas || !report) return;
+    if (pointersRef.current.has(e.pointerId)) pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // BUG-0231: zwei Zeiger = Pinch — Zoom um den Mittelpunkt, Schwenk um dessen Bewegung.
+    if (pointersRef.current.size >= 2) {
+      const geom = pinchGeom();
+      if (pinchRef.current) {
+        viewRef.current = pinchStep(viewRef.current, pinchRef.current, geom);
+        drawRef.current?.();
+      }
+      pinchRef.current = geom;
+      if (dragRef.current) dragRef.current.moved = true;
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const drag = dragRef.current;
     if (drag) {
@@ -677,20 +729,34 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     }
   };
   const onPointerUp = (e: PointerEvent) => {
+    pointersRef.current.delete(e.pointerId);
+    pinchRef.current = null;
+    if (pointersRef.current.size === 1) {
+      // Pinch wird Ein-Finger-Pan: Anker auf den verbleibenden Finger, ohne Klick.
+      const [p] = [...pointersRef.current.values()];
+      dragRef.current = { x: p.x, y: p.y, moved: true };
+      return;
+    }
     const drag = dragRef.current;
     dragRef.current = null;
     setDragging(false);
     if (drag?.moved) setViewTick((t) => t + 1);
+    suppressClickRef.current = drag?.moved === true;
     if (!drag || drag.moved || !report) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const idx = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-    if (idx >= 0) selectPath(report.nodes[idx].path);
+    if (idx >= 0) openPath(report.nodes[idx].path);
   };
   const onPointerLeave = () => {
     hoverRef.current = null;
     setHover(null);
+    // Drag ohne Capture (Start auf einem Treffer-Knopf): beim Verlassen der Fläche sauber enden.
+    if (dragRef.current) {
+      dragRef.current = null;
+      setDragging(false);
+    }
   };
 
   const counts = useMemo(() => {
@@ -702,6 +768,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     }
     return { c, dead };
   }, [report]);
+  // BUG-0232: Kategorie-Bereiche dynamisch aus dem Datenstand — nicht einbrennen.
+  const categories = useMemo(() => categoriesOf(report?.nodes ?? []), [report]);
   const errorTotal = diag ? diag.byFile.reduce((sum, f) => sum + f.errors, 0) : 0;
   // DOM-Hit-Flächen für E2E/Tastatur: die ~400 grad-stärksten Knoten, viewport-gecullt,
   // reines Overlay — Positionen werden nach Zoom/Pan-Ende nachgezogen, nicht pro Frame.
@@ -718,7 +786,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       .sort((a, b) => b.deg - a.deg)
       .slice(0, 400)
       .map(({ n, i }) => {
-        const side = Math.max(10, (geo.radii[i] + 4) * scale);
+        // BUG-0231: Deckel — bei tiefem Zoom würden die Knöpfe sonst halbe Karte überlappen.
+        const side = Math.min(120, Math.max(10, (geo.radii[i] + 4) * scale));
         return {
           path: n.path,
           dead: n.in === 0 && !n.entry,
@@ -862,23 +931,15 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       {diagErr && <div class="files-error">Prüfung fehlgeschlagen: {diagErr}</div>}
       <div class="graph-body">
       {/* Zoom an der ganzen Fläche: über einem Stern liegt dessen Klick-Knopf, nicht das Canvas. */}
-      <div class="graph-wrap" ref={wrapRef} onWheel={onWheel}>
+      <div class="graph-wrap" ref={wrapRef} onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={onPointerLeave}>
         {full && (
-          <Button aria-label="Vollbild verlassen" onClick={() => setFull(false)} class="graph-float">
-            ←
+          <Button aria-label="Vollbild verlassen" title="Vollbild verlassen (Esc)" onClick={() => setFull(false)} class="graph-fullclose">
+            ✕ Vollbild verlassen
           </Button>
         )}
         {!report && !loadErr && <div class="graph-state">Lade Graph …</div>}
         {report && report.nodes.length === 0 && <div class="graph-state">Keine Dateien im Ziel gefunden.</div>}
-        <canvas
-          ref={canvasRef}
-          class="graph-canvas"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onPointerLeave={onPointerLeave}
-        />
+        <canvas ref={canvasRef} class="graph-canvas" />
         <div class={`graph-node-hits${dragging ? " graph-node-hits-dragging" : ""}`}>
           {!systemId && layout && layout.systems.map((s) => {
             const { scale, tx, ty } = viewRef.current;
@@ -890,7 +951,10 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
                 class="graph-system-hit"
                 aria-label={`System ${systemLabel(s.id)}`}
                 style={{ left: `${s.x * scale + tx - side / 2}px`, top: `${(s.y - s.radius) * scale + ty - side}px`, width: `${side}px`, height: `${side}px` }}
-                onClick={() => enterSystem(s.id)}
+                onClick={() => {
+                  if (suppressClickRef.current) return;
+                  enterSystem(s.id);
+                }}
               />
             );
           })}
@@ -901,7 +965,10 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
               class={`graph-node-hit${h.hasError ? " has-error" : ""}${h.dead ? " dead" : ""}`}
               aria-label={`Datei ${h.path} auswählen`}
               style={h.style}
-              onClick={() => selectPath(h.path)}
+              onClick={() => {
+                if (suppressClickRef.current) return;
+                openPath(h.path);
+              }}
             />
           ))}
         </div>
@@ -928,6 +995,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
           onTwoHop={setTwoHop}
           groups={groups}
           onToggleGroup={(g) => setGroups((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : [...cur, g]))}
+          categories={categories}
+          cats={cats}
+          onToggleCategory={(c) => setCats((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))}
           deadOnly={deadOnly}
           onDeadOnly={setDeadOnly}
           errorOnly={errorOnly}

@@ -59,8 +59,12 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     await app.getByRole("searchbox", { name: "Dateien suchen" }).click();
     await app.getByRole("button", { name: /^Bereich / }).first().click();
     await expect(app.getByRole("navigation", { name: "Ort" })).toContainText("›");
-    await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
-    await app.getByRole("button", { name: "Liste aufklappen" }).click();
+    // BUG-0233: Der Stern-Klick öffnet die Datei — Auswahl fürs Browsen über die Suche.
+    const search = app.getByRole("searchbox", { name: "Dateien suchen" });
+    await search.click();
+    await search.fill("README");
+    await app.getByRole("button", { name: "Treffer README.md" }).click();
+    await openLists(app);
     await expect(app.getByRole("heading", { name: /Wird verwendet von/ })).toBeVisible();
 
     await pane.press("Escape");
@@ -88,7 +92,11 @@ test.describe("Repo-Galaxie (EPIC-P52)", () => {
     await app.emulateMedia({ reducedMotion: "reduce" });
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
     await expect(app.locator(".graph-pane")).toHaveAttribute("data-motion", "off");
-    await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
+    // BUG-0233: Auswahl über die Suche — der Stern-Klick öffnet die Datei.
+    const search = app.getByRole("searchbox", { name: "Dateien suchen" });
+    await search.click();
+    await search.fill("README");
+    await app.getByRole("button", { name: "Treffer README.md" }).click();
     await expect(app.locator("[data-testid=graph-selection]")).toContainText("README.md");
     await expect.poll(() => app.evaluate((key) => localStorage.getItem(key), `ancientvoid.galaxy:session=${encodeURIComponent(id)}`)).toContain("README.md");
     await app.reload();

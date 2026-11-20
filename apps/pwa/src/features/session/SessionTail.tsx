@@ -2269,6 +2269,9 @@ export function SessionTail({
                   onOpenFile={(path) => {
                     setOpenFile(path);
                     setActiveTab("datei");
+                    // BUG-0233: am PC/Tablet den Dateibaum mit aufgehen lassen —
+                    // die Auswahl im Kontext des Repos lesen (ab 700 px wie TABLET/WIDE).
+                    if (matchMedia("(min-width: 700px)").matches) openLayer("files");
                     // Deeplink wie beim Code-Tab: Back/Reload bleibt nachvollziehbar.
                     location.hash = fileHash(
                       session.id,
