@@ -222,6 +222,7 @@ function fitSessionMenu(menu: HTMLDetailsElement | null): void {
 export function SessionTail({
   session,
   onNavigate,
+  onArchived,
   initialCode,
   initialTab,
   initialFile,
@@ -229,6 +230,10 @@ export function SessionTail({
 }: {
   session: SessionRecord;
   onNavigate: (page: Page) => void;
+  /** Archiviert (auch von einem anderen Gerät): die Kachel am PC räumt
+   * ihre Session ab. Ohne Kachelkontext springt die Ansicht selbst in
+   * die Übersicht zurück. */
+  onArchived?: () => void;
   initialCode?: CodeTarget;
   /** EPIC-P48 / ADR-0071: Graph-, Git- oder Datei-Tab (Hash-Routen). */
   initialTab?: "graph" | "git" | "datei";
@@ -1291,17 +1296,38 @@ export function SessionTail({
     }
   };
 
+  // Archivieren verlässt die Ansicht: am Handy/Tablet zurück in die
+  // Übersicht, am PC räumt die Kachel die Session ab. „Zurückholen“
+  // bleibt dagegen in der Ansicht — die Session ist wieder aktiv.
+  const leaveArchived = () => {
+    if (tile) onArchived?.();
+    else onNavigate("dashboard");
+  };
   const toggleArchive = async () => {
     const next = !archived;
     try {
       const updated = await api.setArchived(session.id, next);
       setArchived(updated.archived === true);
+      if (updated.archived === true) leaveArchived();
     } catch (err) {
       setReplyError(
         err instanceof Error ? err.message : "Archivieren fehlgeschlagen.",
       );
     }
   };
+
+  // Eine Session, die ein anderes Gerät archiviert (am Handy archiviert →
+  // PC-Kachel, am PC archiviert → geöffnete Handy-Ansicht), verlässt den
+  // Vordergrund genauso wie nach dem eigenen Klick — der 3-s-Poll darüber
+  // meldet den Übergang. Eine schon archiviert geöffnete Session (Archiv-
+  // liste) bleibt offen: nur nicht-archiviert → archiviert löst aus.
+  const wasArchived = useRef(session.archived === true);
+  useEffect(() => {
+    const now = record.archived === true;
+    if (now && !wasArchived.current) leaveArchived();
+    wasArchived.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record.archived]);
 
   const stop = async () => {
     // Real bug found live-testing T3.10: this used to swallow every
@@ -1981,6 +2007,7 @@ export function SessionTail({
                 const updated = await api.setArchived(session.id, true);
                 setArchived(updated.archived === true);
                 setStatus(updated.status);
+                leaveArchived();
               }}
             />
           )}
