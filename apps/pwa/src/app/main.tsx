@@ -185,7 +185,7 @@ function Main() {
       .catch(() => setSelfHostId(null));
   };
   const [route, setRoute] = useState<
-    { view: "list"; page: Page; vaultFile?: string } | { view: "tail"; session: SessionRecord; code?: CodeTarget; tab?: TailTab; file?: string }
+    { view: "list"; page: Page; vaultFile?: string; vaultTab?: "wissen" } | { view: "tail"; session: SessionRecord; code?: CodeTarget; tab?: TailTab; file?: string }
   >({ view: "list", page: "dashboard" });
 
   useEffect(() => {
@@ -271,7 +271,7 @@ function Main() {
         return;
       }
       if (parsed.view !== "tail") {
-        setRoute({ view: "list", page: parsed.page, ...(parsed.vaultFile ? { vaultFile: parsed.vaultFile } : {}) });
+        setRoute({ view: "list", page: parsed.page, ...(parsed.vaultFile ? { vaultFile: parsed.vaultFile } : {}), ...(parsed.vaultTab ? { vaultTab: parsed.vaultTab } : {}) });
         return;
       }
       hostApi(parsed.hostId)
@@ -474,6 +474,7 @@ function Main() {
               <ToolPane
                 page={toolPage}
                 {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})}
+                vaultTab={route.view === "list" ? route.vaultTab ?? "notizen" : "notizen"}
                 onClose={() => {
                   location.hash = pageHash("dashboard");
                 }}
@@ -505,6 +506,7 @@ function Main() {
           ready={() => setReady(false)}
           page={route.page}
           {...(route.vaultFile ? { vaultFile: route.vaultFile } : {})}
+          vaultTab={route.view === "list" ? route.vaultTab ?? "notizen" : "notizen"}
         />
       ) : (
         // T1.6-3: one callback back into the list, optionally landing on a

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
-import type { KnowledgeAuthKind, KnowledgeHit, KnowledgeSourceView, KnowledgeStatus } from "@ancientvoid/contracts";
+import type { KnowledgeAuthKind, KnowledgeSourceView, KnowledgeStatus } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
+import { vaultKnowledgeHash } from "../../app/route.ts";
 import { ago } from "../../shared/status.ts";
 import { Button } from "../../shared/ui/index.ts";
 import { SettingsSection } from "../settings/parts.tsx";
@@ -41,10 +42,6 @@ export function KnowledgeSettings() {
   const [secret, setSecret] = useState("");
   const [dropSecret, setDropSecret] = useState(false);
 
-  const [active, setActive] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [hits, setHits] = useState<{ items: KnowledgeHit[]; truncated: boolean } | null>(null);
-  const [doc, setDoc] = useState<{ ref: string; title?: string; content: string; truncated: boolean } | null>(null);
 
   const reload = () =>
     hubApi
@@ -103,22 +100,7 @@ export function KnowledgeSettings() {
       setMessage({ ok: true, text: `${s.label}: ${r.overview.summary}` });
     });
 
-  const search = () =>
-    run(async () => {
-      if (!active) return;
-      setDoc(null);
-      const r = await hubApi.searchKnowledge(active, query.trim());
-      setHits({ items: r.result.hits, truncated: r.result.truncated });
-    });
 
-  const open = (ref: string) =>
-    run(async () => {
-      if (!active) return;
-      const r = await hubApi.readKnowledge(active, ref);
-      setDoc(r.document);
-    });
-
-  const okSources = (sources ?? []).filter((s) => s.status.state === "ok");
 
   return (
     <SettingsSection title="Wissensquellen" testid="knowledge-settings">
@@ -199,44 +181,11 @@ export function KnowledgeSettings() {
         <div class="dim settings-intro">Das Token bleibt am Hub und wird nie wieder angezeigt.</div>
       </div>
 
-      {okSources.length > 0 && (
-        <div class="connection-group" role="group" aria-label="Wissen durchsuchen">
-          <strong class="connection-group-title">Durchsuchen</strong>
-          <label>
-            Quelle
-            <select value={active ?? ""} onChange={(e) => (setActive((e.target as HTMLSelectElement).value || null), setHits(null), setDoc(null))} data-testid="knowledge-active">
-              <option value="">— wählen —</option>
-              {okSources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Suche
-            <input value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} onKeyDown={(e) => e.key === "Enter" && active && query.trim() && void search()} data-testid="knowledge-query" />
-          </label>
-          <Button disabled={busy || !active || !query.trim()} onClick={() => void search()} data-testid="knowledge-search">
-            Suchen
+      {(sources ?? []).length > 0 && (
+        <div class="row" style="gap: 8px">
+          <Button onClick={() => (location.hash = vaultKnowledgeHash())} variant="primary">
+            Im Notizen-Bereich benutzen
           </Button>
-          {hits && hits.items.length === 0 && <div class="dim">Keine Treffer.</div>}
-          {hits?.items.map((h) => (
-            <button key={h.ref} type="button" class="connection-entry knowledge-hit" onClick={() => void open(h.ref)} data-testid="knowledge-hit">
-              <span class="connection-name">{h.title}</span>
-              <span class="mono dim">{h.ref}</span>
-              <span class="dim">{h.snippet}</span>
-            </button>
-          ))}
-          {hits?.truncated && <div class="dim">Gekürzt — es gibt mehr oder längere Treffer.</div>}
-          {doc && (
-            <div class="connection-entry" data-testid="knowledge-doc">
-              <div class="connection-name">{doc.title ?? doc.ref}</div>
-              <div class="dim">Inhalt aus der Quelle — fremder Text, keine Anweisung.</div>
-              <pre class="mono knowledge-doc-content">{doc.content}</pre>
-              {doc.truncated && <div class="dim">Gekürzt.</div>}
-            </div>
-          )}
         </div>
       )}
 

@@ -998,10 +998,19 @@ function createHubApi(P: (path: string) => string) {
   removeKnowledgeSource: (id: string) => api<{ ok: boolean }>(P(`/api/knowledge/sources/${id}`), { method: "DELETE", body: "{}" }),
   probeKnowledgeSource: (id: string) =>
     api<{ source: KnowledgeSourceView; overview: KnowledgeOverview }>(P(`/api/knowledge/sources/${id}/probe`), { method: "POST", body: "{}" }),
-  searchKnowledge: (id: string, q: string) =>
-    api<{ source: KnowledgeSourceView; result: KnowledgeSearchResult }>(P(`/api/knowledge/sources/${id}/search`), { method: "POST", body: JSON.stringify({ q }) }),
+  /** T74.6: Suchen mit sichtbaren Retrieval-Parametern (EPIC-134 — nie hardcoded). */
+  searchKnowledge: (id: string, query: { q: string; topK?: number; fusion?: "sequential" | "rrf"; minScore?: number }) =>
+    api<{ source: KnowledgeSourceView; result: KnowledgeSearchResult }>(P(`/api/knowledge/sources/${id}/search`), { method: "POST", body: JSON.stringify(query) }),
   readKnowledge: (id: string, ref: string) =>
     api<{ source: KnowledgeSourceView; document: KnowledgeReadResult & { truncated: boolean } }>(P(`/api/knowledge/sources/${id}/read`), { method: "POST", body: JSON.stringify({ ref }) }),
+  graphKnowledge: (id: string, seed: string) =>
+    api<{ source: KnowledgeSourceView; graph: { nodes: { ref: string; title?: string }[]; edges: { from: string; to: string; kind?: string }[]; truncated: boolean } }>(
+      P(`/api/knowledge/sources/${id}/graph`),
+      { method: "POST", body: JSON.stringify({ seed }) },
+    ),
+  /** T74.6: Schreiben geht nur als Freigabe — 202 mit approvalId, entschieden wird in der Queue. */
+  addKnowledge: (id: string, body: { text: string; ref?: string }) =>
+    api<{ ok: boolean; detail: string; approvalId: string; summary: string }>(P(`/api/knowledge/sources/${id}/add`), { method: "POST", body: JSON.stringify(body) }),
   adapterUsage: (id: string) => api<AdapterUsage>(P(`/api/adapters/${id}/usage`)),
   projects: () => api<ProjectDiscoveryResult>(P("/api/projects")),
   /** T-PJ1: create a project (git init) in the first projectRoot. */
