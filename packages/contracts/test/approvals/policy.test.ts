@@ -14,12 +14,21 @@ describe("policy table (T7.4)", () => {
   });
 
   it("invariant: an agent never writes directly — at most it requests", () => {
+    const READ_OP: Record<string, true> = { read: true, "team.read": true, "knowledge.read": true };
     for (const op of POLICY_OPERATIONS) {
-      // `read` und `team.read` (ADR-0077) sind Lese-Operationen mit demselben
-      // Allow-Set wie das generische `read` der Fläche — kein Schreiben.
-      if (op === "read" || op === "team.read") continue;
+      // Lese-Operationen mit demselben Allow-Set wie das generische `read`
+      // der Fläche (ADR-0077 Teams, ADR-0096 Nachtrag Knowledge) — kein Schreiben.
+      if (READ_OP[op]) continue;
       expect(POLICY[op].agent, op).not.toBe("allow");
     }
+  });
+
+  it("EPIC-P74 (ADR-0096 Nachtrag): Agenten lesen Wissen, schreiben nur mit Freigabe", () => {
+    expect(policyFor("knowledge.read", "agent:mcp")).toBe("allow");
+    expect(policyFor("knowledge.read", "bridge:s1")).toBe("deny");
+    expect(policyFor("knowledge.add", "agent:mcp")).toBe("approve");
+    expect(policyFor("knowledge.add", "pixel-9")).toBe("allow");
+    expect(policyFor("knowledge.add", "display:nyx")).toBe("deny");
   });
 
   it("invariant: only humans (and a home hub acting for one) decide approvals; the bridge does nothing but ask", () => {
@@ -63,7 +72,7 @@ describe("policy table (T7.4)", () => {
   });
 
   it("ADR-0048/0069: a display reads, decides write approvals, and may write drafts — nothing else", () => {
-    const allow = new Set(["read", "team.read", "approvals.decide", "drafts.write"]);
+    const allow = new Set(["read", "team.read", "knowledge.read", "approvals.decide", "drafts.write"]);
     for (const op of POLICY_OPERATIONS) expect(POLICY[op].display, op).toBe(allow.has(op) ? "allow" : "deny");
     expect(policyFor("approvals.decide", "display:nyx")).toBe("allow");
     expect(policyFor("drafts.write", "display:nyx")).toBe("allow");

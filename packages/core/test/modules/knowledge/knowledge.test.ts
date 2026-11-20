@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HubDatabase, KnowledgeService, SettingsStore } from "../../../src/index.ts";
+import { ApprovalService, HubDatabase, KnowledgeService, OperationStore, SettingsStore } from "../../../src/index.ts";
 import { createFakeFacade } from "./fake-facade.ts";
 
 /**
@@ -25,6 +25,12 @@ function okCall<T extends { ok: boolean }>(value: T | null): Extract<T, { ok: tr
   const v = must(value);
   if (!v.ok) throw new Error(`Aufruf scheiterte: ${JSON.stringify(v)}`);
   return v as Extract<T, { ok: true }>;
+}
+
+/** Antrag gestellt, sonst laut scheitern — die Approval-Id, nie geglaubt. */
+function approvalIdOf(res: { approvalId: string; summary: string } | { error: string } | null): string {
+  if (res === null || !("approvalId" in res)) throw new Error(`requestAdd scheiterte: ${JSON.stringify(res)}`);
+  return res.approvalId;
 }
 
 const bearerSource = { label: "Librarian", url: "http://librarian.test/mcp", auth: { kind: "bearer" as const }, secret: TOKEN };
@@ -179,5 +185,121 @@ describe("KnowledgeService — Suchen und Lesen", () => {
   it("unbekannte Quelle → null", async () => {
     const { knowledge } = ready();
     expect(await knowledge.search("00000000-0000-4000-8000-000000000000", { q: "x", topK: 8 })).toBeNull();
+  });
+});
+
+describe("KnowledgeService — Graph (ADR-0096 Nachtrag, T74.6)", () => {
+  it("Nachbarn der Seed-Ref kommen als Knoten und Kanten, Status ok", async () => {
+    const facade = createFakeFacade({ links: { "notes/mcp.md": ["notes/transport.md", "notes/sdk.md"] } });
+    const { knowledge } = service(facade.fetch);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    const res = okCall(await knowledge.graph(id, { seed: "notes/mcp.md", depth: 1, maxNodes: 40 }));
+    expect(res.graph.nodes.map((n) => n.ref)).toEqual(["notes/mcp.md", "notes/transport.md", "notes/sdk.md"]);
+    expect(res.graph.edges).toEqual([
+      { from: "notes/mcp.md", to: "notes/transport.md", kind: "wikilink" },
+      { from: "notes/mcp.md", to: "notes/sdk.md", kind: "wikilink" },
+    ]);
+    expect(res.source.status.state).toBe("ok");
+  });
+
+  it("Knoten über maxNodes werden gekappt und als truncated markiert", async () => {
+    const facade = createFakeFacade({ links: { a: ["b", "c", "d"] } });
+    const { knowledge } = service(facade.fetch);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    const res = okCall(await knowledge.graph(id, { seed: "a", depth: 1, maxNodes: 2 }));
+    expect(res.graph.nodes).toHaveLength(2);
+    expect(res.graph.truncated).toBe(true);
+  });
+
+  it("fehlendes Graph-Tool → protocol mit Tool-Namen (optional, kein stiller Leer-Graph)", async () => {
+    const facade = createFakeFacade({ omitTool: "kb_graph" });
+    const { knowledge } = service(facade.fetch);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    const res = must(await knowledge.graph(id, { seed: "a", depth: 1, maxNodes: 40 }));
+    expect(res.ok).toBe(false);
+    expect(res.source.status).toMatchObject({ state: "protocol", detail: expect.stringContaining("kb_graph") });
+  });
+
+  it("Fusion-Modus und Score-Schwelle gehen als sichtbare Parameter an die Fassade (EPIC-134)", async () => {
+    const facade = createFakeFacade();
+    const { knowledge } = service(facade.fetch);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    okCall(await knowledge.search(id, { q: "streamable", topK: 8, fusion: "rrf", minScore: 0.3 }));
+    expect(facade.seenSearches.at(-1)).toMatchObject({ q: "streamable", fusion: "rrf", minScore: 0.3 });
+  });
+});
+
+describe("KnowledgeService — Schreiben nur mit Freigabe (T74.6, EPIC-P74 §3.6)", () => {
+  function gated(fetchImpl: typeof fetch) {
+    const db = new HubDatabase(":memory:");
+    const settings = new SettingsStore(db);
+    const approvals = new ApprovalService(db);
+    const operations = new OperationStore(db);
+    const knowledge = new KnowledgeService(settings, { fetch: fetchImpl, approvals, operations });
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    return { knowledge, approvals, operations, id };
+  }
+
+  it("requestAdd legt eine write-Freigabe mit Operation an — ohne Entscheidung passiert nichts", async () => {
+    const facade = createFakeFacade();
+    const { knowledge, approvals, operations, id } = gated(facade.fetch);
+    const approvalId = approvalIdOf(knowledge.requestAdd(id, { text: "Neue Erkenntnis" }, "agent:mcp"));
+    const req = approvals.get(approvalId);
+    expect(req).toMatchObject({ class: "write", action: "knowledge.add", status: "pending" });
+    expect(req?.summary).toContain("Librarian");
+    expect(operations.get(approvalId)?.payload).toMatchObject({ sourceId: id, input: { text: "Neue Erkenntnis" } });
+    expect(facade.added).toHaveLength(0);
+  });
+
+  it("applyApprovedAdd schreibt genau einmal nach der Entscheidung (ADR-0019)", async () => {
+    const facade = createFakeFacade();
+    const { knowledge, approvals, id } = gated(facade.fetch);
+    const approvalId = approvalIdOf(knowledge.requestAdd(id, { text: "Einmal reicht" }, null));
+    approvals.decide(approvalId, "approve", "device-token-1", "pixel-9");
+    const ack = await knowledge.applyApprovedAdd(approvalId);
+    expect(ack).toMatchObject({ ok: true, detail: "notes/added-1.md" });
+    expect(facade.added).toEqual([{ text: "Einmal reicht", ref: undefined }]);
+    expect((await knowledge.applyApprovedAdd(approvalId)).ok).toBe(false);
+    expect(facade.added).toHaveLength(1);
+  });
+
+  it("Fachfehler der Fassade wird zur failed-Operation und zum Status der Quelle", async () => {
+    const facade = createFakeFacade({ failAdd: true });
+    const { knowledge, approvals, operations, id } = gated(facade.fetch);
+    const approvalId = approvalIdOf(knowledge.requestAdd(id, { text: "x" }, null));
+    approvals.decide(approvalId, "approve", "device-token-1", "pixel-9");
+    const ack = await knowledge.applyApprovedAdd(approvalId);
+    expect(ack.ok).toBe(false);
+    expect(ack.detail).toContain("Brain voll");
+    expect(operations.get(approvalId)).toMatchObject({ state: "failed" });
+    expect(must(knowledge.get(id)).status).toMatchObject({ state: "tool-error" });
+  });
+
+  it("ohne Freigabe-Warteschlange ist Schreiben ehrlich unmöglich, keine stiller Direktweg", () => {
+    const facade = createFakeFacade();
+    const { knowledge } = service(facade.fetch);
+    const { id } = must(knowledge.add({ ...bearerSource, auth: { kind: "none" }, secret: undefined }));
+    const res = knowledge.requestAdd(id, { text: "x" }, null);
+    expect(res).toMatchObject({ error: expect.stringContaining("Freigabe-Warteschlange") });
+    expect(facade.added).toHaveLength(0);
+  });
+
+  it("Quelle verschwindet zwischen Antrag und Entscheidung → failed, kein Wurf", async () => {
+    const facade = createFakeFacade();
+    const { knowledge, approvals, id } = gated(facade.fetch);
+    const approvalId = approvalIdOf(knowledge.requestAdd(id, { text: "zu spät" }, null));
+    knowledge.remove(id);
+    approvals.decide(approvalId, "approve", "device-token-1", "pixel-9");
+    const ack = await knowledge.applyApprovedAdd(approvalId);
+    expect(ack).toMatchObject({ ok: false, detail: "source removed" });
+    expect(facade.added).toHaveLength(0);
+  });
+
+  it("ungültige Notiz und unbekannte Quelle → Fehler/null, nichts liegt in der Queue", () => {
+    const facade = createFakeFacade();
+    const { knowledge, approvals, id } = gated(facade.fetch);
+    expect(knowledge.requestAdd(id, { text: "" }, null)).toMatchObject({ error: expect.stringContaining("text") });
+    expect(knowledge.requestAdd("00000000-0000-4000-8000-000000000000", { text: "x" }, null)).toBeNull();
+    expect(approvals.list("pending")).toHaveLength(0);
   });
 });
