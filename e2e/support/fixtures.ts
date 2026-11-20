@@ -87,7 +87,8 @@ export function statusPill(page: Page) {
  */
 export async function dockGo(page: Page, name: string): Promise<void> {
   const dock = page.locator(".dock");
-  const target = dock.getByRole("button", { name, exact: true });
+  const label = name === "Dateibaum" && await page.getByRole("navigation", { name: "Sidebar", exact: true }).count() ? "Projektansicht" : name;
+  const target = dock.getByRole("button", { name: label, exact: true });
   if (await target.isVisible()) return target.click();
   await dock.getByRole("button", { name: "Mehr", exact: true }).click();
   await page.getByRole("dialog", { name: "Mehr" }).getByRole("button", { name, exact: true }).click();

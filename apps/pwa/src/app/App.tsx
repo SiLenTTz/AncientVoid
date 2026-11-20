@@ -3,7 +3,7 @@ import { hubApi, type AdapterInfo, type AdapterUsage, type ApprovalRequest, type
 import { Dashboard } from "../features/overview/Dashboard.tsx";
 import { NotificationCenter } from "../features/notifications/Notifications.tsx";
 import { GlobalDock, type Page } from "./Dock.tsx";
-import { isToolPage, pageHash } from "./route.ts";
+import { pageHash } from "./route.ts";
 import { setHere } from "../shared/command-context.ts";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { ApprovalQueuePane } from "../features/approvals/Approvals.tsx";
@@ -51,7 +51,7 @@ export function App({
   /** EPIC-P64 T64.4: Glocke als Flusselement im Topbar (nur am PC mit sichtbarer Liste — main.tsx rendert sie sonst). */
   bell?: boolean;
 }) {
-  const shown: Page = wide && isToolPage(page) ? "dashboard" : page;
+  const shown: Page = wide ? "dashboard" : page;
   useEffect(() => setHere({ page, sessionId: null, hostId: null, sessionRevision: null }), [page]);
   const setPage = (p: Page) => {
     location.hash = pageHash(p);

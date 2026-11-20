@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { useState } from "preact/hooks";
 import { pageHash, vaultKnowledgeHash } from "../../app/route.ts";
 import { KnowledgePanel } from "../knowledge/KnowledgePanel.tsx";
@@ -11,6 +12,7 @@ import { VaultPane } from "./VaultPane.tsx";
 export function VaultTabs({ initialFile = null, initialTab = "notizen" }: { initialFile?: string | null; initialTab?: "notizen" | "wissen" }) {
   const [tab, setTab] = useState<"notizen" | "wissen">(initialTab);
   const switchTo = (next: "notizen" | "wissen") => {
+    if (openWorkspaceContent({ sessionId: "", content: { kind: "page", page: "vault", ...(next === "wissen" ? { vaultTab: "wissen" as const } : {}), hash: next === "wissen" ? vaultKnowledgeHash() : pageHash("vault") } })) return;
     setTab(next);
     location.hash = next === "wissen" ? vaultKnowledgeHash() : pageHash("vault");
   };

@@ -1,9 +1,11 @@
+import { parseContent, type WorkspaceContent } from "./content.ts";
 /**
  * EPIC-P18 T18.2: the tile workspace as plain data — which layout, which
  * session in which tile, which tile has focus. Rendering and keys live in
  * TileWorkspace.tsx; everything here is pure and unit-tested.
  *
- * There are always four slots; the layout decides how many are visible.
+ * Four legacy slots grow into a scrolling grid when more content opens.
+ * The layout decides how many of the first four slots are visible.
  * A slot hidden by a smaller layout keeps its session, so switching back
  * brings it back instead of silently dropping it.
  */
@@ -12,7 +14,9 @@ export const LAYOUTS = ["1", "2v", "3v", "2h", "1+2", "2x2"] as const;
 export type Layout = (typeof LAYOUTS)[number];
 
 export interface TileRef {
+  /** Empty for global pages and project files; content identifies those cards. */
   sessionId: string;
+  content?: WorkspaceContent;
   hostId?: string;
 }
 
@@ -50,11 +54,11 @@ export function emptyWorkspace(): Workspace {
 }
 
 export function visibleTiles(ws: Workspace): (TileRef | null)[] {
-  return ws.slots.slice(0, COUNT[ws.layout]);
+  return ws.slots.slice(0, ws.slots.length > 4 ? ws.slots.length : COUNT[ws.layout]);
 }
 
 function same(x: TileRef | null, y: TileRef): boolean {
-  return x !== null && x.sessionId === y.sessionId && (x.hostId ?? null) === (y.hostId ?? null);
+  return x !== null && x.sessionId === y.sessionId && (x.hostId ?? null) === (y.hostId ?? null) && JSON.stringify(parseContent(x.content) ?? { kind: "session", tab: "chat" }) === JSON.stringify(parseContent(y.content) ?? { kind: "session", tab: "chat" });
 }
 
 function put(ws: Workspace, index: number, ref: TileRef | null): Workspace {
@@ -63,27 +67,19 @@ function put(ws: Workspace, index: number, ref: TileRef | null): Workspace {
   return { ...ws, slots, focus: index };
 }
 
-/** Clicking a session: focus it where it already shows; else the focused
- * tile if empty, else the first empty tile, else replace the focused one. */
+/** All opening paths share the non-destructive default. */
 export function openSession(ws: Workspace, ref: TileRef): Workspace {
-  const shown = visibleTiles(ws);
-  const at = shown.findIndex((t) => same(t, ref));
-  if (at >= 0) return { ...ws, focus: at };
-  if (shown[ws.focus] === null) return put(ws, ws.focus, ref);
-  const empty = shown.indexOf(null);
-  return put(ws, empty >= 0 ? empty : ws.focus, ref);
+  return openInNewTile(ws, ref);
 }
 
-/** Ctrl/⌘-click: one more tile for this session, up to four. */
+/** Open without eviction, including slots hidden by a smaller chosen layout. */
 export function openInNewTile(ws: Workspace, ref: TileRef): Workspace {
-  const shown = visibleTiles(ws);
-  const at = shown.findIndex((t) => same(t, ref));
-  if (at >= 0) return { ...ws, focus: at };
-  const empty = shown.indexOf(null);
-  if (empty >= 0) return put(ws, empty, ref);
-  const grown = GROW[shown.length];
-  if (!grown) return put(ws, ws.focus, ref);
-  return put({ ...ws, layout: grown }, shown.length, ref);
+  const at = ws.slots.findIndex((t) => same(t, ref));
+  const empty = ws.slots.indexOf(null);
+  const index = at >= 0 ? at : empty >= 0 ? empty : ws.slots.length;
+  const needed = Math.max(index + 1, ws.slots.reduce((last, t, i) => t === null ? last : i + 1, 0));
+  const layout = needed > COUNT[ws.layout] ? (GROW[needed - 1] ?? "2x2") : ws.layout;
+  return at >= 0 ? { ...ws, layout, focus: at } : put({ ...ws, layout }, index, ref);
 }
 
 export function setLayout(ws: Workspace, layout: Layout): Workspace {
@@ -96,12 +92,12 @@ export function cycleLayout(ws: Workspace, dir: 1 | -1): Workspace {
 }
 
 export function focusTile(ws: Workspace, index: number): Workspace {
-  return index >= 0 && index < COUNT[ws.layout] ? { ...ws, focus: index } : ws;
+  return index >= 0 && index < visibleTiles(ws).length ? { ...ws, focus: index } : ws;
 }
 
 /** Hyprland's swap: the focused session trades places with tile n. */
 export function swapWith(ws: Workspace, index: number): Workspace {
-  if (index < 0 || index >= COUNT[ws.layout] || index === ws.focus) return ws;
+  if (index < 0 || index >= visibleTiles(ws).length || index === ws.focus) return ws;
   const slots = [...ws.slots];
   [slots[ws.focus], slots[index]] = [slots[index]!, slots[ws.focus]!];
   return { ...ws, slots, focus: index };
@@ -145,7 +141,7 @@ export function detachTile(ws: Workspace, index: number): Workspace {
 export function reattach(ws: Workspace, ref: TileRef): Workspace {
   const rest = (ws.detached ?? []).filter((d) => !same(d, ref));
   const { detached: _old, ...base } = ws;
-  return openSession(rest.length > 0 ? { ...base, detached: rest } : base, ref);
+  return openInNewTile(rest.length > 0 ? { ...base, detached: rest } : base, ref);
 }
 
 /** Ein Fenster, das nicht mehr antwortet, ist keine Ablage mehr: nur aus der Liste nehmen. */
@@ -161,9 +157,11 @@ export function serializeWorkspace(ws: Workspace): string {
 
 function tileRef(raw: unknown): TileRef | null {
   if (!raw || typeof raw !== "object") return null;
-  const { sessionId, hostId } = raw as { sessionId?: unknown; hostId?: unknown };
-  if (typeof sessionId !== "string" || !sessionId) return null;
-  return typeof hostId === "string" && hostId ? { sessionId, hostId } : { sessionId };
+  const { sessionId, hostId, content: value } = raw as { sessionId?: unknown; hostId?: unknown; content?: unknown };
+  const content = parseContent(value);
+  if (value !== undefined && !content) return null;
+  if (typeof sessionId !== "string" || (!sessionId && !content)) return null;
+  return { sessionId, ...(typeof hostId === "string" && hostId ? { hostId } : {}), ...(content ? { content } : {}) };
 }
 
 /** Whatever localStorage holds: a valid workspace or an empty one. */
@@ -177,7 +175,7 @@ export function parseWorkspace(raw: string | null): Workspace {
   }
   const { layout, slots, focus, sizes, detached } = (data ?? {}) as { layout?: unknown; slots?: unknown; focus?: unknown; sizes?: unknown; detached?: unknown };
   if (!LAYOUTS.includes(layout as Layout) || !Array.isArray(slots)) return emptyWorkspace();
-  const ws: Workspace = { layout: layout as Layout, slots: [0, 1, 2, 3].map((i) => tileRef(slots[i])), focus: 0 };
+  const ws: Workspace = { layout: layout as Layout, slots: Array.from({ length: Math.max(4, slots.length) }, (_, i) => tileRef(slots[i])), focus: 0 };
   const sized =
     sizes && typeof sizes === "object"
       ? {

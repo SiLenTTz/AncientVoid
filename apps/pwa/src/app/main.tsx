@@ -1,13 +1,17 @@
+import { loadFilter } from "../features/session/event-filter.ts";
+import { contentHash } from "../features/workspace/content.ts";
+import { onWorkspaceOpen } from "../features/workspace/open-content.ts";
+import { onLayerOpen } from "../shared/layers.ts";
 import { initPresentation, type DevicePreset } from "../features/settings/presets.ts";
 import { TooltipLayer } from "../shared/Tooltip.tsx";
-import { render, type ComponentChildren } from "preact";
+import { render } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { App } from "./App.tsx";
 import { SessionTail } from "../features/session/SessionTail.tsx";
 import { getToken, isAuthError, setToken, hubApi, hostApi, remoteHost, setSelfHostId, type SessionRecord } from "../shared/api.ts";
 import { resyncPush } from "../shared/push.ts";
 import { CommandBar } from "../features/commands/CommandBar.tsx";
-import { isToolPage, pageHash, parseAppHash, redirectLegacyRunHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
+import { pageHash, parseAppHash, redirectLegacyRunHash, sessionHash, type CodeTarget, type TailTab } from "./route.ts";
 import { registerShortcut } from "../shared/shortcuts/registry.ts";
 import { CheatSheet } from "../shared/shortcuts/CheatSheet.tsx";
 import { installShortcutHints } from "../shared/shortcut-hint.ts";
@@ -22,17 +26,15 @@ import { NotificationCenter } from "../features/notifications/Notifications.tsx"
 import { TileWorkspace } from "../features/workspace/TileWorkspace.tsx";
 import { StatusBar } from "../features/shell/StatusBar.tsx";
 import { getHubStatus } from "../features/shell/hub-status.ts";
-import { ToolPane } from "../features/shell/ToolPane.tsx";
 import { rememberSession } from "../features/shell/last-session.ts";
 import { FilesLayer } from "../features/files/FilesLayer.tsx";
 import { BrowserLayer } from "../features/browser/BrowserLayer.tsx";
 import { DeviceLayer } from "../features/devices/DeviceLayer.tsx";
 import { RestoreBar } from "../features/windows/RestoreBar.tsx";
-import { SessionStrip } from "../features/overview/SessionStrip.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
-import { detachTile, forgetDetached, openInNewTile, openSession, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { detachTile, forgetDetached, openInNewTile, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import { NyxFab } from "../features/stt/NyxFab.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
@@ -137,15 +139,17 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
   );
 }
 
-const WIDE = "(min-width: 1280px)";
-/** EPIC-P43 T43.6: Tablet — Sessions neben der offenen Session. */
-const TABLET = "(min-width: 700px) and (max-width: 1279px)";
+const WIDE = "(min-width: 700px)";
 const WORKSPACE_KEY = "ancientvoid.workspace";
 const LIST_COLLAPSED_KEY = "ancientvoid.listCollapsed";
 
+function defaultSessionRef(ref: TileRef): TileRef {
+  return ref.content ? ref : { ...ref, content: { kind: "session", tab: loadFilter() === "lesen" ? "chat" : "verlauf" } };
+}
+
 function tileRefOf(session: SessionRecord): TileRef {
   const host = remoteHost(session.hostId);
-  return host ? { sessionId: session.id, hostId: host } : { sessionId: session.id };
+  return defaultSessionRef(host ? { sessionId: session.id, hostId: host } : { sessionId: session.id });
 }
 
 function useMedia(query: string): boolean {
@@ -157,17 +161,6 @@ function useMedia(query: string): boolean {
     return () => mq.removeEventListener("change", on);
   }, [query]);
   return hit;
-}
-
-/** EPIC-P43 T43.6: am Tablet stehen die Sessions neben (quer) bzw. über (hoch) der offenen Session. */
-function TabletSplit({ on, currentId, children }: { on: boolean; currentId: string; children: ComponentChildren }) {
-  if (!on) return <>{children}</>;
-  return (
-    <div class="tablet-split">
-      <SessionStrip currentId={currentId} />
-      <div data-testid="tablet-detail">{children}</div>
-    </div>
-  );
 }
 
 function Main() {
@@ -288,23 +281,23 @@ function Main() {
 
   const [staleAt, setStaleAt] = useState<Date | null>(null);
   const wide = useMedia(WIDE);
-  const tablet = useMedia(TABLET);
+  const filesWide = useMedia("(min-width: 1280px)");
 
   // EPIC-P18 T18.5: layout and tiles are this device's choice; the hash
   // follows the focused tile (replaceState: focus moves are no history).
   const [listCollapsed, setListCollapsed] = useState(() => localStorage.getItem(LIST_COLLAPSED_KEY) === "1");
-  const [ws, setWs] = useState(() => parseWorkspace(localStorage.getItem(WORKSPACE_KEY)));
+  const [ws, setWs] = useState(() => {
+    const stored = parseWorkspace(localStorage.getItem(WORKSPACE_KEY));
+    return { ...stored, slots: stored.slots.map((ref) => ref ? defaultSessionRef(ref) : null) };
+  });
   const changeWorkspace = (next: Workspace) => {
     setWs(next);
     localStorage.setItem(WORKSPACE_KEY, serializeWorkspace(next));
     const focused = visibleTiles(next)[next.focus];
-    rememberSession(focused ?? null);
-    const hash = focused ? sessionHash(focused.sessionId, focused.hostId) : pageHash(route.view === "list" ? route.page : "dashboard");
-    // Ein tieferer Hash (…/graph, …/code) zur fokussierten Session bleibt
-    // stehen: replaceState würde das Suffix entfernen, und wer den Hash
-    // danach neu parst (z. B. Token-Gate → ready) landet ohne den Reiter.
-    const current = location.hash;
-    if (current !== hash && !current.startsWith(`${hash}/`)) history.replaceState(null, "", hash);
+    rememberSession(focused?.sessionId ? focused : null);
+    const hash = contentHash(focused);
+    // Each card owns its target, so focusing a chat must also clear another card's file suffix.
+    if (location.hash !== hash) history.replaceState(null, "", hash);
   };
   // EPIC-P34 T34.10: eigene Fenster. Der Kanal-Handler läuft über Referenzen, damit er immer den neuesten Stand sieht.
   const latest = useRef({ ws, changeWorkspace });
@@ -325,7 +318,7 @@ function Main() {
     const off = onWindowMessage((msg) => {
       if (msg.type !== "return" || msg.target.kind !== "session") return;
       const ref: TileRef = msg.target.hostId ? { sessionId: msg.target.sessionId, hostId: msg.target.hostId } : { sessionId: msg.target.sessionId };
-      latest.current.changeWorkspace(reattach(latest.current.ws, ref));
+      latest.current.changeWorkspace(reattach(latest.current.ws, defaultSessionRef(ref)));
     });
     return () => {
       off();
@@ -347,23 +340,47 @@ function Main() {
       latest.current.changeWorkspace(detachTile(latest.current.ws, index));
     }
   };
-  // EPIC-P34 T34.2: a tool page (settings, media …) fills the detail column on a wide screen.
-  const toolPage = route.view === "list" && isToolPage(route.page) ? route.page : null;
-  const openFromList = (session: SessionRecord, opts?: { newTile?: boolean }) => {
+  // Opening a session adds a card; already detached sessions retain their explicit window.
+  const openFromList = (session: SessionRecord) => {
     const ref = tileRefOf(session);
     // EPIC-P34 T34.10: läuft die Session in einem eigenen Fenster, kommt dieses nach vorn — kein zweiter Composer.
     if (focusWindowFor({ kind: "session", sessionId: ref.sessionId, ...(ref.hostId ? { hostId: ref.hostId } : {}) })) return;
     setRoute({ view: "tail", session });
     // Kein Fenster mehr da (geschlossen, abgestürzt): die Session gehört wieder in eine Kachel.
     const base = forgetDetached(ws, ref);
-    changeWorkspace(opts?.newTile ? openInNewTile(base, ref) : openSession(base, ref));
+    changeWorkspace(openInNewTile(base, ref));
   };
-  // A deep link or Back to a session lands in the workspace too.
+  // Every route has its own remembered target. Existing cards never consume new route props.
   useEffect(() => {
-    if (!wide || route.view !== "tail") return;
-    const next = openSession(ws, tileRefOf(route.session));
-    if (next !== ws && (next.focus !== ws.focus || next.slots !== ws.slots)) changeWorkspace(next);
+    if (!wide) return;
+    const current = latest.current.ws;
+    let ref: TileRef;
+    if (route.view === "tail") {
+      ref = { ...tileRefOf(route.session), ...(route.tab || route.code ? { content: { kind: "session" as const, tab: route.code ? "code" as const : route.tab!, ...(route.file ? { file: route.file } : {}), ...(route.code ? { code: route.code } : {}) } } : {}) };
+    } else {
+      if (route.page === "dashboard") return;
+      ref = { sessionId: "", content: { kind: "page", page: route.page, ...(route.vaultFile ? { vaultFile: route.vaultFile } : {}), ...(route.vaultTab ? { vaultTab: route.vaultTab } : {}), hash: location.hash } };
+    }
+    latest.current.changeWorkspace(openInNewTile(current, ref));
   }, [wide, route]);
+  useEffect(() => {
+    if (!wide) return;
+    const open = (ref: TileRef) => {
+      const current = latest.current.ws;
+      const next = openInNewTile(current, ref);
+      // Search operates on the current card's command fields, just as the phone dialog does.
+      latest.current.changeWorkspace(ref.content?.kind === "search" ? { ...next, focus: current.focus } : next);
+      if (ref.content?.kind === "search") document.querySelector<HTMLInputElement>(".command-card input")?.focus();
+    };
+    const off = onWorkspaceOpen(open);
+    const layer = (kind: "browser" | "devices") => onLayerOpen(kind, () => {
+      const ref = visibleTiles(latest.current.ws)[latest.current.ws.focus];
+      open({ sessionId: ref?.sessionId ?? "", ...(ref?.hostId ? { hostId: ref.hostId } : {}), content: { kind } });
+    });
+    const browser = layer("browser");
+    const devices = layer("devices");
+    return () => { off(); browser(); devices(); };
+  }, [wide]);
 
   // EPIC-P23 T23.1: a deep link or a reload on a session counts as "worked in last", too.
   useEffect(() => {
@@ -451,8 +468,9 @@ function Main() {
           </aside>
           <section class="split-detail">
             {/* EPIC-P18: up to four sessions as tiles. */}
-            <div class="tile-host" {...({ inert: toolPage !== null } as object)}>
+            <div class="tile-host">
             <TileWorkspace
+              onSwitchToken={() => setReady(false)}
               listCollapsed={listCollapsed}
               onToggleList={() =>
                 setListCollapsed((v) => {
@@ -463,37 +481,14 @@ function Main() {
               ws={ws}
               onChange={changeWorkspace}
               onPopout={(index, drop) => void popoutTile(index, drop)}
-              {...(route.view === "tail" && route.code ? { initialCode: { sessionId: route.session.id, code: route.code } } : {})}
-              {...(route.view === "tail" && route.tab ? { initialTabView: { sessionId: route.session.id, tab: route.tab, ...(route.file ? { file: route.file } : {}) } } : {})}
               onNavigate={(page) => {
                 location.hash = pageHash(page);
               }}
             />
             </div>
-            {toolPage && (
-              <ToolPane
-                page={toolPage}
-                {...(route.view === "list" && route.vaultFile ? { vaultFile: route.vaultFile } : {})}
-                vaultTab={route.view === "list" ? route.vaultTab ?? "notizen" : "notizen"}
-                onClose={() => {
-                  location.hash = pageHash("dashboard");
-                }}
-                onSwitchToken={() => setReady(false)}
-                onPopout={() => {
-                  void openPopout({ kind: "tool", page: toolPage }).then((result) => {
-                    if (result === "blocked") setPopoutNotice(blockedNotice);
-                    else {
-                      setPopoutNotice("");
-                      location.hash = pageHash("dashboard");
-                    }
-                  });
-                }}
-              />
-            )}
+
           </section>
-          <FilesLayer wide focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
-          <BrowserLayer focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
-          <DeviceLayer focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
+          <FilesLayer wide={filesWide} focusedSessionId={visibleTiles(ws)[ws.focus]?.sessionId ?? null} />
           <StatusBar focused={visibleTiles(ws)[ws.focus] ?? null} onOpenApprovals={() => (location.hash = pageHash("approvals"))} />
         </div>
       ) : route.view === "list" ? (
@@ -514,7 +509,7 @@ function Main() {
         // einem Tap erreichbar" applies to Neue Session/Einstellungen too.
         // BUG-0024: keyed by id — a link from one session to another must
         // not keep the first session's events, filter or reply draft.
-        <TabletSplit on={tablet} currentId={route.session.id}>
+        <>
           <SessionTail
             key={route.session.id}
             session={route.session}
@@ -524,7 +519,7 @@ function Main() {
               location.hash = pageHash(page);
             }}
           />
-        </TabletSplit>
+        </>
       )}
       {!wide && <FilesLayer wide={false} focusedSessionId={route.view === "tail" ? route.session.id : null} />}
       {!wide && <BrowserLayer focusedSessionId={route.view === "tail" ? route.session.id : null} />}

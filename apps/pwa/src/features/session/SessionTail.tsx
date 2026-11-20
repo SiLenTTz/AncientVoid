@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { StatusNote } from "./StatusNote.tsx";
 import type { ComponentChildren } from "preact";
 import { InterruptedBanner } from "./InterruptedBanner.tsx";
@@ -226,6 +227,7 @@ export function SessionTail({
   initialCode,
   initialTab,
   initialFile,
+  workspaceTab,
   tile,
 }: {
   session: SessionRecord;
@@ -238,6 +240,7 @@ export function SessionTail({
   /** EPIC-P48 / ADR-0071: Graph-, Git- oder Datei-Tab (Hash-Routen). */
   initialTab?: "graph" | "git" | "datei";
   initialFile?: string | null;
+  workspaceTab?: import("../workspace/content.ts").SessionTab;
   tile?: TileContext;
 }) {
   // EPIC-P6: every call of this view goes to the session's own host.
@@ -462,7 +465,7 @@ export function SessionTail({
     | "umgebung"
   >(
     () =>
-      tile?.only ??
+      workspaceTab ?? tile?.only ??
       (initialCode
         ? "code"
         : initialTab === "graph"
@@ -507,8 +510,9 @@ export function SessionTail({
           pending.view !== "forge"
         )
           return;
+        if (tile && !activeRef.current) return;
         sessionStorage.removeItem("ancientvoid.source-view");
-        setActiveTab("forge");
+        selectTab("forge");
       } catch {
         sessionStorage.removeItem("ancientvoid.source-view");
       }
@@ -815,19 +819,19 @@ export function SessionTail({
     if (filter !== "lesen") setLastVerlaufFilter(filter);
   }, [filter]);
 
-  const showChatTab = () => {
-    setActiveTab("chat");
-    setFilter("lesen");
+  const selectTab = (tab: import("../workspace/content.ts").SessionTab) => {
+    if (openWorkspaceContent({ sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}), content: { kind: "session", tab } })) return;
+    setActiveTab(tab);
+    if (tab === "chat") setFilter("lesen");
+    if (tab === "verlauf") setFilter(lastVerlaufFilter);
   };
-  const showVerlaufTab = () => {
-    setActiveTab("verlauf");
-    setFilter(lastVerlaufFilter);
-  };
-  const showBerichtTab = () => setActiveTab("bericht");
-  const showDiffTab = () => setActiveTab("diff");
-  const showSucheTab = () => setActiveTab("suche");
-  const showCodeTab = () => setActiveTab("code");
-  const showUmgebungTab = () => setActiveTab("umgebung");
+  const showChatTab = () => selectTab("chat");
+  const showVerlaufTab = () => selectTab("verlauf");
+  const showBerichtTab = () => selectTab("bericht");
+  const showDiffTab = () => selectTab("diff");
+  const showSucheTab = () => selectTab("suche");
+  const showCodeTab = () => selectTab("code");
+  const showUmgebungTab = () => selectTab("umgebung");
 
   // Follow new events only where they are shown — in Bericht/Diff/Suche/
   // Code a running session used to scroll the search field away (T7.6).
@@ -1246,7 +1250,7 @@ export function SessionTail({
       const pending = JSON.parse(
         sessionStorage.getItem("ancientvoid.pendingCodeSearch") ?? "null",
       ) as { sessionId?: string } | null;
-      if (pending?.sessionId === session.id) setActiveTab("code");
+      if (pending?.sessionId === session.id && (!tile || activeRef.current)) selectTab("code");
     };
     check();
     window.addEventListener("ancientvoid:code-search", check);
@@ -1541,7 +1545,7 @@ export function SessionTail({
             aria-current={on ? "page" : undefined}
             onClick={() => {
               setMoreOpen(false);
-              t.show();
+              if (!openWorkspaceContent({ sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}), content: { kind: "session", tab: t.tabs[0]! } })) t.show();
             }}
           >
             <TabIcon name={t.icon} />
@@ -1577,7 +1581,7 @@ export function SessionTail({
                 class={activeTab === m.id ? "active" : ""}
                 onClick={() => {
                   setMoreOpen(false);
-                  m.show();
+                  if (!openWorkspaceContent({ sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}), content: { kind: "session", tab: m.id } })) m.show();
                 }}
               >
                 <TabIcon name={m.icon} />
@@ -2267,6 +2271,7 @@ export function SessionTail({
                   hostId={remoteHost(session.hostId) ?? null}
                   onFullscreen={setGraphFull}
                   onOpenFile={(path) => {
+                    if (openWorkspaceContent({ sessionId: session.id, ...(remoteHost(session.hostId) ? { hostId: remoteHost(session.hostId)! } : {}), content: { kind: "session", tab: "datei", file: path } })) return;
                     setOpenFile(path);
                     setActiveTab("datei");
                     // BUG-0233: am PC/Tablet den Dateibaum mit aufgehen lassen —
@@ -2318,6 +2323,7 @@ export function SessionTail({
                   />
                 ) : (
                   <CodePane
+                    active={tile?.active ?? true}
                     sessionId={session.id}
                     hostId={remoteHost(session.hostId) ?? null}
                     onOpenDiff={showDiffTab}
@@ -2342,6 +2348,7 @@ export function SessionTail({
                   {detach}
                 </div>
                 <CodePane
+                    active={tile?.active ?? true}
                   sessionId={session.id}
                   hostId={remoteHost(session.hostId) ?? null}
                   {...(initialCode ? { initial: initialCode } : {})}

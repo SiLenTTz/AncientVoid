@@ -11,12 +11,13 @@ test.describe("Schnellsuche (EPIC-P43 T43.6)", () => {
     await seeAll(app, hub);
     await openQuiet(app);
     await app.getByLabel("Auftrag in Worten (Strg+K)").click();
+    const grid = await app.locator(".tile-workspace").count() > 0;
     const field = app.getByLabel("Auftrag", { exact: true });
     await field.fill("login");
     const jumps = app.getByRole("listbox", { name: "Springen zu" });
     await expect(jumps.getByRole("option").first()).toContainText("Login reparieren");
     await jumps.getByRole("option").first().click();
-    await expect(app.locator(".command-sheet")).toHaveCount(0);
+    await expect(app.locator(".command-sheet")).toHaveCount(grid ? 1 : 0);
     await expect(app.locator(".session-top-title").first()).toHaveText("Login reparieren");
 
     // Werkzeug per Tastatur: Pfeil wählt, Enter springt. In der Session steht „in den Dateien suchen“ davor.
@@ -27,7 +28,7 @@ test.describe("Schnellsuche (EPIC-P43 T43.6)", () => {
     await field.press("ArrowDown");
     await expect(jumps.getByRole("option", { selected: true })).toContainText("Einstellungen");
     await field.press("Enter");
-    await expect(app.locator(".command-sheet")).toHaveCount(0);
+    await expect(app.locator(".command-sheet")).toHaveCount(grid ? 1 : 0);
     expect(app.url()).toContain("#/einstellungen");
 
     // Projekt: „Neue Session“ mit dem Projekt vorgewählt.
@@ -35,7 +36,7 @@ test.describe("Schnellsuche (EPIC-P43 T43.6)", () => {
     await field.fill("beta");
     await jumps.getByRole("option").filter({ hasText: "Projekt" }).first().click();
     await expect(app.getByLabel("Adapter")).toBeVisible();
-    await expect(app.locator(".form-grid > label").first().locator("select")).toHaveValue(hub.beta);
+    await expect(app.getByRole("combobox", { name: "Projekt", exact: true })).toHaveValue(hub.beta);
   });
 
   test("ohne gewählten Treffer bleibt Enter ein Auftrag; Befehle tragen sich ein", async ({ app }) => {
@@ -58,6 +59,6 @@ test.describe("Schnellsuche (EPIC-P43 T43.6)", () => {
     await app.keyboard.press("Control+k");
     await app.getByLabel("Auftrag", { exact: true }).fill("README");
     await app.getByRole("option").filter({ hasText: "in den Dateien suchen" }).click();
-    await expect(app.locator(".session-live").first()).toHaveAttribute("data-tab", "code");
+    await expect(app.locator(".session-live[data-tab=code]")).toBeVisible();
   });
 });

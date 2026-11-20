@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { useEffect, useState } from "preact/hooks";
 import { hostApi, hubApi, remoteHost } from "../../shared/api.ts";
 import { getHubStatus, useHubStatus } from "../shell/hub-status.ts";
@@ -67,6 +68,7 @@ export function FilesLayer({ wide, focusedSessionId, windowed = false }: { wide:
     const on = (e: Event) => {
       const detail = (e as CustomEvent<{ sessionId: string; path: string; hostId?: string | null; sha?: string }>).detail;
       if (!detail?.sessionId || !detail.path) return;
+      if (openWorkspaceContent({ sessionId: detail.sessionId, ...(detail.hostId ? { hostId: detail.hostId } : {}), content: { kind: "file", target: `session=${encodeURIComponent(detail.sessionId)}`, path: detail.path, ...(detail.sha ? { sha: detail.sha } : {}) } })) return;
       const session = getHubStatus().sessions.find((s) => s.id === detail.sessionId);
       const label = session?.title ?? (session ? projectName(session.project) : undefined) ?? detail.sessionId.slice(0, 8);
       const host = detail.hostId ?? remoteHost(session?.hostId) ?? null;

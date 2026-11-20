@@ -170,3 +170,17 @@
 .quick-detail {
   font-size: var(--text-sm);
 }
+
+.tile .command-card {
+  position: relative;
+  inset: auto;
+  transform: none;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  box-sizing: border-box;
+  border: 0;
+  box-shadow: none;
+  align-content: start;
+  z-index: auto;
+}

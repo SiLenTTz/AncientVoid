@@ -50,3 +50,26 @@ test.describe("Code und Aktionen (T7.6, AC-P7-6)", () => {
     expect(events.some((e) => e.type === "tool_result" && (e.payload as { name?: string }).name === "aktion:git-status")).toBe(true);
   });
 });
+
+test("Code-Suchergebnisse öffnen zusätzliche Karten; Hintergrundkarten übernehmen keinen Hash @desktop @tablet", async ({ app, hub }, info) => {
+  test.skip(info.project.name === "mobile", "PC-/Tablet-Grid");
+  const id = await hub.createSession({ adapter: "opencode", prompt: "Codekarten" });
+  await app.goto(`${hub.origin}/#/sessions/${id}`);
+  const first = app.locator('.tile[data-tile="1"]');
+  await first.getByRole("button", { name: "Befehle", exact: true }).click();
+  const search = app.locator('.tile[data-tile="2"]');
+  await search.getByLabel("Code durchsuchen").fill("parseToken");
+  await search.getByRole("button", { name: "Suchen", exact: true }).click();
+  await expect(search.locator(".code-hit").first()).toContainText("src/auth.ts:4");
+  await search.locator(".code-hit").first().click();
+  const file = app.locator('.tile[data-tile="3"]');
+  await expect(file.locator(".code-lines li.hit code")).toContainText("export function parseToken");
+  await expect(search.getByLabel("Code durchsuchen")).toHaveValue("parseToken");
+  await expect(search.locator(".code-hit").first()).toBeVisible();
+  await first.locator(".session-top-title").click();
+  await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
+  await app.reload();
+  await expect(file.locator(".code-lines li.hit code")).toContainText("export function parseToken");
+  await expect(app).toHaveURL(new RegExp(`#/sessions/${id}$`));
+  await expect(app.locator(".tile")).toHaveCount(3);
+});

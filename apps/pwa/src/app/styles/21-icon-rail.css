@@ -192,3 +192,36 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* PC and tablet share the persistent rail; phone navigation is unchanged. */
+@media (min-width: 700px) {
+  #app:has(.split) { max-width: none; padding-left: 68px; }
+  .split-list .dock-stack {
+    position: fixed; inset: 0 auto 0 0; width: 56px; margin: 0;
+    border-right: 1px solid var(--bg-chip);
+  }
+  .split-list .sidebar { display: flex; flex-direction: column; height: 100%; justify-content: flex-start; padding: 6px 0; box-sizing: border-box; }
+  .sidebar-entries { min-height: 0; overflow-y: auto; width: 100%; }
+  .sidebar-entries[hidden] { display: none; }
+  .split-list .sidebar .dock-item { display: flex; flex: none; width: 100%; min-height: 44px; justify-content: center; padding: 0; }
+  .sidebar .lb { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .split.list-collapsed .split-list, .split.list-collapsed .split-list > .app-page { display: contents; }
+  .split.list-collapsed .split-list > .app-page > :not(.dock-stack) { display: none; }
+  .split.list-collapsed .split-detail { grid-column: 1; }
+  .tile .tool-pane { position: relative; height: 100%; box-sizing: border-box; }
+  .tile .browser-panel, .tile .device-panel { position: relative; inset: auto; width: 100%; height: 100%; max-height: none; box-sizing: border-box; z-index: auto; }
+  .file-card { height: 100%; overflow: auto; }
+  .tile-grid.layout-overflow { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(420px, 50vh); overflow-y: auto; }
+  .tile-grid.layout-overflow > .tile { grid-column: auto; grid-row: auto; }
+}
+@media (min-width: 700px) and (max-width: 1279px) {
+  html:has(.split), body:has(.split) { overflow: hidden; }
+  #app:has(.split) { height: calc(100dvh / var(--ui-zoom)); padding-top: 0; padding-bottom: 0; }
+  .split { grid-template-columns: minmax(200px, 28%) minmax(0, 1fr); gap: 10px; }
+  .split-list .app-page { height: 100%; padding-bottom: 0; }
+  .tile-grid.layout-overflow { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 700px) and (max-width: 1279px) {
+  .split-list .topbar { flex-wrap: wrap; }
+  .split-list .topbar h1 { flex: 0 0 auto; }
+}

@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { useApi } from "../../shared/api-context.ts";
 import type { ActionDefinition, ActionRun, CodeFile, CodeSearchResult, WorkspaceIdentity } from "../../shared/api.ts";
@@ -27,7 +28,9 @@ function IdentityLine({ identity }: { identity: WorkspaceIdentity }) {
  * a viewer with line anchors (`…/code/<path>:L<n>`), and the registered
  * actions (tests, git, tools) with their status and output.
  */
-export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId: string; hostId: string | null; initial?: CodeTarget; onOpenDiff: () => void }) {
+export function CodePane({ sessionId, hostId, initial, onOpenDiff, active = true }: { sessionId: string; hostId: string | null; initial?: CodeTarget; onOpenDiff: () => void; active?: boolean }) {
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const api = useApi();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"text" | "symbol">("symbol");
@@ -40,7 +43,7 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
   // T9.4: a field the text entry can fill; a search asked for in words runs here.
   const queryRef = useRef(query);
   queryRef.current = query;
-  useEffect(() => registerField("code_query", { get: () => queryRef.current, set: setQuery }), []);
+  useEffect(() => active ? registerField("code_query", { get: () => queryRef.current, set: setQuery }) : undefined, [active]);
   useEffect(() => {
     const pending = JSON.parse(sessionStorage.getItem("ancientvoid.pendingCodeSearch") ?? "null") as { sessionId?: string; text?: string } | null;
     if (pending?.sessionId !== sessionId || !pending.text) return;
@@ -50,20 +53,21 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
     void api.codeSearch(sessionId, pending.text, "symbol").then(setResult).catch((err) => setError(err instanceof Error ? err.message : "Suche fehlgeschlagen"));
   }, [sessionId]);
 
-  const openFile = async (path: string, at: number | null) => {
+  const openFile = async (path: string, at: number | null, initialLoad = false) => {
+    if (!initialLoad && openWorkspaceContent({ sessionId, ...(hostId ? { hostId } : {}), content: { kind: "session", tab: "code", code: { path, line: at } } })) return;
     setError("");
     try {
       const f = await api.codeFile(sessionId, path);
       setFile(f);
       setLine(at);
-      history.replaceState(null, "", codeHash(sessionId, path, at, hostId));
+      if (activeRef.current) history.replaceState(null, "", codeHash(sessionId, path, at, hostId));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Datei nicht lesbar");
     }
   };
 
   useEffect(() => {
-    if (initial) void openFile(initial.path, initial.line);
+    if (initial) void openFile(initial.path, initial.line, true);
   }, [initial?.path, initial?.line]);
 
   const search = async () => {
@@ -87,11 +91,11 @@ export function CodePane({ sessionId, hostId, initial, onOpenDiff }: { sessionId
         line={line}
         onLine={(n) => {
           setLine(n);
-          history.replaceState(null, "", codeHash(sessionId, file.path, n, hostId));
+          if (activeRef.current) history.replaceState(null, "", codeHash(sessionId, file.path, n, hostId));
         }}
         onBack={() => {
           setFile(null);
-          history.replaceState(null, "", sessionHash(sessionId, hostId));
+          if (activeRef.current) history.replaceState(null, "", sessionHash(sessionId, hostId));
         }}
         onOpenDiff={onOpenDiff}
       />

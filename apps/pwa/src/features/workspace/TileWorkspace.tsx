@@ -1,27 +1,25 @@
+import { WorkspaceTile } from "./WorkspaceTile.tsx";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { hostApi, type SessionRecord } from "../../shared/api.ts";
-import { SessionTail } from "../session/SessionTail.tsx";
 import type { Page } from "../../app/Dock.tsx";
-import { pointerOutside, type DropPoint } from "../windows/drag.ts";
-import type { CodeTarget } from "../../app/route.ts";
+import type { DropPoint } from "../windows/drag.ts";
 import { closeTile, cycleLayout, focusTile, LAYOUT_LABELS, LAYOUTS, resizeTile, setLayout, swapWith, tileCount, tileFractions, visibleTiles, type Layout, type TileRef, type Workspace } from "./tiles.ts";
 import { ariaCombo, comboLabel, registerShortcut } from "../../shared/shortcuts/registry.ts";
-import { Button, Chip, EmptyState } from "../../shared/ui/index.ts";
+import { Button, Chip } from "../../shared/ui/index.ts";
 
 /** Tiles below this height start with the controls folded (P18 premortem 3). */
 const COMPACT_TILE_PX = 800;
 
-/** EPIC-P18 T18.3/T18.4: up to four sessions side by side, Hyprland-style keys. */
+/** EPIC-P18 T18.3/T18.4: content cards in the existing grid, with Hyprland-style keys. */
 export function TileWorkspace({
   ws,
   onChange,
   onNavigate,
-  initialCode,
-  initialTabView,
   listCollapsed,
   onToggleList,
   onPopout,
+  onSwitchToken,
 }: {
+  onSwitchToken: () => void;
   /** EPIC-P34 T34.10: die Session der Kachel in ein eigenes Fenster legen. */
   onPopout?: (index: number, drop?: DropPoint) => void;
   listCollapsed: boolean;
@@ -29,12 +27,9 @@ export function TileWorkspace({
   ws: Workspace;
   onChange: (ws: Workspace) => void;
   onNavigate: (page: Page) => void;
-  /** T7.6 code anchor from the URL, for the tile showing that session. */
-  initialCode?: { sessionId: string; code: CodeTarget };
-  /** EPIC-P48: Graph-/Datei-Tab aus der URL, für die Kachel dieser Session. */
-  initialTabView?: { sessionId: string; tab: "graph" | "git" | "datei"; file?: string };
 }) {
-  const count = tileCount(ws.layout);
+  const count = visibleTiles(ws).length;
+  const overflow = count > 4;
   // BUG-0071: the handler works on the NEWEST state, not the one of its last render — two shortcuts
   // within one tick (fast typing, a loaded machine) must compose instead of the second one
   // starting from the state before the first. EPIC-P51 T51.5: Registrierung
@@ -156,29 +151,28 @@ export function TileWorkspace({
             ✕ Leeren
           </Chip>
           {/* EPIC-P51 T51.7: detaillierte Kürzelzeile durch ?-Übersicht ersetzt (aus T43.6 hierher gezogen). */}
-          <span class="tile-keys dim">Tastatur: ? zeigt alle Kürzel · Strg-Klick: neue Kachel</span>
+          <span class="tile-keys dim">Tastatur: ? zeigt alle Kürzel · Öffnen: neue Kachel</span>
         </div>
       </div>
-      <div ref={gridRef} class={`tile-grid layout-${ws.layout.replace("+", "p")}`} style={template}>
+      <div ref={gridRef} class={`tile-grid ${overflow ? "layout-overflow" : `layout-${ws.layout.replace("+", "p")}`}`} style={overflow ? undefined : template}>
         {visibleTiles(ws).map((ref, i) => (
-          <Tile
+          <WorkspaceTile
             key={i}
+            onSwitchToken={onSwitchToken}
             index={i}
             tileRef={ref}
             focused={i === ws.focus && count > 1}
             active={i === ws.focus}
             compact={compact && !(ws.layout === "1+2" && i === 0)}
-            onFocus={() => i !== ws.focus && onChange(focusTile(ws, i))}
+            onFocus={() => ref?.content?.kind !== "search" && i !== ws.focus && onChange(focusTile(ws, i))}
             onClose={() => onChange(closeTile(ws, i))}
             {...(onPopout ? { onPopout: (drop?: DropPoint) => onPopout(i, drop) } : {})}
             onNavigate={onNavigate}
-            {...(initialCode && ref?.sessionId === initialCode.sessionId ? { initialCode: initialCode.code } : {})}
-            {...(initialTabView && ref?.sessionId === initialTabView.sessionId ? { initialTabView } : {})}
           />
         ))}
         {/* Divider nach den Kacheln — <div> neben <section>, damit die
          * nth-of-type-Platzierung der Kacheln unberührt bleibt. */}
-        {(ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" || ws.layout === "3v") && (
+        {!overflow && (ws.layout === "2v" || ws.layout === "1+2" || ws.layout === "2x2" || ws.layout === "3v") && (
           <div
             class="tile-divider col"
             role="separator"
@@ -187,7 +181,7 @@ export function TileWorkspace({
             onPointerDown={startDrag("col")}
           />
         )}
-        {ws.layout === "3v" && (
+        {!overflow && ws.layout === "3v" && (
           <div
             class="tile-divider col second"
             role="separator"
@@ -196,7 +190,7 @@ export function TileWorkspace({
             onPointerDown={startDrag("col2")}
           />
         )}
-        {ws.layout !== "1" && ws.layout !== "2v" && ws.layout !== "3v" && (
+        {!overflow && ws.layout !== "1" && ws.layout !== "2v" && ws.layout !== "3v" && (
           <div
             class={`tile-divider row${ws.layout === "1+2" ? " right-only" : ""}`}
             role="separator"
@@ -217,126 +211,5 @@ function LayoutGlyph({ layout }: { layout: Layout }) {
         <span key={i} />
       ))}
     </span>
-  );
-}
-
-function Tile({
-  index,
-  tileRef,
-  focused,
-  active,
-  compact,
-  onFocus,
-  onClose,
-  onPopout,
-  onNavigate,
-  initialCode,
-  initialTabView,
-}: {
-  onPopout?: (drop?: DropPoint) => void;
-  initialCode?: CodeTarget;
-  initialTabView?: { sessionId: string; tab: "graph" | "git" | "datei"; file?: string };
-  index: number;
-  tileRef: TileRef | null;
-  focused: boolean;
-  active: boolean;
-  compact: boolean;
-  onFocus: () => void;
-  onClose: () => void;
-  onNavigate: (page: Page) => void;
-}) {
-  const [session, setSession] = useState<SessionRecord | null>(null);
-  const [missing, setMissing] = useState(false);
-  // EPIC-P34 T34.11: am Griff aus dem Fenster ziehen. Der Zeiger bleibt erfasst, auch außerhalb des Fensters.
-  const [dragOut, setDragOut] = useState(false);
-  const startGrip = (e: PointerEvent) => {
-    if (!onPopout || e.button !== 0) return;
-    const grip = e.currentTarget as HTMLElement;
-    grip.setPointerCapture(e.pointerId);
-    const outside = (ev: PointerEvent) => pointerOutside(ev.clientX, ev.clientY, { width: window.innerWidth, height: window.innerHeight });
-    const move = (ev: PointerEvent) => setDragOut(outside(ev));
-    const end = (ev: PointerEvent, drop: boolean) => {
-      grip.removeEventListener("pointermove", move);
-      grip.removeEventListener("pointerup", up);
-      grip.removeEventListener("pointercancel", cancel);
-      setDragOut(false);
-      if (drop && outside(ev)) onPopout({ left: ev.screenX, top: ev.screenY });
-    };
-    const up = (ev: PointerEvent) => end(ev, true);
-    const cancel = (ev: PointerEvent) => end(ev, false);
-    grip.addEventListener("pointermove", move);
-    grip.addEventListener("pointerup", up);
-    grip.addEventListener("pointercancel", cancel);
-  };
-  useEffect(() => {
-    setSession(null);
-    setMissing(false);
-    if (!tileRef) return;
-    let alive = true;
-    hostApi(tileRef.hostId)
-      .session(tileRef.sessionId)
-      .then((s) => alive && setSession(s))
-      .catch(() => alive && setMissing(true));
-    return () => {
-      alive = false;
-    };
-  }, [tileRef?.sessionId, tileRef?.hostId]);
-
-  // EPIC-P43 T43.6: ein Kopf je Kachel — mit Session trägt ihn SessionTail (Titel, Zustand, Reiter dazwischen).
-  const headStart = (
-    <>
-      <span class="tile-no">{index + 1}</span>
-      {onPopout && (
-        <span class={`tile-grip${dragOut ? " dragging" : ""}`} aria-hidden="true" title="Aus dem Fenster ziehen: eigenes Fenster (Alternative: ⧉)" onPointerDown={startGrip}>
-          ⠿{dragOut ? " Loslassen öffnet ein eigenes Fenster" : ""}
-        </span>
-      )}
-    </>
-  );
-  const headEnd = (
-    <>
-      {onPopout && (
-        <button type="button" class="tile-popout" aria-label={`Kachel ${index + 1} in eigenem Fenster öffnen`} title="In eigenem Fenster öffnen" onClick={() => onPopout()}>
-          ⧉
-        </button>
-      )}
-      <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} leeren`} title="Kachel leeren (Alt+W)" onClick={onClose}>
-        ×
-      </button>
-    </>
-  );
-  return (
-    <section
-      class={`tile${focused ? " focused" : ""}${dragOut ? " drag-out" : ""}`}
-      data-tile={index + 1}
-      aria-label={`Kachel ${index + 1}`}
-      onPointerDownCapture={onFocus}
-      onFocusCapture={onFocus}
-    >
-      {tileRef && !session && (
-        <div class="tile-head">
-          {headStart}
-          {headEnd}
-        </div>
-      )}
-      {!tileRef ? (
-        <div class="ui-empty tile-empty">
-          Kachel {index + 1} ist frei — Session links wählen
-          {index > 0 && <div class="dim">Strg-Klick in der Liste öffnet in einer neuen Kachel</div>}
-        </div>
-      ) : missing ? (
-        // P18 premortem 4: a remembered session that is gone says so.
-        <div class="ui-empty tile-empty" data-testid="tile-missing">
-          Diese Session gibt es nicht mehr oder sie ist nicht erreichbar.
-          <Button onClick={onClose}>
-            Kachel leeren
-          </Button>
-        </div>
-      ) : session ? (
-        <SessionTail key={session.id} session={session} onNavigate={onNavigate} onArchived={onClose} tile={{ active, compact, head: { start: headStart, end: headEnd } }} {...(initialCode ? { initialCode } : {})} {...(initialTabView ? { initialTab: initialTabView.tab, ...(initialTabView.file ? { initialFile: initialTabView.file } : {}) } : {})} />
-      ) : (
-        <EmptyState class="tile-empty dim" text="lädt…" />
-      )}
-    </section>
   );
 }

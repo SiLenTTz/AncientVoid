@@ -238,16 +238,16 @@ function NewTeamForm({ adapters, projects, onCreated, offline }: { adapters: Ada
   );
 }
 
-export function TeamsPane() {
-  const host = new URLSearchParams(location.hash.split("?")[1] ?? "").get("host");
+export function TeamsPane({ initialHash = location.hash }: { initialHash?: string }) {
+  const host = new URLSearchParams(initialHash.split("?")[1] ?? "").get("host");
   const api = useMemo(() => hostApi(host), [host]);
-  return <ApiContext.Provider value={api}><TeamsHostPane key={host ?? "self"} /></ApiContext.Provider>;
+  return <ApiContext.Provider value={api}><TeamsHostPane key={host ?? "self"} initialHash={initialHash} /></ApiContext.Provider>;
 }
 
-function TeamsHostPane() {
+function TeamsHostPane({ initialHash }: { initialHash: string }) {
   const api = useApi();
   const [teams, setTeams] = useState<Team[] | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(location.hash.split("?")[1] ?? "").get("team"));
+  const [selectedId, setSelectedId] = useState<string | null>(() => new URLSearchParams(initialHash.split("?")[1] ?? "").get("team"));
   const [adapters, setAdapters] = useState<AdapterInfo[]>([]);
   const [projects, setProjects] = useState<DiscoveredProject[]>([]);
   const [showNew, setShowNew] = useState(false);

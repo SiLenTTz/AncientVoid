@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { VaultBrowse, VaultFile, VaultState } from "@ancientvoid/contracts";
 import { hubApi } from "../../shared/api.ts";
@@ -80,6 +81,7 @@ export function VaultPane({ initialFile = null }: { initialFile?: string | null 
   useEffect(reloadFiles, [state?.configured, state?.root]);
 
   const openFile = (path: string, edit = false) => {
+    if (!edit && openWorkspaceContent({ sessionId: "", content: { kind: "page", page: "vault", vaultFile: path, hash: vaultFileHash(path) } })) return;
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
       saveTimer.current = null;
