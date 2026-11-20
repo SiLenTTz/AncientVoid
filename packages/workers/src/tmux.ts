@@ -424,6 +424,7 @@ export class TmuxRunner implements WorkerRunner {
     return {
       ...(pid !== undefined ? { pid } : {}),
       attachCmd: `tmux attach -t ${full}`,
+      stdinMode: piped ? "pipe" : "tty",
       onStdout: (cb) => {
         stdoutCbs.add(cb);
         for (const chunk of stdoutReplay) cb(chunk);

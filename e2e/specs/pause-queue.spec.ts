@@ -48,21 +48,24 @@ test.describe("Pause und Warteschlange", () => {
     expect(await sessionPrompts(hub, id)).not.toContain("doch nicht");
   });
 
-  test("BUG-0114/ADR-0074: bei Next-Turn-Adaptern bleibt die Vormerkung liegen und die Ablehnung steht da", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
+  test("BUG-0114/ADR-0074: bei Next-Turn-Adaptern ohne midTurnInput bleibt die Vormerkung liegen und die Ablehnung steht da", async ({ app, hub }) => {
+    // ADR-0098: claude selbst lenkt jetzt mitten im Zug — die Ablehnung gilt
+    // weiter für Next-Turn-Adapter OHNE diese Zusicherung (hier: ACP/dsh-Form).
+    const id = await hub.createSession({ adapter: "acp", prompt: "LANGSAM erste Frage" });
     await open(app, hub.origin, id);
     await app.getByPlaceholder("Antworten…").fill("kurze Zwischenfrage");
     await app.getByRole("button", { name: "Vormerken" }).click();
     await expect(app.locator(".queue-list")).toContainText("kurze Zwischenfrage");
 
-    // Claude hat keine echte Live-Eingabe — der Hub lehnt das sofortige Senden
-    // ab, statt einen zweiten Prozess auf dieselbe native Session zu setzen
-    // (ADR-0074). Die Nachricht bleibt sichtbar vorgemerkt.
+    // Der Hub lehnt das sofortige Senden ab, statt einen zweiten Prozess auf
+    // dieselbe native Session zu setzen (ADR-0074). Die Nachricht bleibt
+    // sichtbar vorgemerkt.
     await app.getByRole("button", { name: /Vorgemerkte Nachricht 1 jetzt senden/ }).click();
     await expect(app.locator(".queue-list .reply-error")).toContainText("keine weitere Nachricht annehmen");
     await expect(app.locator(".queue-list")).toContainText("kurze Zwischenfrage");
     expect((await hub.api<unknown[]>(`/api/sessions/${id}/queue`)).body).toHaveLength(1);
   });
+
 
   test.describe("mit durchlaufendem Dummy-Zug", () => {
     // Live-Eingabe braucht einen Zug, der während des Tests nicht endet.
@@ -231,15 +234,45 @@ test.describe("Zustellung wählen und Vorgemerktes nachträglich ändern (ADR-00
     });
   });
 
-  test("Claude darf die Wahl nicht zeigen: ADR-0074 verbietet Eingaben mitten im Zug", async ({ app, hub }) => {
+  test("claude bietet die Wahl an (ADR-0098): Standard bleibt Vormerken — ⚡ lenkt mitten im Zug", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "claude", prompt: "LANGSAM erste Frage" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.getByPlaceholder("Antworten…")).toBeVisible();
-    await expect(app.getByTestId("delivery-toggle")).toHaveCount(0);
+    // ADR-0098: der Streaming-Input-Prozess nimmt Meldungen mitten im Zug an —
+    // der Chip ist da (vor ADR-0098 verbot ADR-0074 die Wahl für claude noch).
+    await expect(app.getByTestId("delivery-toggle")).toHaveCount(1);
     await expect(app.getByRole("button", { name: "Vormerken" })).toHaveCount(1);
     await app.getByPlaceholder("Antworten…").fill("am Zugende");
     await app.getByRole("button", { name: "Vormerken" }).click();
     expect(await queueTexts(hub, id)).toEqual(["am Zugende"]);
+
+    // BUG-0235: „jetzt lenken“ geht in den laufenden Zug, nicht in die Warteschlange.
+    const chip = app.getByTestId("delivery-toggle");
+    await chip.click();
+    await expect(app.getByTestId("send-now")).toHaveText("Jetzt lenken");
+    await app.getByPlaceholder("Antworten…").fill("zwischenruf jetzt");
+    await app.getByTestId("send-now").click();
+    // Der Zwischenruf geht sofort in den laufenden Zug — er landet NICHT in
+    // der Warteschlange (die weiterhin nur „am Zugende“ enthält).
+    await hub.until(
+      async () => (await hub.events(id)).some((e) => e.payload?.kind === "session.prompt" && String((e.payload as { text?: string }).text).includes("zwischenruf jetzt")),
+      "Zwischenruf mitten im Zug angekommen",
+      20_000,
+    );
+    expect(await queueTexts(hub, id)).toEqual(["am Zugende"]);
+  });
+
+  test("BUG-0235: Claude leert die Vormerkung nach dem Hauptzug bei weiterlaufendem Hintergrundjob", async ({ hub }) => {
+    const id = await hub.createSession({ adapter: "claude", prompt: "ZUEGIG HINTERGRUND" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.payload?.kind === "session.activity_begin"), "Hintergrundjob gestartet");
+    const ack = await hub.api<{ ok: boolean; detail?: string }>(`/api/sessions/${id}/steer`, {
+      method: "POST",
+      body: { kind: "prompt", text: "Nächster Zug", queue: true },
+    });
+    expect(ack.body).toMatchObject({ ok: true, detail: "queued" });
+    await hub.until(async () => (await hub.events(id)).some((e) => e.type === "assistant" && e.summary.includes("Nächster Zug")), "Antwort während des Hintergrundjobs", 8_000);
+    expect(await queueTexts(hub, id)).toEqual([]);
+    expect((await hub.events(id)).some((e) => e.payload?.kind === "session.activity_end")).toBe(false);
   });
 
   test("✎ Bearbeiten: die geänderte Fassung geht raus, nicht die alte", async ({ app, hub }) => {

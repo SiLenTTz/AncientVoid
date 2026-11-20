@@ -24,7 +24,9 @@ import { join } from "node:path";
 /**
  * claude adapter (P1 reference/"golden path"). Spawns the real CLI via
  * ctx.spawnWorker (never child_process directly — AdapterContext rule) and
- * maps its stream-json output through normalize.ts.
+ * maps its stream-json output through normalize.ts. One persistent
+ * streaming-input process per session (ADR-0098): prompts travel as NDJSON
+ * on stdin, so a running turn can be steered without a second process.
  *
  * Config (hub.config.json -> adapters[].config):
  *   command:   executable to spawn (default "claude") — override in tests
@@ -97,6 +99,13 @@ interface SessionMeta {
   skill?: string | undefined;
 }
 
+type ClaudeControl = { subtype: "set_model"; model: string | null } | { subtype: "set_permission_mode"; mode: string };
+
+interface LiveClaude {
+  proc: WorkerProcess;
+  control(request: ClaudeControl): Promise<Ack>;
+}
+
 /** ADR-0018: flags with which claude runs every tool unasked. */
 function bypassesPermissions(args: readonly string[]): boolean {
   const mode = args.indexOf("--permission-mode");
@@ -109,7 +118,7 @@ function bypassesPermissions(args: readonly string[]): boolean {
 
 export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapter {
   const cfg: ClaudeConfig = ClaudeConfig.parse(config ?? {});
-  const procs = new Map<string, WorkerProcess>();
+  const procs = new Map<string, LiveClaude>();
   const sessions = new Map<string, SessionMeta>();
 
   /** `agent`/`model` are only ever passed on the initial (non-resume)
@@ -139,7 +148,6 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
   }
 
   function buildArgs(
-    prompt: string,
     resumeSessionId?: string,
     agent?: string,
     model?: string,
@@ -149,7 +157,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     fork = false,
     partial = false,
   ): string[] {
-    const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", ...extra];
+    // ADR-0098: streaming input — the prompt travels as NDJSON on stdin,
+    // never in argv. That is what makes steering into a running turn
+    // possible at all (BUG-0235); -p stays, it only selects print mode.
+    const args = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", ...extra];
     // ADR-0083: der Hub kann Frames empfangen — dann verlangt claude die expliziten
     // Teil-Nachrichten, sonst kommen die Deltas nie an (nur die fertigen Blöcke).
     if (partial) args.push("--include-partial-messages");
@@ -164,6 +175,18 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       tail = tail.filter((a, i, all) => a !== "--permission-mode" && all[i - 1] !== "--permission-mode");
     }
     return [cfg.command, ...args, ...tail];
+  }
+
+  /** ADR-0098: one user message on the streaming-input channel (NDJSON). */
+  function stdinLine(text: string): string {
+    return `${JSON.stringify({ type: "user", message: { role: "user", content: text }, parent_tool_use_id: null })}\n`;
+  }
+
+  /** ADR-0098/ADR-0013-Nachtrag: der Prompt geht auf den stdin-Kanal und
+   * meldet den Zugbeginn — Zugende meldet das result-Event des Streams. */
+  function sendPrompt(proc: WorkerProcess, text: string, ctx: AdapterContext): void {
+    proc.write(stdinLine(text));
+    ctx.turn?.("working");
   }
 
   function withSkill(prompt: string, skill: string | undefined): string {
@@ -185,7 +208,26 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     // one-shot turn's abnormal exit must not stick forever once a fresh
     // process (this steer()'s resume) is actually running.
     meta.healthy = true;
-    procs.set(sessionId, proc);
+    const pending = new Map<string, (ack: Ack) => void>();
+    const worker: LiveClaude = {
+      proc,
+      control: (request) => new Promise<Ack>((resolve) => {
+        const id = crypto.randomUUID();
+        const done = (ack: Ack) => {
+          clearTimeout(timer);
+          pending.delete(id);
+          resolve(ack);
+        };
+        const timer = setTimeout(() => done({ ok: false, detail: "Claude hat die Einstellung nicht bestätigt." }), 5_000).unref();
+        pending.set(id, done);
+        try {
+          proc.write(`${JSON.stringify({ type: "control_request", request_id: id, request })}\n`);
+        } catch (err) {
+          done({ ok: false, detail: String(err).slice(0, 300) });
+        }
+      }),
+    };
+    procs.set(sessionId, worker);
     sessions.set(sessionId, meta);
     // ADR-0083: claude sendet echte Deltas in `stream_event`-Hüllen. Mit Stream-Kanal
     // gehen sie gebündelt als Frames raus; ohne Kanal bleibt die alte Hüllen-Meldung —
@@ -194,6 +236,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     const blockStream = new Map<number, StreamKind>();
 
     let buffer = "";
+    let mainModel: string | undefined;
     proc.onStdout((chunk) => {
       buffer += chunk;
       const lines = buffer.split("\n");
@@ -237,7 +280,23 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             });
           }
         }
-        const task = parsed as { type?: string; subtype?: string; task_id?: unknown; description?: unknown; status?: unknown };
+        if (!parsed || typeof parsed !== "object") {
+          for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
+          continue;
+        }
+        if ("type" in parsed && parsed.type === "control_response") {
+          const reply = (parsed as { response?: { request_id?: unknown; subtype?: unknown; error?: unknown; response?: { model?: unknown } } }).response;
+          const receive = typeof reply?.request_id === "string" ? pending.get(reply.request_id) : undefined;
+          if (receive && reply?.subtype === "success") {
+            if (typeof reply.response?.model === "string") mainModel = reply.response.model;
+            receive({ ok: true });
+          } else if (receive) {
+            receive({ ok: false, detail: typeof reply?.error === "string" ? reply.error.slice(0, 300) : "Claude hat die Einstellung abgelehnt." });
+          }
+          continue;
+        }
+        const task = parsed as { type?: string; subtype?: string; model?: unknown; task_id?: unknown; description?: unknown; status?: unknown; queued_turn_count?: unknown };
+        if (task.type === "system" && task.subtype === "init" && typeof task.model === "string") mainModel = task.model;
         if (task.type === "system" && typeof task.task_id === "string") {
           if (task.subtype === "task_started") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: "running", ...(typeof task.description === "string" ? { label: task.description.slice(0, 160) } : {}) });
           if (task.subtype === "task_notification") ctx.activity?.({ id: `task:${task.task_id}`, kind: "agent", state: task.status === "completed" ? "completed" : "failed" });
@@ -252,8 +311,10 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
             blockStream.delete(part.index);
           }
         } else {
-          for (const event of normalizeClaudeLine(parsed)) ctx.emit(event);
+          for (const event of normalizeClaudeLine(parsed, mainModel)) ctx.emit(event);
         }
+        if (task.type === "result" && proc.stdinMode !== "tty" &&
+          !(typeof task.queued_turn_count === "number" && task.queued_turn_count > 0)) ctx.turn?.("idle");
       }
     });
 
@@ -263,11 +324,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
 
     proc.onExit((code) => {
       live?.close(); // ADR-0083: offene Frame-Timer weg, ein unvollendeter Block hat keine Frames mehr
+      for (const done of pending.values()) done({ ok: false, detail: "Claude wurde vor der Bestätigung beendet." });
+      if (code === 0 && proc.stdinMode === "tty") ctx.turn?.("idle");
       // Drop the dead process reference (procs), but keep `meta` — it
       // carries resumeSessionId, which the *next* steer(prompt) needs.
-      // claude -p is one-shot: every turn's process exits by design, not
-      // just on error — a clean exit (code 0) means the turn finished
-      // normally and the session is simply idle between turns, NOT down.
+      // ADR-0098: der Streaming-Prozess lebt über Zugenden hinweg — ein
+      // sauberer Exit (code 0) ist das Ende des Prozesses, nicht der
+      // Session: sie ist zwischen Prozessen idle, NOT down (BUG-0008).
       // Only an abnormal exit means the adapter is actually unhealthy
       // (BUG-0008: this used to set healthy=false unconditionally, so
       // T1.9's heartbeat flagged status="error" + adapter.down after
@@ -278,7 +341,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         meta.healthy = false;
         ctx.emit({ type: "system", summary: `claude: process exited with code ${code}`, payload: { code } });
       }
-      if (procs.get(sessionId) === proc) procs.delete(sessionId);
+      if (procs.get(sessionId) === worker) procs.delete(sessionId);
     });
   }
 
@@ -292,6 +355,13 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // verified against real captures (normalize.ts).
       return {
         promptDelivery: "next-turn",
+        // ADR-0098 (BUG-0235): der Streaming-Input-Prozess nimmt Meldungen
+        // mitten im laufenden Zug an (stdin, injiziert nach dem laufenden
+        // Tool-Call) — kein Zweitprozess nötig, ADR-0074 bleibt heil.
+        midTurnInput: true,
+        // ADR-0098: promptloser Start spawnt nichts — die Session öffnet idle,
+        // statt ewig "working" zu hängen (e2e-Fund 2026-11-20).
+        promptlessStartIdle: true,
         reasoning: true,
         tools: true,
         cost: true,
@@ -365,20 +435,25 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       // the hub's history, so the phone shows where the run stands without
       // asking the agent first. Awaited — history before the new turn.
       if (resumeSessionId) await importTranscript(ctx, spec.project, resumeSessionId, cfg.claudeDir);
-      if (resumeSessionId && !spec.prompt?.trim() && !spec.attachments?.length) {
-        // ADR-0040: an adoption without a first prompt has no turn. `claude -p ""
-        // --resume` is not "just open it" — it looks for a deferred tool call and
-        // dies with "No deferred tool marker" (live 2026-10-27). Idle between
-        // turns, like recover(): the next steer resumes (and forks, if asked).
+      if (!spec.prompt?.trim() && !spec.attachments?.length) {
+        // ADR-0040/ADR-0098: kein Prompt, kein Zug — und kein Prozess: ein
+        // Streaming-Prozess ohne erste stdin-Nachricht würde nur auf Eingabe
+        // warten und die Session auf `working` halten (e2e-Fund 2026-11-20).
+        // Idle zwischen Zügen; der nächste steer spawnt (mit --resume und
+        // Fork, falls übernommen; `claude -p "" --resume` starb zudem am
+        // "No deferred tool marker", live 2026-10-27).
         sessions.set(ctx.sessionId, meta);
         return { sessionId: ctx.sessionId };
       }
       meta.forkNext = false;
+      // ADR-0098: ein persistenter Streaming-Prozess; der Prompt geht als
+      // NDJSON-Zeile auf den stdin-Kanal, nicht ins Argv.
       const proc = await ctx.spawnWorker(
-        buildArgs(withSkill(att.prompt, skill), resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true, forkNext, Boolean(ctx.stream)),
-        workerEnv(spec.env),
+        buildArgs(resumeSessionId, agentPersona, spec.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], permissionMode, true, forkNext, Boolean(ctx.stream)),
+        { stdin: "pipe", persistent: true, ...workerEnv(spec.env) },
       );
       attach(ctx.sessionId, proc, ctx, meta);
+      sendPrompt(proc, withSkill(att.prompt, skill), ctx);
       const handle: SessionHandle = {
         sessionId: ctx.sessionId,
         ...(proc.pid !== undefined ? { pid: proc.pid } : {}),
@@ -390,34 +465,68 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
       const meta = sessions.get(handle.sessionId);
       switch (input.kind) {
         case "prompt": {
-          // claude -p is one-shot per process — steering means spawning a
-          // fresh process resumed via --resume <session_id>. The
-          // session's skill (if any) is reapplied to every turn; --agent
-          // is deliberately NOT re-added here (see buildArgs' doc comment).
+          // ADR-0098: ein lebender Streaming-Prozess nimmt die Meldung auf
+          // dem stdin-Kanal an — mitten im Zug (injiziert nach dem laufenden
+          // Tool-Call) wie zwischen Zügen. Nie ein Zweitprozess auf dieselbe
+          // native Session (ADR-0074); erst nach Exit spawnt der nächste
+          // Prompt einen frischen --resume-Prozess. Der Skill (falls einer)
+          // wird wie bisher auf jeden Prompt reappliziert; --agent bewusst
+          // nicht (siehe buildArgs' Doc-Kommentar).
           const att = withAttachments(input.text, input.attachments);
+          const live = procs.get(handle.sessionId);
+          if (live) {
+            if (live.proc.stdinMode === "tty") return { ok: false, detail: "Der übernommene Claude-Prozess hat erst nach seinem Zugende einen Streaming-Eingabekanal." };
+            if (att.dirs.length > 0) {
+              // --add-dir gilt je Prozess und ist im laufenden nicht
+              // nachrüstbar — der Pfad steht im Prompt, ein nötiger Zugriff
+              // geht über die Freigabe-Brücke (ADR-0018 §3). Fail loud.
+              ctx.emit({
+                type: "system",
+                summary: "claude: Anhang-Verzeichnis im laufenden Zug nicht mehr freigebbar (--add-dir gilt je Prozess) — Zugriff läuft über die Freigabe-Brücke",
+                payload: { kind: "claude.add_dir_live_skipped", count: att.dirs.length },
+              });
+            }
+            sendPrompt(live.proc, withSkill(att.prompt, meta?.skill), ctx);
+            return { ok: true };
+          }
           const fork = meta?.forkNext === true;
           if (meta) meta.forkNext = false;
           const proc = await ctx.spawnWorker(
-            buildArgs(withSkill(att.prompt, meta?.skill), meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true, fork, Boolean(ctx.stream)),
-            workerEnv(undefined),
+            buildArgs(meta?.resumeSessionId, undefined, meta?.model, [...(await permissionArgs(ctx)), ...att.dirs.flatMap((d) => ["--add-dir", d])], meta?.permissionMode, true, fork, Boolean(ctx.stream)),
+            { stdin: "pipe", persistent: true, ...workerEnv(undefined) },
           );
           attach(handle.sessionId, proc, ctx, meta ?? { healthy: true, degraded: false });
+          sendPrompt(proc, withSkill(att.prompt, meta?.skill), ctx);
           return { ok: true };
         }
         case "stop":
           await adapter.stop(handle, ctx);
           return { ok: true };
         case "park": {
-          await procs.get(handle.sessionId)?.kill("SIGTERM");
+          await procs.get(handle.sessionId)?.proc.kill("SIGTERM");
           return { ok: true };
         }
         case "configure": {
-          // ADR-0033: claude -p starts a process per turn — the change applies from the next one.
           if (!meta) return { ok: false, detail: "claude: Session unbekannt" };
-          if (input.permissionMode !== undefined) {
-            if (!(PERMISSION_MODES as readonly string[]).includes(input.permissionMode)) return { ok: false, detail: `claude: Modus „${input.permissionMode}“ unbekannt` };
-            meta.permissionMode = input.permissionMode;
+          if (input.permissionMode !== undefined && !(PERMISSION_MODES as readonly string[]).includes(input.permissionMode)) {
+            return { ok: false, detail: `claude: Modus „${input.permissionMode}“ unbekannt` };
           }
+          const live = procs.get(handle.sessionId);
+          if (live && live.proc.stdinMode !== "tty") {
+            if (input.model !== undefined) {
+              const ack = await live.control({ subtype: "set_model", model: input.model });
+              if (!ack.ok) return ack;
+            }
+            if (input.permissionMode !== undefined) {
+              const ack = await live.control({ subtype: "set_permission_mode", mode: input.permissionMode });
+              if (!ack.ok) {
+                if (input.model === undefined) return ack;
+                const reverted = await live.control({ subtype: "set_model", model: meta.model ?? null });
+                return reverted.ok ? ack : { ok: false, detail: "Claude hat den Moduswechsel und das Zurücksetzen des Modells nicht bestätigt." };
+              }
+            }
+          }
+          if (input.permissionMode !== undefined) meta.permissionMode = input.permissionMode;
           if (input.model !== undefined) meta.model = input.model;
           return { ok: true };
         }
@@ -443,7 +552,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
      * running, or continue natively with the next prompt. */
     async recover(sessionId: string, _lastSeq: number, ctx: AdapterContext): Promise<SessionHandle | null> {
       const native = ctx.nativeSessionId ?? undefined;
-      const proc = (await ctx.adoptWorker?.()) ?? null;
+      const proc = (await ctx.adoptWorker?.({ persistent: true })) ?? null;
       if (!proc && !native) return null;
       const meta: SessionMeta = { healthy: true, degraded: false, ...(native ? { resumeSessionId: native } : {}) };
       if (proc) attach(sessionId, proc, ctx, meta);
@@ -452,15 +561,11 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
     },
 
     async stop(handle: SessionHandle): Promise<void> {
-      await procs.get(handle.sessionId)?.kill("SIGTERM");
+      await procs.get(handle.sessionId)?.proc.kill("SIGTERM");
       procs.delete(handle.sessionId);
       sessions.delete(handle.sessionId);
     },
 
-    // No recover(): claude sessions are real CLI processes, not resumable
-    // in-place after a hub crash without re-attaching to a live tmux pane.
-    // Absence is the honest answer for P1 — a wrong recover() would be
-    // worse than none (contract marks it optional for exactly this case).
   };
 
   return adapter;

@@ -26,7 +26,10 @@ Hub-Crash (K7). Ohne `recover` gilt eine Session nach Crash als `error`
 `activity()` (strukturierte offene Arbeit), `interrupt()` (unbeabsichtigter
 Laufverlust) und `turnActive` (Wiederanlauf eines offenen Hauptzugs).
 `promptDelivery: "next-turn"` delegiert Folgeeingaben an die persistente
-Hub-Queue. Details: [Wiederaufnahme und Hintergrundarbeit](interrupted-sessions.md).
+Hub-Queue. Adapter mit echtem Eingabekanal im laufenden Zug erklären zusätzlich
+`midTurnInput: true` (Pi; claude via Streaming-Input-Prozess, ADR-0098) —
+dann ist „jetzt lenken“ wählbar und `sendQueuedNow` liefert mitten im Zug.
+Details: [Wiederaufnahme und Hintergrundarbeit](interrupted-sessions.md).
 
 | Mittel | Zweck | Regel |
 |---|---|---|
@@ -37,7 +40,7 @@ Hub-Queue. Details: [Wiederaufnahme und Hintergrundarbeit](interrupted-sessions.
 | `ctx.log(level, msg)` | Diagnose | geht in Hub-Log, nie in den Event-Stream |
 | `ctx.signal` | Stop/Park | muss jeden laufenden Fetch/Stream sofort abbrechen |
 | `ctx.workdir` | Arbeitsverzeichnis | Projekt bzw. (ab P2) Worktree |
-| `ctx.spawnWorker(cmd, { stdin: "pipe", persistent: true })` | dauerhafter Agent (JSON-RPC über stdio) | Züge dann selbst mit `ctx.turn("working"/"idle")` melden (ADR-0013 Nachtrag) |
+| `ctx.spawnWorker(cmd, { stdin: "pipe", persistent: true })` | dauerhafter Agent (JSON-RPC über stdio; claude Streaming-Input, ADR-0098) | Züge dann selbst mit `ctx.turn("working"/"idle")` melden (ADR-0013 Nachtrag) |
 | `ctx.requestToolPermission(req)` | vor einem Tool fragen (T7.2) | Antwort `deny` heißt: nicht ausführen; nie selbst „immer erlauben“ |
 | `ctx.permissionBridge()` | MCP-Brücke für CLIs, die per MCP fragen (claude `--permission-prompt-tool`) | Token darin nie loggen |
 
@@ -132,8 +135,8 @@ ohne Fenster, die PWA zeigt dann keine Prozentzahl.
 
 ## Hermes Agent (CLI) — `@ancientvoid/adapter-hermes` (P13)
 
-Hermes Agent (Nous Research) als vollwertiger CLI-Adapter — gleiche Form
-wie claude print mode: **ein Prozess pro Zug**, native Resume über die
+Hermes Agent (Nous Research) als vollwertiger CLI-Adapter — **ein Prozess
+pro Zug** (Print-Modus, wie claude vor ADR-0098), native Resume über die
 Session-ID.
 
 ```json

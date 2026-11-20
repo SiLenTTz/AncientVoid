@@ -123,6 +123,78 @@ describe("SessionManager", () => {
     }
   });
 
+  it("ADR-0098: promptloser Start eines promptlessStartIdle-Adapters öffnet idle — ohne hängendes working", async () => {
+    const db = new HubDatabase(":memory:");
+    const store = new EventStore(dir);
+    const registry = new AdapterRegistry();
+    registry.register("dummy", createDummy, { eventsPerSecond: 20, autoStopAfterEvents: 3 });
+    const idleAdapter: Adapter = {
+      id: "idle-adapter",
+      version: "0.0.1",
+      capabilities: () => ({ promptDelivery: "next-turn", promptlessStartIdle: true, reasoning: false, tools: false, cost: false, steer: true, usage: false, nativeDiscovery: "none", nativeResume: "none", features: basicFeatures() }),
+      start: async (_spec: SessionSpec, ctx: AdapterContext) => ({ sessionId: ctx.sessionId }),
+      steer: async () => ({ ok: true }),
+      status: async () => ({ state: "healthy", lastSeen: new Date().toISOString() }),
+      stop: async () => undefined,
+    };
+    registry.register("idle-adapter", () => idleAdapter);
+    const manager = new SessionManager(db, store, registry, new ProcessRunner());
+    try {
+      const record = await manager.create({ adapter: "idle-adapter", project: dir });
+      expect(record.status).toBe("idle");
+      // Mit Prompt bleibt das bisherige Verhalten: der erste Zug läuft.
+      const prompted = await manager.create({ adapter: "idle-adapter", project: dir, prompt: "los" });
+      expect(prompted.status).toBe("working");
+      // Und ein Adapter OHNE die Zusicherung bleibt wie bisher working (dummy generiert ja los).
+      const plain = await manager.create({ adapter: "dummy", project: dir });
+      expect(plain.status).toBe("working");
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
+
+  it("BUG-0235: drains queued input after the main turn while a background task remains active", async () => {
+    const registry = new AdapterRegistry();
+    let context: AdapterContext | undefined;
+    const received: string[] = [];
+    registry.register("streaming", () => ({
+      id: "streaming",
+      version: "0.0.1",
+      capabilities: () => ({ ...createDummy().capabilities(), promptDelivery: "next-turn", midTurnInput: true }),
+      start: async (_spec, ctx) => {
+        context = ctx;
+        return { sessionId: ctx.sessionId };
+      },
+      steer: async (_handle, input, ctx) => {
+        if (input.kind === "prompt") {
+          received.push(input.text);
+          ctx.turn?.("working");
+        }
+        return { ok: true };
+      },
+      status: async () => ({ state: "healthy", lastSeen: new Date().toISOString() }),
+      stop: async () => undefined,
+    }));
+    const manager = new SessionManager(new HubDatabase(":memory:"), new EventStore(dir), registry, new ProcessRunner());
+    try {
+      const { id } = await manager.create({ adapter: "streaming", project: dir, prompt: "start" });
+      context!.activity?.({ id: "task:long", kind: "agent", state: "running" });
+      expect(await manager.steer(id, { kind: "prompt", text: "second" })).toMatchObject({ detail: "queued" });
+      expect(await manager.steer(id, { kind: "prompt", text: "third" })).toMatchObject({ detail: "queued" });
+      expect(received).toEqual([]);
+      context!.turn?.("idle");
+      await waitFor(async () => manager.queued(id).length === 1);
+      expect(received).toEqual(["second"]);
+      expect(manager.get(id)?.status).toBe("working");
+      context!.turn?.("idle");
+      await waitFor(async () => manager.queued(id).length === 0);
+      expect(received).toEqual(["second", "third"]);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("rejects unknown adapters loudly", async () => {
     const { manager } = makeManager(dir);
     await expect(manager.create({ adapter: "nope", project: dir })).rejects.toThrow(/unknown adapter/);
