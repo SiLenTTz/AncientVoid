@@ -223,15 +223,25 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
 
 - [ ] T74.1 ADR-0096: `KnowledgeSource`-Contract + Schichten- und Auth-Entscheidung
       (MCP-only Phase 1+2; A2A-vorbereitend) — Review durch Nutzer (Gate).
-- [ ] T74.2 `packages/contracts/src/knowledge/` (Contract + Schemas, Kern liegt mit T74.6a
-      vor) + Formprüfung `isValidKnowledgeFactory` (**offen**, siehe §8 F5); Contract-Test in
-      `packages/contracts/test/`, Grenze über `check:arch` (ein `check:contracts` gibt es nicht).
-- [ ] T74.3 `packages/`-Implementierung `McpKnowledgeSource` (Streamable-HTTP-Client,
+      **Entwurf + Nachtrag T74.6/T74.7 stehen (20.11.2026); das Review bleibt offen.**
+- [x] T74.2 `packages/contracts/src/knowledge/` (Contract + Schemas, Kern liegt mit T74.6a
+      vor) + Formprüfung `isValidKnowledgeFactory` (**F5 entschieden: gestrichen** —
+      Quelle ist Konfiguration, kein ladbarer Code; ADR-0096 Entscheidung 1; §8 F5
+      entsprechend aktualisiert). Nachtrag-Contract live: `fusion`/`minScore` in
+      `KnowledgeQuery`, `KnowledgeGraphQuery/Result`, `KnowledgeAddInput/Result`,
+      Policy-Ops `knowledge.read`/`knowledge.add`, OperationKind `knowledge.add`.
+      Contract-Tests: `packages/contracts/test/knowledge/knowledge.test.ts` (22 grün)
+      + `test/approvals/policy.test.ts` (Invarianten erweitert).
+- [x] T74.3 `packages/`-Implementierung `McpKnowledgeSource` (Streamable-HTTP-Client,
       Bearer, Fusion-Parameter, truncated-Caps) + Unit-Tests gegen MCP-Test-Server.
+      **Mit T74.6a und dem T74.6-Nachtrag vollständig**: `graph()` (Tool-Presenz-Check,
+      Nodes/Edges-Caps), `add()` — `packages/core/test/modules/knowledge/knowledge.test.ts`
+      (27 grün, Fake-Fassade um `kb_graph`/`kb_add`/Fusion-Echo erweitert).
 - [ ] T74.4 Librarian-MCP-Fassade (Hivemind-Server): Server, Bearer/Tenant-Filter,
       Tool-Schemas; Tenant-Mapping-Entscheidung mit Kerrigan; Health = `kb_overview`.
+      *(HiveMind-Seite — F8-Schnitt, siehe §8.)*
 - [ ] T74.5 Quellen-Konnektor-SDK + `filesystem-markdown`- und `git-repo`-Pilot;
-      Checkpoint-/ID-Tests (Re-Index idempotent).
+      Checkpoint-/ID-Tests (Re-Index idempotent). *(HiveMind-Seite — F8-Schnitt.)*
 - [x] T74.6a Erster Anwendungsfall „HiveMind-Librarian anbinden" (Nutzerauftrag 19.11.2026):
       Quelle über die Einstellungen anlegen (URL, Auth `none|bearer|header`, Geheimnis
       write-only), prüfen (`tools/list` + `kb_overview`), suchen und lesen; Status je Quelle
@@ -240,15 +250,32 @@ Commits, Commit-SHA als Checkpoint). Web/URL-Konnektor bewusst später.
       Messlatten: K5-Geist (Caps + `truncated`), K7 (config-Tabelle, Status abgeleitet).
       **Umgesetzt 19.11.2026 (PR #201)** — offen bleibt der Live-Nachweis gegen den echten
       Librarian (AC-P74-2, nach T74.4).
-- [ ] T74.6 Hub-Integration (Rest nach T74.6a): Knowledge-Panel im Vault-Tab,
-      Freigaben-Dialog für `add`, Offline-Snapshot (K10).
-- [ ] T74.7 `gateway-mcp`-Operations-Ziel „knowledge" (Sessions/Agenten erreichen die
+- [x] T74.6 Hub-Integration (Rest nach T74.6a): Knowledge-Panel im Vault-Tab,
+      Freigaben-Dialog für `add`, Offline-Snapshot (K10). **Umgesetzt 20.11.2026**:
+      Wissen-Tab im Notizen-Bereich (`#/notizen/wissen`, `VaultTabs`), Suche mit
+      sichtbaren Fusion-/topK-/minScore-Feldern, Read mit Out-/Backlinks, Graph-Ansicht
+      (Knotenliste + Kanten, nur bei Tool-Verfügbarkeit), `add` nur als Freigabe
+      (202 + Decide im Panel, ADR-0007/0019, einmalig), Offline-Kopie
+      `ancientvoid.knowledge.v1` (Muster Automations-Cache). Tests:
+      `apps/hub/test/modules/knowledge/knowledge.test.ts` (9 grün, inkl. AC-P74-4),
+      `apps/pwa/test/knowledge-cache.test.ts`, `e2e/specs/knowledge-sources.spec.ts`
+      (3 Tests × `--repeat-each=3` grün: Panel-Flows, zwei Quellen, Offline-Banner,
+      Injektions-Dokument als Daten).
+- [x] T74.7 `gateway-mcp`-Operations-Ziel „knowledge" (Sessions/Agenten erreichen die
       k-Tools via Meta-Tools; Default OFF bleibt; K4: Schema-Kosten bleiben < 1.000 Tokens
-      statisch, < 300 pro Lookup).
+      statisch, < 300 pro Lookup). **Umgesetzt 20.11.2026**: Katalog-Einträge
+      `knowledge.list/search/read/add` (write mit Freigabe-Verweis), Policy-Split am Hub
+      (`knowledge.read` Agent-allow, `knowledge.add` Agent-approve, Verwaltung
+      settings.manage). Tests: `apps/gateway-mcp/test/operations.test.ts`,
+      `k4-token-budget.test.ts` (statisch < 1 000 UND pro Lookup < 300, echte
+      Tiktoken-Messung). Default OFF unverändert (`main.ts` startet nur manuell).
 - [ ] T74.8 Retrieval-Benchmark: Sequenz vs. RRF, Schwellen-Sweep auf echten Vault-Daten
       (EPIC-134-Messlatte); Defaults dokumentiert, Parameter im Tool sichtbar.
-- [ ] T74.9 Doku: README-Sektion „Knowledge-Backends anbinden" (fremde User: MCP-URL+Token
-      in Claude Code/Cursor/Codex; eigene Quellen via Konnektor-SDK); `epics/README.md`-Zeile.
+      *(HiveMind-Seite; die Parameter sind AV-seitig schon sichtbar, §3.3.1.)*
+- [x] T74.9 Doku: README-Sektion „Knowledge backends" (fremde User: MCP-URL+Token,
+      eigene Backends via §3.3.1-Tools; Agenten via gateway-mcp), `epics/README.md`-Zeile
+      aktualisiert (Fabrik-Muster-Anglizismus entfernt, Ist-Stand mit offener
+      HiveMind-Reste). **Umgesetzt 20.11.2026.**
 
 ## 5. Acceptance Criteria (AC-P74-k)
 
@@ -321,20 +348,22 @@ Befunde sind oben eingearbeitet (✅), offene Designfragen bleiben markiert (❓
 - ✅ F7 **Messlatten-Bezüge lückenhaft:** K10 (Offline-Snapshot) an T74.6, K4
   (Schema-Kosten) an T74.7 ergänzt; K5 gilt für Events — für HTTP-Antworten hier als
   Caps + `truncated` (K5-Geist), K7 als config-Tabelle + abgeleiteter Status.
-- ❓ F5 **Fabrik-Formprüfung `isValidKnowledgeFactory` ist mit „generischer MCP-Client“
-  (§3.1 Entscheidung 2) überflüssig:** Quellen sind Konfiguration, kein ladbarer Code.
-  Vorschlag: streichen, bis ein Nicht-MCP-Backend als Code-Modul kommt. Nicht still
-  entschieden — T74.6a baut ohne sie.
+- ✅ F5 **Fabrik-Formprüfung `isValidKnowledgeFactory` überflüssig** — entschieden
+  20.11.2026: **gestrichen** (ADR-0096 Entscheidung 1: Quelle = Konfiguration, kein
+  ladbarer Code; T74.2 ohne sie abgeschlossen). Kommt als ADR-Nachtrag zurück, sobald
+  ein Nicht-MCP-Backend als Code-Modul kommen soll.
 - ❓ F8 **Scope-Schnitt AV ↔ HiveMind:** T74.4, T74.5, T74.8 und AC-P74-6/-7/-8 sind
   Arbeit und Belege im HiveMind-Repo; `npm run gate` (DoD) kann sie nicht prüfen.
   Vorschlag: eigenes HiveMind-Epic, hier bleiben §3.3.1 als Schnittstelle und AC-P74-2 als
-  Interop-Beleg. Bis zur Entscheidung zählt das Epic sie mit.
+  Interop-Beleg. Bis zur Entscheidung zählt das Epic sie mit. **AV-Rest ist seit 20.11.2026
+  grün; die Entscheidung beim Nutzer bleibt offen.**
 - ❓ F9 **„multi-user-fähig“:** Der Hub kennt Geräte-Tokens, keine Nutzerkonten. „Pro
   Hub-User“ (§3.5) wurde zu „pro Hub“ präzisiert; Mehrnutzerfähigkeit heißt hier: jeder
   Nutzer betreibt eigenen Hub mit eigenem Token gegen die geteilte Fassade (Tenant per
   Token). Bestätigung offen.
-- ❓ F10 **Snapshot-Muster P73 für die Offline-Kopie** (T74.6) — P73 ist selbst noch offen;
-  Abhängigkeit benennen oder Muster aus P49/K10 nehmen.
+- ✅ F10 **Snapshot-Muster für die Offline-Kopie** — entschieden 20.11.2026: Muster aus
+  P49/K10 genommen (localStorage-Snapshot wie Automations-Cache, nicht die P73-Journal-
+  Projektion): `apps/pwa/src/features/knowledge/knowledge-cache.ts`.
 - Ansatz insgesamt **schlüssig:** MCP als einziges Fernprotokoll, generischer Client,
   Fassade statt Librarian-Umbau, Quellen-Plugability auf Server-Seite. Die Schnitte passen
   zu ADR-0020 (Contract `packages/contracts/src/knowledge/`, Core-Modul `knowledge`,
@@ -370,3 +399,38 @@ Fragility: Ändert die Fassade Feldnamen, meldet der Hub `protocol` statt still 
 Treffer; Tool-Umbenennung ist pro Quelle konfigurierbar. Ein künftiger Agentenzugang
 (T74.7) darf Inhalte nur als Daten zurückgeben (PRD §8.5). Out of scope: weitere Backends,
 A2A, P30/P31.
+
+## 10. Schnitt T74.6/T74.7 (Skill `concept-phase`, 20.11.2026) + AC-Belegstand
+
+Evidence: §3.3.1, §3.5, §3.6; ADR-0096 + Nachtrag (Entscheidungen 8–12);
+Muster `approvals/operations.ts` (ADR-0019), `sessions/approval-flow.ts`
+(`requestAgentAction`, Pseudo-Session „neu"), `automation-cache.ts` (K10),
+`gateway-mcp/operations.ts` (Katalog, lazy Schema).
+
+| Slice | Vertikal | Testanker |
+|---|---|---|
+| S1 Contracts-Nachtrag | `KnowledgeQuery`+fusion/minScore, Graph-/Add-Schemas, OperationKind, Policy-Ops | `packages/contracts/test/knowledge/knowledge.test.ts` (22), `test/approvals/policy.test.ts` |
+| S2 Core graph/add + Freigabe-Gate | `mcp-source.graph/add` (Tool-Presenz, Caps), `requestAdd`/`applyApprovedAdd` (einmalig, ADR-0019) | `packages/core/test/modules/knowledge/knowledge.test.ts` (27) |
+| S3 Hub-Routen + Policy-Split | `/graph`, `/add` (202), `knowledge.read`/`knowledge.add`, decide→apply | `apps/hub/test/modules/knowledge/knowledge.test.ts` (9, inkl. AC-P74-4 rot-grün) |
+| S4 PWA Panel | `#/notizen/wissen`, Fusion-Felder, Read/Graph, Freigaben-Dialog, Offline-Kopie | `apps/pwa/test/knowledge-cache.test.ts`, `e2e/specs/knowledge-sources.spec.ts` (3× repeat-each=3) |
+| S5 Gateway-Ziel | `knowledge.list/search/read/add` über Meta-Tools, K4-Budget | `apps/gateway-mcp/test/operations.test.ts`, `k4-token-budget.test.ts` |
+
+AC-Belegstand (20.11.2026):
+
+1. **AC-P74-1** ✅ AV-seitig — Contract + Schemas + Tests grün; Fabrik-Prüfung
+   per F5/ADR-0096 E1 bewusst entfallen; Änderungen laufen über den
+   ADR-0096-Nachtrag (nicht still). Nutzer-Review (T74.1) steht aus.
+2. **AC-P74-2** ⏳ braucht den echten Librarian (T74.4, HiveMind) — offen.
+3. **AC-P74-3** 🟡 Vorform bewiesen (zwei Test-Fassaden im Panel, Graph nutzbar,
+   `truncated` sichtbar, E2E); die Variante „Librarian + zweiter Server" folgt
+   mit T74.4.
+4. **AC-P74-4** ✅ rot-grün: Agent-Antrag → Queue, Agent-decide → 403
+   (`apps/hub/test/modules/knowledge/knowledge.test.ts`); einmalige Ausführung
+   (ADR-0019) in Core- und Hub-Tests.
+5. **AC-P74-5** ✅ E2E: Injektions-Dokument erscheint als Text (`pre`), Agenten
+   erhalten Inhalte nur als Daten (gateway liefert JSON-Text, keine
+   Tool-Ausführung daraus).
+6. **AC-P74-6** ⏳ Tenant-Trennung — HiveMind-Seite (T74.4).
+7. **AC-P74-7** ⏳ Checkpoint/Re-Index — HiveMind-Seite (T74.5).
+8. **AC-P74-8** ⏳ Benchmark — HiveMind-Seite (T74.8); Parameter sind AV-seitig
+   sichtbar (EPIC-134-Vorbedingung erfüllt).

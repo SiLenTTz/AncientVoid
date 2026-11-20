@@ -174,6 +174,29 @@ guide: [`docs/adapters.md`](docs/adapters.md) · contract test kit:
 
 </details>
 
+## Knowledge backends (second brain)
+
+The hub speaks MCP, so any MCP knowledge server plugs in as a *source* —
+no adapter code, just URL and token ([ADR-0096](docs/adr/0096-knowledge-source-mcp-client.md),
+[EPIC-P74](epics/EPIC-P74-knowledge-mcp-brick.md)):
+
+- **In the app:** Settings → *Wissensquellen* → add URL + token (bearer,
+  custom header, or none). Search, read and explore the graph from the
+  *Wissen* tab of the notes area, with retrieval parameters (topK, fusion,
+  minScore) visible, not hidden. Writing a note always goes through the
+  approval queue — for humans and agents alike.
+- **For your agents:** the same sources are reachable through the MCP gateway
+  (`hub_search knowledge`) — read-only search/read, and `knowledge.add` as a
+  write that waits for your approval.
+- **Your own backend:** expose `kb_overview`, `kb_search`, `kb_read`
+  (optionally `kb_graph`, `kb_add`) over Streamable HTTP and any AncientVoid
+  hub can use it. The same URL + token works in Claude Code, Cursor or Codex
+  as an MCP server — the interface is the contract, not the client.
+
+Retrieved content is displayed as data, never executed as instructions, and
+every response is capped (`topK` ≤ 20, snippets ≤ 600 chars) with a visible
+`truncated` marker.
+
 ## How it works
 
 <picture>
