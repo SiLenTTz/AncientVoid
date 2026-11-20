@@ -117,6 +117,10 @@ function matches(s: SessionRecord, q: string): boolean {
   return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
 }
 
+function sessionKey(s: SessionRecord): string {
+  return seenKey(s.hostId ?? "", s.id);
+}
+
 /** EPIC-P47: Ansicht der Übersicht — Sessions (Karten), Projekte, Hosts oder Discovery (T47.5). */
 type OverviewView = "sessions" | "projects" | "hosts" | "discovery";
 const VIEW_KEY = "ancientvoid.overviewView";
@@ -133,9 +137,10 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   const [showArchived, setShowArchived] = useState(false);
   const [override, setOverride] = useState<Record<string, Partial<SessionRecord>>>({});
   const [actionError, setActionError] = useState("");
-  // Sessions deleted from the archive view: gone locally right away, the
-  // next poll confirms. A failed delete puts the row back (fail loud).
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
+  const deleteInFlight = useRef(false);
   const [query, setQuery] = useState("");
   const [allRecent, setAllRecent] = useState(false);
   // T9.4: "Zeig wartende Sessions" narrows the overview; the chip undoes it.
@@ -207,7 +212,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
     });
   }, [sessions]);
   const withOverride = useMemo(
-    () => sessions.filter((s) => !deleted.has(s.id)).map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)),
+    () => sessions.filter((s) => !deleted.has(sessionKey(s))).map((s) => (override[s.id] ? { ...s, ...override[s.id] } : s)),
     [sessions, override, deleted],
   );
   const visible = useMemo(
@@ -216,10 +221,11 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
         .filter((s) => matches(s, query.trim()))
         .filter((s) => (hostFilter ? (s.hostId ?? "local") === hostFilter : true))
         // „wartende“ (Sprachbefehl T9.4) heißt blockiert: Freigabe, Frage, Fehler — ein fertiger Zug wartet nicht.
-        .filter((s) => (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? section(s) === "aktiv" || section(s) === "braucht" : true)),
+        .filter((s) => showArchived || (statusFilter === "waiting" ? sectionOf(s) === "braucht" : statusFilter === "active" ? section(s) === "aktiv" || section(s) === "braucht" : true)),
     [withOverride, showArchived, query, statusFilter, hostFilter],
   );
   const sorted = useMemo(() => [...visible].sort(compareByActivity), [visible]);
+  const selectedVisible = sorted.filter((s) => selected.has(sessionKey(s)));
   // Entschiedene Anfragen verschwinden sofort; der nächste Abruf bestätigt es.
   const [decided, setDecided] = useState<Set<string>>(new Set());
   const open = useMemo(() => approvals.filter((a) => !decided.has(a.id)), [approvals, decided]);
@@ -267,26 +273,40 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
   };
   const archive = (s: SessionRecord) => change(s, { archived: !s.archived }, () => hostApi(s.hostId).setArchived(s.id, !s.archived));
   const pin = (s: SessionRecord) => change(s, { pinned: !s.pinned }, () => hostApi(s.hostId).setSessionMeta(s.id, { pinned: !s.pinned }));
-  // Archiv aufräumen: endgültig löschen, gleiche Sicherheitsfrage wie in
-  // der Session-Ansicht — Verlauf, Statistik und Worktree sind weg.
-  const remove = (s: SessionRecord) => {
-    if (!confirm("Session endgültig löschen? Verlauf, Statistik und Worktree sind weg.")) return;
-    setDeleted((prev) => new Set(prev).add(s.id));
-    hostApi(s.hostId)
-      .deleteSession(s.id)
-      .catch((err: unknown) => {
-        setDeleted((prev) => {
-          const next = new Set(prev);
-          next.delete(s.id);
-          return next;
-        });
-        setActionError(err instanceof Error ? err.message : "Löschen fehlgeschlagen.");
-      });
+  const remove = async (targets: SessionRecord[]) => {
+    if (deleteInFlight.current || targets.length === 0) return;
+    const label = targets.length === 1 ? "1 Session" : `${targets.length} Sessions`;
+    if (!confirm(`${label} endgültig löschen? Laufende archivierte Sessions werden gestoppt. Verlauf, Statistik und Worktrees werden entfernt.`)) return;
+    deleteInFlight.current = true;
+    setDeleting(true);
+    setActionError("");
+    const failures: string[] = [];
+    try {
+      for (const s of targets) {
+        const key = sessionKey(s);
+        try {
+          await hostApi(s.hostId).deleteSession(s.id);
+          setDeleted((prev) => new Set(prev).add(key));
+          setSelected((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Löschen fehlgeschlagen.";
+          failures.push(`${s.title ?? projectName(s.project)}: ${message}`);
+        }
+      }
+      if (failures.length) setActionError(`${failures.length} von ${targets.length} nicht gelöscht. ${failures.join(" · ")}`);
+    } finally {
+      deleteInFlight.current = false;
+      setDeleting(false);
+    }
   };
 
   return (
     <div class="dashboard">
-      {actionError && <div class="reply-error">{actionError}</div>}
+      {actionError && <div class="reply-error" role="alert">{actionError}</div>}
       {/* EPIC-P47 T47.1: ein Umschalter statt der rein informativen Host-Chips. */}
       <div class="overview-switch" role="tablist" aria-label="Übersichtsansicht">
         {VIEWS.map((v) => (
@@ -312,14 +332,17 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           <FirstSuccessSignal />
           <div class="dashboard-summary dim">
             {todayCost && <span>Heute: {todayCost}</span>}
-            <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => setShowArchived((on) => !on)}>
+            <button class={`chip ${showArchived ? "active" : ""}`} type="button" onClick={() => {
+              setSelected(new Set());
+              setShowArchived((on) => !on);
+            }}>
               {showArchived ? "Aktive" : `Archiv${archivedCount > 0 ? ` (${archivedCount})` : ""}`}
             </button>
             <Chip onClick={() => setOverviewView("discovery")}>
               Gefunden
             </Chip>
           </div>
-          {statusFilter !== "all" && statusFilter !== "recent" && (
+          {!showArchived && statusFilter !== "all" && statusFilter !== "recent" && (
             <Chip
               onClick={() => {
                 sessionStorage.removeItem("ancientvoid.overviewFilter");
@@ -334,8 +357,20 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
               Host: {hostLabel(hosts, hostFilter)} ✕
             </Chip>
           )}
-          {sessions.length > 4 && (
+          {(sessions.length > 4 || query !== "") && (
             <input class="dashboard-search" type="search" placeholder="Sessions filtern…" aria-label="Sessions filtern" value={query} onInput={(e) => setQuery((e.target as HTMLInputElement).value)} />
+          )}
+          {showArchived && sorted.length > 0 && (
+            <div class="archive-actions">
+              <Button size="sm" disabled={deleting} onClick={() => setSelected(
+                selectedVisible.length === sorted.length ? new Set() : new Set(sorted.map(sessionKey)),
+              )}>
+                {selectedVisible.length === sorted.length ? "Auswahl aufheben" : "Alle sichtbaren auswählen"}
+              </Button>
+              <Button size="sm" variant="danger" disabled={deleting || selectedVisible.length === 0} onClick={() => void remove(selectedVisible)}>
+                {deleting ? "Wird gelöscht…" : selectedVisible.length === 1 ? "1 Session löschen" : `${selectedVisible.length} Sessions löschen`}
+              </Button>
+            </div>
           )}
           {sorted.length === 0 ? (
             showStartGuide({ total: withOverride.length, visible: sorted.length, query, hostFiltered: hostFilter !== null, showArchived, statusFilter }) ? (
@@ -346,7 +381,7 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
           ) : (
             SECTION_ORDER.filter((key) => sections[key].length > 0).map((key) => {
                 const folded = key === "zuletzt" && !showArchived && !quietShown;
-                const list = folded ? [] : key === "zuletzt" && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
+                const list = folded ? [] : key === "zuletzt" && !showArchived && !allRecent && !query ? sections[key].slice(0, RECENT_LIMIT) : sections[key];
                 const title = showArchived ? "Archiv" : SECTION_TITLE[key];
                 return (
                   <section key={key} class={`session-section section-${key}`} aria-label={title}>
@@ -388,7 +423,19 @@ export function Dashboard({ sessions, hosts = [], onOpen, pendingApprovals = 0, 
                         inWindow={windowKeys.has(targetKey({ kind: "session", sessionId: s.id, ...(remoteHost(s.hostId) ? { hostId: remoteHost(s.hostId)! } : {}) }))}
                         onArchive={archive}
                         onPin={pin}
-                        onDelete={remove}
+                        onDelete={(record) => void remove([record])}
+                        {...(showArchived ? {
+                          selection: {
+                            checked: selected.has(sessionKey(s)),
+                            disabled: deleting,
+                            toggle: (checked: boolean) => setSelected((prev) => {
+                              const next = new Set(prev);
+                              if (checked) next.add(sessionKey(s));
+                              else next.delete(sessionKey(s));
+                              return next;
+                            }),
+                          },
+                        } : {})}
                       />
                     ))}
                     {list.length < sections[key].length && (
@@ -501,6 +548,7 @@ function SessionRow({
   onArchive,
   onPin,
   onDelete,
+  selection,
 }: {
   /** EPIC-P34 T34.10: die Session läuft in einem eigenen Fenster. */
   inWindow: boolean;
@@ -516,6 +564,7 @@ function SessionRow({
   onArchive: (s: SessionRecord) => void;
   onPin: (s: SessionRecord) => void;
   onDelete: (s: SessionRecord) => void;
+  selection?: { checked: boolean; disabled: boolean; toggle: (checked: boolean) => void };
 }) {
   const waiting = session.status === "waiting_approval";
   const glow = session.status === "working" ? "st-working" : waiting ? "st-waiting" : "";
@@ -617,6 +666,13 @@ function SessionRow({
           </div>
         )}
       </button>
+      {selection && (
+        <label class="archive-selection">
+          <input type="checkbox" checked={selection.checked} disabled={selection.disabled} onChange={(e) => selection.toggle(e.currentTarget.checked)} />
+          <span aria-hidden="true">Auswählen</span>
+          <span class="sr-only">{name} auswählen</span>
+        </label>
+      )}
       {approval && decidableOnCard(approval) && <CardDecision req={approval} onDecided={() => onDecided(approval.id)} />}
       <div class="session-card-actions">
         {/* EPIC-P48: Repo-Graph dieser Session direkt aus der Übersichtskarte (unten links). */}

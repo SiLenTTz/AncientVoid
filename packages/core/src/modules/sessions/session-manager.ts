@@ -539,7 +539,11 @@ export class SessionManager {
    * stays (and the session says why) while a turn runs, while a long-lived
    * worker has it as cwd, or when it holds work (BUG-0027: `hasWork`).
    */
-  async archive(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
+  archive(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
+    return this.chainWork(sessionId, () => this.archiveNow(sessionId, archived, actor));
+  }
+
+  private async archiveNow(sessionId: string, archived: boolean, actor?: string): Promise<SessionRecord> {
     await this.interruption.settled(sessionId);
     let servicesAlreadyStopped = false;
     if (archived && this.get(sessionId)?.status === "interrupted") {
@@ -2382,36 +2386,41 @@ export class SessionManager {
   }
 
   /**
-   * Delete a session for good — events, snapshot, worktree and row. Only
-   * for runs that are not live: a working session has to be stopped first
-   * (its worker and worktree still belong to it). Uncommitted agent work
-   * in a kept worktree goes with it, so the PWA asks before calling this.
+   * Delete a session for good — events, snapshot, worktree and row.
+   * An archived run may still have a worker, so stop it before deleting.
+   * Uncommitted agent work in a kept worktree goes with it.
    */
-  async delete(sessionId: string): Promise<Ack> {
+  delete(sessionId: string, actor?: string): Promise<Ack> {
+    return this.chainWork(sessionId, () => this.deleteNow(sessionId, actor));
+  }
+
+  private async deleteNow(sessionId: string, actor?: string): Promise<Ack> {
+    await this.interruption.settled(sessionId);
     const record = this.get(sessionId);
-    if (!record) return { ok: false, detail: "session not found" };
-    if (this.live.has(sessionId) && record.status !== "error" && record.status !== "stopped" && record.status !== "parked") {
-      return { ok: false, detail: "Die Session läuft noch — erst stoppen, dann löschen." };
-    }
+    if (!record) return { ok: true };
     const live = this.live.get(sessionId);
-    if (live) {
-      live.abort.abort();
-      this.live.delete(sessionId);
+    if (live && record.status === "stopping") return { ok: false, detail: "Die Session wird gerade gestoppt. Bitte danach erneut löschen." };
+    if (live && record.status !== "error" && record.status !== "stopped" && record.status !== "parked") {
+      if (!record.archived) return { ok: false, detail: "Die Session läuft noch — erst stoppen, dann löschen." };
+      const stopped = await this.stop(sessionId, actor);
+      if (!stopped.ok) return stopped;
     }
+    live?.abort.abort();
     // EPIC-P29: Services gehören zur Session — auch beim Löschen werden nur
     // nachweisbar eigene Prozesse beendet, dann erst der Worktree entfernt.
-    await this.workspaceServices
-      .stopAll(sessionId, (kind, payload) => (live ? this.emitSystem(live, kind, payload) : Promise.resolve()))
-      .catch((err) => this.logger.warn("service stop on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
-    if (record.worktreeSha !== null && this.worktrees) {
-      try {
-        if (existsSync(this.worktrees.pathFor(sessionId))) await this.worktrees.remove(sessionId, record.project);
-      } catch (err) {
-        this.logger.warn("worktree removal on delete failed", { sessionId, err: err instanceof Error ? err.message : String(err) });
+    try {
+      await this.workspaceServices.stopAll(sessionId, (kind, payload) => (live ? this.emitSystem(live, kind, payload) : Promise.resolve()));
+      if (record.worktreeSha !== null && this.worktrees && existsSync(this.worktrees.pathFor(sessionId))) {
+        await this.worktrees.remove(sessionId, record.project);
       }
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      this.logger.warn("workspace cleanup on delete failed", { sessionId, err: detail });
+      return { ok: false, detail: `Workspace konnte nicht aufgeräumt werden: ${detail}` };
     }
     this.checkoutLeases.release(sessionId);
     await this.store.destroySession(sessionId);
+    this.live.delete(sessionId);
     for (const item of this.queue.list(sessionId)) this.uncertainQueue.delete(item.id);
     this.queue.clear(sessionId);
     // T17.4: no attempt can settle for a deleted session — its reserved
@@ -3370,9 +3379,8 @@ export class SessionManager {
     }, 0);
   }
 
-  /** Runs `work` after everything already queued for this session — the one
-   * serialization point every steer-side channel shares (steer, queue drain,
-   * BUG-0114 send-now), so two of them can never interleave. */
+  /** Serializes queue work and workspace cleanup with session input, so a
+   * prompt cannot reopen a worktree while archive or delete removes it. */
   private chainWork<T>(sessionId: string, work: () => Promise<T>): Promise<T> {
     const previous = this.steerQueue.get(sessionId) ?? Promise.resolve();
     const run = previous.then(

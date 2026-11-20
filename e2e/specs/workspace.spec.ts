@@ -28,9 +28,55 @@ test.describe("Archiv (P5 §9)", () => {
     app.on("dialog", (dialog) => void dialog.accept());
     await cardAction(card, "Löschen");
     await expect(card).toHaveCount(0);
-    // Optimistic removal — the delete itself may still be in flight.
     await hub.until(async () => !(await hub.sessions()).some((s) => s.id === id), "archiv delete");
     expect((await hub.api(`/api/sessions/${id}/events`)).status).toBe(404);
+  });
+
+  test("eine archivierte Session mit laufendem Adapter lässt sich löschen @desktop", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "opencode", prompt: "Archivierter Auftrag" });
+    await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "idle");
+    expect((await hub.api(`/api/sessions/${id}/archive`, { body: { archived: true } })).status).toBe(200);
+    await app.getByRole("button", { name: "Archiv (1)" }).click();
+    app.on("dialog", (dialog) => void dialog.accept());
+    await cardAction(app.locator(".session-card"), "Löschen");
+    await expect.poll(async () => (await hub.api(`/api/sessions/${id}/events`)).status).toBe(404);
+    await expect(app.locator(".session-card")).toHaveCount(0);
+  });
+
+  test("im Archiv lassen sich ausgewählte und danach alle übrigen Sessions löschen @desktop", async ({ app, hub }) => {
+    const ids = [];
+    for (const title of ["Archiv A", "Archiv B", "Archiv C"]) {
+      const id = await hub.createSession({ adapter: "dummy" });
+      await hub.api(`/api/sessions/${id}/stop`, { body: {} });
+      await hub.api(`/api/sessions/${id}/meta`, { body: { title } });
+      await hub.api(`/api/sessions/${id}/archive`, { body: { archived: true } });
+      ids.push(id);
+    }
+    const active = [await hub.createSession({ adapter: "dummy" }), await hub.createSession({ adapter: "dummy" })].sort();
+    await app.getByRole("button", { name: "Archiv (3)" }).click();
+    const search = app.getByRole("searchbox", { name: "Sessions filtern" });
+    await search.fill("Archiv");
+    await app.getByRole("checkbox", { name: "Archiv A auswählen" }).check();
+    await app.getByRole("checkbox", { name: "Archiv B auswählen" }).check();
+    const remove = app.getByRole("button", { name: "2 Sessions löschen" });
+    app.once("dialog", (dialog) => void dialog.dismiss());
+    await remove.click();
+    await expect(app.locator(".session-card")).toHaveCount(3);
+    app.on("dialog", (dialog) => void dialog.accept());
+    const blocked = `**/api/sessions/${ids[1]}`;
+    await app.route(blocked, (route) => route.fulfill({ status: 409, json: { error: "Workspace belegt" } }), { times: 1 });
+    await remove.click();
+    await expect(app.getByRole("alert")).toContainText("1 von 2 nicht gelöscht. Archiv B: Workspace belegt");
+    await expect(app.locator(".session-card")).toHaveCount(2);
+    await expect(app.getByRole("checkbox", { name: "Archiv B auswählen" })).toBeChecked();
+    await app.getByRole("button", { name: "1 Session löschen" }).click();
+    await expect(app.locator(".session-card")).toHaveCount(1);
+    expect((await hub.sessions()).map((s) => s.id).sort()).toEqual([ids[2], ...active].sort());
+    await search.clear();
+    await app.getByRole("button", { name: "Alle sichtbaren auswählen" }).click();
+    await app.getByRole("button", { name: "1 Session löschen" }).click();
+    await expect(app.locator(".session-card")).toHaveCount(0);
+    expect((await hub.sessions()).map((s) => s.id).sort()).toEqual(active);
   });
 
   test("Archivieren aus der Session heraus bringt das Handy in die Übersicht; die Karte ist weg", async ({ app, hub }) => {

@@ -258,6 +258,7 @@ describe("SessionManager", () => {
       expect(ack.ok).toBe(true);
       expect(manager.get(record.id)).toBeUndefined();
       expect(await store.replay(record.id)).toEqual([]);
+      expect((await manager.delete(record.id)).ok).toBe(true);
       const running = await manager.create({ adapter: "dummy", project: dir, prompt: "läuft" });
       const refused = await manager.delete(running.id);
       expect(refused.ok).toBe(false);
@@ -980,6 +981,18 @@ describe("SessionManager", () => {
       (manager as unknown as { live: Map<string, { record: { status: string } }> }).live.get(running.id)!.record.status = "working";
       await manager.archive(running.id, true);
       expect(existsSync(runningPath)).toBe(true);
+
+      // A failed permanent cleanup must keep the archive entry available for a retry.
+      await manager.stop(dirty.id);
+      await execFileAsync("git", ["-C", repoDir, "worktree", "lock", dirtyPath]);
+      const failedDelete = await manager.delete(dirty.id);
+      expect(failedDelete.ok).toBe(false);
+      expect(manager.get(dirty.id)?.archived).toBe(true);
+      expect(await manager.tail(dirty.id, 0)).not.toHaveLength(0);
+      await execFileAsync("git", ["-C", repoDir, "worktree", "unlock", dirtyPath]);
+      expect((await manager.delete(dirty.id)).ok).toBe(true);
+      expect(existsSync(dirtyPath)).toBe(false);
+      expect(manager.get(dirty.id)).toBeUndefined();
     } finally {
       await manager.shutdown().catch(() => undefined);
       await rm(repoDir, { recursive: true, force: true });

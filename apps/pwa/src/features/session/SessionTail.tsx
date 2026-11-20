@@ -1853,13 +1853,13 @@ export function SessionTail({
                       menuDo(() => {
                         if (
                           !confirm(
-                            "Session endgültig löschen? Verlauf, Statistik und Worktree sind weg.",
+                            "Session endgültig löschen? Eine laufende archivierte Session wird gestoppt. Verlauf, Statistik und Worktree werden entfernt.",
                           )
                         )
                           return;
                         void api
                           .deleteSession(session.id)
-                          .then(() => onNavigate("dashboard"))
+                          .then(leaveArchived)
                           .catch((err) =>
                             setReplyError(
                               err instanceof Error

@@ -50,7 +50,8 @@ function forward(url: string, method: string, token: string, body: unknown): Pro
         });
       },
     );
-    const timeoutMs = SLOW_PATHS.test(new URL(url).pathname) ? FORWARD_TIMEOUT_SLOW_MS : FORWARD_TIMEOUT_MS;
+    const deletingSession = method === "DELETE" && /^\/api\/sessions\/[^/]+$/.test(target.pathname);
+    const timeoutMs = deletingSession || SLOW_PATHS.test(target.pathname) ? FORWARD_TIMEOUT_SLOW_MS : FORWARD_TIMEOUT_MS;
     // 2026-11-20: hard wall-clock deadline — req.setTimeout never fires during
     // TCP connect, an unreachable peer hung proxies for the kernel SYN budget.
     const deadline = setTimeout(() => req.destroy(new Error(`no answer within ${timeoutMs / 1000} s`)), timeoutMs);

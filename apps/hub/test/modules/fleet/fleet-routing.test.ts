@@ -91,6 +91,16 @@ describe("fleet routing (T6.4, ADR-0017)", () => {
     expect(home.sessions.get(created.body.id)).toBeDefined();
   });
 
+  it("deletes an archived session through its paired hub", async () => {
+    const record = await peer.sessions.create({ adapter: "dummy", project: peer.dir });
+    await peer.sessions.stop(record.id);
+    await peer.sessions.archive(record.id, true);
+    const path = `/api/hosts/home-server/sessions/${record.id}`;
+    const res = await home.app.inject({ method: "DELETE", url: path, headers: { authorization: `Bearer ${home.token}` } });
+    expect(res.statusCode).toBe(204);
+    expect(peer.sessions.get(record.id)).toBeUndefined();
+  });
+
   it("never forwards admin paths, unknown hosts or traversal", async () => {
     expect((await call(home, "/api/hosts/home-server/tokens")).status).toBe(403);
     expect((await call(home, "/api/hosts/home-server/fleet/invites", { body: {} })).status).toBe(403);
