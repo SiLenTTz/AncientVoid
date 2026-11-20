@@ -1,7 +1,9 @@
 # ADR-0099 — Native Harness-Metadaten in Session und Freigabe
 
-**Status:** angenommen  
-**Bezug:** ADR-0032, ADR-0074, ADR-0084, BUG-0237 und BUG-0239–0242  
+**Status:** angenommen
+
+**Bezug:** ADR-0032, ADR-0074, ADR-0084, BUG-0237 und BUG-0239–0242
+
 **Messlatten:** K1, K5, K7
 
 ## Entscheidung

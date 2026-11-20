@@ -54,13 +54,14 @@ if (flag("--input-format") !== "stream-json" || flag("--output-format") !== "str
 }
 
 const sessionId = flag("--resume") ?? randomUUID();
-const model = flag("--model") ?? "claude-sonnet-5";
+let model = flag("--model") ?? "claude-sonnet-5";
+let permissionMode = flag("--permission-mode") ?? "default";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const emit = (line) => process.stdout.write(`${JSON.stringify(line)}\n`);
 const assistant = (content) =>
   emit({ type: "assistant", message: { model, id: `msg_${randomUUID()}`, type: "message", role: "assistant", content }, session_id: sessionId });
 
-emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, permissionMode: flag("--permission-mode") ?? "default", claude_code_version: "2.1.280" });
+emit({ type: "system", subtype: "init", cwd: process.cwd(), session_id: sessionId, tools: ["Bash", "Read", "Edit"], model, permissionMode, claude_code_version: "2.1.280" });
 await sleep(50);
 
 /** --permission-prompt-tool mcp__<server>__<tool>: ask before a tool runs. */
@@ -167,6 +168,7 @@ async function answer(prompt) {
     tail = answer.behavior === "allow" ? ` · Gewählt: ${Object.values(answer.updatedInput.answers ?? {}).join(", ")}` : ` · keine Antwort: ${answer.message}`;
   }
 
+  if (prompt.includes("PRUEFE_EINSTELLUNGEN")) tail = ` · Modus ${permissionMode}`;
   const text = prompt.includes("JANEIN")
     ? "Soll ich die Änderung committen?"
     : `Antwort auf: ${prompt.split("\n").pop()} · Claude ${model}${tail}`;
@@ -213,6 +215,16 @@ process.stdin.on("data", (chunk) => {
     try {
       parsed = JSON.parse(line);
     } catch {
+      continue;
+    }
+    if (parsed.type === "control_request") {
+      if (parsed.request?.subtype === "set_model") {
+        model = parsed.request.model ?? "claude-sonnet-5";
+        emit({ type: "control_response", response: { subtype: "success", request_id: parsed.request_id, response: { model } } });
+      } else if (parsed.request?.subtype === "set_permission_mode") {
+        permissionMode = parsed.request.mode;
+        emit({ type: "control_response", response: { subtype: "success", request_id: parsed.request_id, response: { mode: permissionMode } } });
+      }
       continue;
     }
     const content = parsed?.message?.content;
