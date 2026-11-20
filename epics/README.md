@@ -1,4 +1,4 @@
-# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P75)
+# AncientVoid — Epic-Paket (P0–P4.5 und Planungsentwürfe bis P77)
 
 **On hold seit 15.11.2026 (Nutzerentscheid): P30 und P31.** Beide bleiben
 im Inventar, sind aber aus Empfehlungen für die nächste Arbeit ausgeschlossen.
@@ -317,6 +317,8 @@ ADR vor der ersten Contract-Änderung).
 | [P72 — Skill-Pflege nach Runs: deterministisch, per Skript, wenig Tokens](EPIC-P72-skill-pflege-nach-runs-deterministisch.md) | Bestandsaufnahme 18.11. (232 Sessions, `turn_metrics`, Skill-Zuordnung nur in ≈ 30 Runs, ≈ 39 % Shell-Aufrufe ohne Befehl bei maki/opencode); Token-Diät beim Laden (keine Doppel-Injektion Kette + nativer `/skill`, Kette nur einmal bei `nativeResume`, Contract-Fähigkeit `nativeSkills`); `check:skills` im Gate (Budgets, Links, npm-Skripte, Anker, Regel ↔ Regressionsfall; Altlasten `factory`/`git-workflow`); Skript-Skill-Muster + ≤ 2 Piloten; Run-Extraktor, Regelkatalog mit `scope: project`, Sequenz-Mining → Skript-Kandidaten, Kurator `skills:curate` (≥ 2 Runs, max. 2 Lektionen, Revert bei Rot); Auslöser per Automation-Skriptziel (ADR-0080); kein LLM, kein Auto-Commit — **offen (geplant 18.11.2026)** | keine blockierende (Quer-Epic; P70 grün, P71 umgesetzt, keine gemeinsamen Codeflächen); P30/P31 On hold unberührt | 1,5 |
 | [P73 — Issue-Session-Bridge und sichtbare Auto-Jobs](EPIC-P73-issue-session-bridge.md) | ADR-0094: Der Hub pollt outbound nach Issues mit Trigger-Label (Standard `session`) und startet je Issue eine eigene Session (Worktree, Datenblock-Prompt unter festen Aufträgen — PRD §8.5); Dedupe/Lebenstatus im Journal (JSONL+Snapshot, K7), Start-/Ergebnis-Kommentar auf der Issue, Schließen bleibt `Fixes #`-PR; `ExternalJobInfo` (flacher Contract, kein Automation-Target) für `GET /api/automations/external` — GitHub-Actions-Läufe (TTL-Cache, K10-staleError) + Bridge-Zustand; PWA-Sektion „Externe Automatismen" mit Offline-Kopie (Snapshot v2); Sync-Marker `labels:`+`forge:` in bug-report-Skill und `docs/issues.md` — **offen (begonnen 19.11.2026)** | keine blockierende (Quer-Epic; P71 umgesetzt, liefert Anlage-Klassen/Label-Basis); P30/P31 On hold unberührt; CI-Bugs labelen nicht automatisch (Out) | ~1 |
 | [P74 — Knowledge-Anbindung: MCP-Backends, modulare Quellen, teamübergreifender Brain](EPIC-P74-knowledge-mcp-brick.md) | ADR-0096 (geplant): `KnowledgeSource`-Contract in `packages/contracts` (Fabrikmuster analog `LoopConnector`); generischer `McpKnowledgeSource` (Streamable HTTP, Bearer) verbindet den Hub an JEDEM MCP-Knowledge-Backend — Referenz: Hivemind-Librarian via neue MCP-Fassade vor dem Librarian (`kb_overview/kb_search/kb_read/kb_graph/kb_add`, Multi-Tenant per Token, DB-Zugriff bleibt nur Librarian); Quellen-Konnektor-SDK auf Server-Seite (`discover→fetch→normalize`, Checkpoint-Inkrement, deterministische IDs, wegwerfbarer Index; Piloten `filesystem-markdown`+`git-repo`); Writes immer durchs Freigaben-Gate, Retrieval-Fusions-Parameter sichtbar und benchmark-bewiesen (EPIC-134-Lehre); Phase 3 A2A/Agenten-Teams bewusst Out — **offen (Planungsentwurf 19.11.2026, ADR-0096-Review = Gate)** | keine blockierende (Quer-Epic; gateway-mcp-Meta-Tool-Muster + P49 Vault-Tab als Anknüpfung); Librarian-Deployment (Kerrigan/Nemesis) als externe Abhängigkeit benannt | 2–3 (+1–2 Librarian-Seite) |
+| [P76 — Aktuelle, adapterspezifische Modellkataloge](EPIC-P76-adapterspezifische-modellkataloge.md) | Native Quellen je Registrierung, Refresh/Invalidierung, sichtbare Fehler und Fallbacks; 6.2-Verfügbarkeit/Preise eingeordnet, „Kolex“ unbestätigt als Codex vermutet — **Planungsentwurf, Umsetzung gesperrt** | P75 Exit grün; P30/P31 bleiben On hold | 1–2 |
+| [P77 — Separate mobile Session-Instanzen](EPIC-P77-mobile-session-instanzen.md) | Plattform-Spike, stabile Session-Einstiege, belegte Session-App-Installation oder benannter Tab-Fallback; Lifecycle/Recovery ohne Hauptfenster — **Planungsentwurf, Umsetzung gesperrt** | P76 Exit grün; P32 bleibt vertagt, P30/P31 On hold | 0,5–1 Evaluation + 1–2 Umsetzung |
 
 ## Nutzerauftrag vom 20.11.2026 — Sprachausgabe (TTS) im Chat
 
@@ -371,7 +373,6 @@ Bedienrahmen für die in P1.5 bereits gebauten; danach folgt ein gemeinsamer
 Live-Handy-Test, der P1.5s und P1.6s offene Punkte gemeinsam abschließt.
 Begründung im Detail: Vorbemerkung in
 [`EPIC-P1.6-futuristic-ui-system.md`](EPIC-P1.6-futuristic-ui-system.md).
-
 ## Referenz-Messlatten (aus PRD §9)
 
 K1 Approve-Latenz < 5 s · K2 Tail ohne Frame-Lag bei 30 Events/s · K3 Diff-Payload ≤ 50 KB
