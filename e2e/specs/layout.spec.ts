@@ -33,6 +33,16 @@ test.describe("Layout (T8.5, AC-P8-5)", () => {
     await expect(app.locator(".session-card .session-title")).toHaveText("Langsamer Lauf");
   });
 
+  // BUG-0234: ab 700 px ist die Session-Liste dauerhaft sichtbar (TabletSplit/Split) —
+  // der Zurück-Pfeil neben dem Titel gehört nur auf das Handy.
+  test("Zurück-Pfeil nur unter 700 px — darüber ist die Liste der Weg zurück", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Zurück-Pfeil" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await expect(app.getByLabel("Zur Übersicht")).toBeVisible();
+    await app.setViewportSize({ width: 900, height: 600 });
+    await expect(app.getByLabel("Zur Übersicht")).toBeHidden();
+  });
+
   test("Tipp-Ziele sind mindestens 40 px hoch", async ({ app, hub }) => {
     const id = await hub.createSession({ adapter: "opencode", prompt: "Hallo" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
