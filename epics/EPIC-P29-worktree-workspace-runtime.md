@@ -1,6 +1,6 @@
 # EPIC-P29 — Worktree-Workspaces mit Manifest, Setup und Services
 
-**Status:** in Umsetzung — T29.1–T29.5 abgeschlossen (06.–07.11.2026), T29.6/T29.7 abgeschlossen (07.11.2026) · **Phase:** P29
+**Status:** abgeschlossen 07.11.2026 (T29.1–T29.7; AC-Bewertung und Retro unten im File) · **Phase:** P29
 **Dauer:** 3–5 Agenten-Wochen (ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P28-Exit-Kriterien grün; P2/P14/ADR-0016 sowie P19/P26-Integrationsstand geprüft.
 

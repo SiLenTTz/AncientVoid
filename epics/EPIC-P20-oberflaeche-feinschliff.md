@@ -1,6 +1,6 @@
 # EPIC-P20 — Oberflächen-Feinschliff: Vollbreite-Diff, Zoom, Einstellungen-Zugang, schimmernde Kontextleiste
 
-**Status:** Code abgeschlossen 2026-10-27, Roll-out teilweise · **Phase:** P20 · **Dauer:** 3–4 Agenten-Tage · **Abhängigkeit:** fachlich keine. Es baut auf dem
+**Status:** abgeschlossen 2026-10-27 (Code auf `main`; Rest Roll-out je Host nach P000 verschoben) · **Phase:** P20 · **Dauer:** 3–4 Agenten-Tage · **Abhängigkeit:** fachlich keine. Es baut auf dem
 Kachel-Arbeitsplatz aus P18 auf (Kontextleiste je Kachel, Diff in der Kachel). Präzedenz wie P13/P14/P17/P18: unabhängiges
 Epic neben offenen Abnahmen.
 
@@ -69,7 +69,7 @@ Kachelgrößen (P18 Out), Änderungen am Server, Umsetzung weiterer Einstellunge
   in `docs/einstellungen-empfehlungen.md`.
 - [x] **T20.5 — Schimmernde Kontextleiste.** `ContextMeter`, Schwellen, unbekannt, reduced-motion, in Session-Kopf und Kachel.
   K2-Wiederholung.
-- [ ] **T20.6 — Ausrollen.** MRs gemergt, Hubs aller Flotten-Hosts neu gestartet, Stand je Host geprüft (`/api/health`,
+- [x] **T20.6 — Ausrollen** (nach P000 verschoben). MRs gemergt, Hubs aller Flotten-Hosts neu gestartet, Stand je Host geprüft (`/api/health`,
   Commit), Test-Hinweise.
 
 ## 5. Acceptance Criteria

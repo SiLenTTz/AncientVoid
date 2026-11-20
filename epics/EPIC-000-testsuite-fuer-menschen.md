@@ -131,6 +131,43 @@ Entscheidungstore bleiben offen), Doku-Pflege.
   frisch; `ask`-Ablauf am Handy; Konfliktfall echt provoziert — Schritte im
   Epic-Abschluss-Block.
 
+### Übernommen aus dem Epics-Status-Sync (2026-11-21)
+
+- [ ] **T000.18 — Roll-out-Verifikation Flotte (P18/P20/P21).** (Herkunft:
+  EPIC-P18/P20/P21, DoD „Hub neu gestartet" + AI-P21-3) Hubs aller
+  Flotten-Hosts auf demselben `main`-Stand (`/api/health` je Host), gpubox
+  einschließen; Desktop-Kürzel einmal live in Chromium und Firefox prüfen.
+- [ ] **T000.19 — GitLab-Job-Trace-Lesbarkeit.** (Herkunft: EPIC-P37 T37.6)
+  Wenn das Runner-Kontingent wieder läuft: Trace-Lesbarkeit eines echten
+  Pipeline-Jobs gegen das Testprojekt prüfen (war als SKIP berichtet, nie als
+  Pass).
+- [ ] **T000.20 — Geräteteile Projekt-Explorer.** (Herkunft: EPIC-P46
+  T46.1/T46.9) Pixel-/Geräte-Spike Viewer und Geräte-K2/K8 am echten Gerät.
+- [ ] **T000.21 — Galaxie-Geräteabnahme.** (Herkunft: EPIC-P52 T52.7)
+  Repo-Galaxie am echten Handy (AC-P52-4-Anteil); p95-Nachtrag bleibt als
+  T52.8 im Epic.
+- [ ] **T000.22 — Statistiken-Acceptance an echten Daten.** (Herkunft:
+  EPIC-P56 T56.6, EPIC-P66 Abschlussnotiz) Statistiken-Seite und
+  Metrik-Konsolidierung mit dem Nutzer an echten Daten abnehmen.
+- [ ] **T000.23 — KI-Server-Metriken live gegen echtes llama.cpp.**
+  (Herkunft: EPIC-P59) gpubox ist erreichbar gemacht: Karten zeigen echte
+  Proben, Ausfall einer Quelle bleibt sichtbar (K10), Fail-loud-Pfad belegt.
+- [ ] **T000.24 — Guide-Videos aufnehmen und veröffentlichen.** (Herkunft:
+  EPIC-P62 T62.5) Nach Runbook `docs/demo-media.md`: ≥ 8 Clips aufnehmen,
+  veröffentlichen, Playlist anlegen, Links im Repo registrieren;
+  Domain-Anbindung `void.securesight.ai` (ADR-0082, github.io-Fallback zählt).
+- [ ] **T000.25 — Status-Sounds am Gerät.** (Herkunft: EPIC-P65 T65.6)
+  PC-Hintergrund-Tab, Handy-Bildschirm-aus, offline (Flugmodus im lokalen
+  Netz); Klangbild-Nachweis über die Varianten-Auswahl.
+- [ ] **T000.26 — Prompt-Enhance live am echten llama.cpp.** (Herkunft:
+  EPIC-P68 T68.8) Einmal frei, einmal ausgelastet verbessern; Engine/Grund
+  und Projektbezug prüfen; vorhandenen Skill lesen, Vorschlag prüfen,
+  bewusst speichern.
+- [ ] **T000.27 — Entscheidung ADR-0034 (P15).** Go/No-Go: Hub-Sessions als
+  Hintergrund-Sessions (`claude --bg`/`attach`) für echten Live-Sync, ersetzt
+  `claude -p` pro Zug. Der Entwurf ist synchron; ohne Entscheid bleibt P15
+  auf dieser Entscheidung sitzen (Herkunft: T15.4).
+
 ## 5. Acceptance Criteria
 
 * **AC-P000-1:** Jedes migrierte Epic, dessen einziger Rest eine

@@ -1,6 +1,6 @@
 # EPIC-P37 — GitLab-Issues, Merge Requests und CI im Session-Kontext
 
-**Status:** in Umsetzung seit 2026-11-09 (P36 umgesetzt, Gating erfüllt) — T37.1–T37.5 als Code gebaut; T37.6 gebaut (E2E-Spec gegen glab-Stub, Runbook `docs/forge-runbook.md`); offen: die echte isolierte GitLab-Abnahme und die Geräteabnahme, beides bewusst bis Feature-Abschluss verschoben (Entscheidung Jan) · **Phase:** P37
+**Status:** abgeschlossen 21.11.2026 (P36 umgesetzt, Gating erfüllt) — T37.1–T37.5 als Code gebaut; T37.6 gebaut (E2E-Spec gegen glab-Stub, Runbook `docs/forge-runbook.md`); die echte isolierte GitLab-Abnahme ist gelaufen (17 Prüfungen, 2026-11-09); Trace-Lesbarkeit an einem echten Job und Geräteabnahme nach P000 verschoben · **Phase:** P37
 **Dauer:** 2–3 Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P36 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 
@@ -47,7 +47,7 @@ Alle Links auf Commit `bdeb388d75120b6e36dd619291286de0cc9aae02`. Einstufung ist
 - [x] **T37.3** PWA-Panel und Issue→Session-Start mit Quellreferenz integrieren; aktuelle Branch-/MR-SHA ständig erkennbar. **K1/K2/K7**.
 - [x] **T37.4** Gezielte CI-/Review-Rückgabe über P36 mit Log-Blob, veraltetem SHA-Fall und Auswahlvorschau bauen. **K3/K5/K7**.
 - [x] **T37.5** Bestätigte Draft-MR-Erstellung, Git-Regelprüfung und Retry-Abgleich; keine Duplikate bei Antwortverlust. **K5/K7**.
-- [ ] **T37.6** `e2e/specs/forge-review.spec.ts`, echte isolierte GitLab-Projekt-Abnahme (keine Produktiv-Mutation), Gate und Runbook. **K1/K3/K5/K7/K10**. — Spec (`forge-review.spec.ts`) und Runbook gebaut 2026-11-09; **echte Abnahme 2026-11-09 gegen `SiLenT_Tz/ancientvoidtesthub` (`scripts/forge-real-acceptance.ts`): 17 Prüfungen bestanden (MR/Draft/Branch→Ziel/Head=Pipeline-SHA/Fail-Job/Bridge/Feedback-Vorschau+Senden/Stale→422+shaDrift/Plan read-only/Draft-MR idempotent nach SIGKILL/Link+Operations wiederhergestellt); **offen:** Trace-Lesbarkeit gegen einen echten Job — Job lief nie (`ci_quota_exceeded`, Shared-Runner-Kontingent leer, kein Runner am Testprojekt); als SKIP berichtet, nicht als Pass. Fund: Forge-Cache verdeckte SHA-Drift → `invalidate` bei Drift
+- [x] **T37.6** `e2e/specs/forge-review.spec.ts`, echte isolierte GitLab-Projekt-Abnahme (keine Produktiv-Mutation), Gate und Runbook. **K1/K3/K5/K7/K10**. — Spec (`forge-review.spec.ts`) und Runbook gebaut 2026-11-09; **echte Abnahme 2026-11-09 gegen `SiLenT_Tz/ancientvoidtesthub` (`scripts/forge-real-acceptance.ts`): 17 Prüfungen bestanden (MR/Draft/Branch→Ziel/Head=Pipeline-SHA/Fail-Job/Bridge/Feedback-Vorschau+Senden/Stale→422+shaDrift/Plan read-only/Draft-MR idempotent nach SIGKILL/Link+Operations wiederhergestellt); **offen:** Trace-Lesbarkeit gegen einen echten Job — Job lief nie (`ci_quota_exceeded`, Shared-Runner-Kontingent leer, kein Runner am Testprojekt); als SKIP berichtet, nicht als Pass. Fund: Forge-Cache verdeckte SHA-Drift → `invalidate` bei Drift
 
 ## 5. Acceptance Criteria (AC-P37-k)
 

@@ -1,6 +1,6 @@
 # EPIC-P61 — Mehrsprachigkeit: Oberfläche auf Englisch oder per Spracheinstellung
 
-**Status:** offen (Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026) · **Issue:** [#6](https://github.com/securesight-ai/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
+**Status:** offen — Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026; Skalierungs-Konzept §3.8 präsentiert 21.11.2026, wartet auf Genehmigung; Umsetzung noch nicht beauftragt · **Issue:** [#6](https://github.com/securesight-ai/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53/P58–P60; Vorgänger P60 umgesetzt 14.11.2026). Berührt P33 (englische Einstiegsdoku, „vertagt") nur an der Grenze: P33 = Doku, P61 = Produktoberfläche.
 
 Quelle: Nutzerauftrag vom 15.11.2026 im Zuge der Veröffentlichung
@@ -174,6 +174,33 @@ darf sinken, nie steigen; am Epic-Ende leer. Ausnahmen per Kommentar
   Kernseiten (Übersicht, Session, Neue Session, Einstellungen,
   Benachrichtigungen) zeigen englische Texte, `<html lang="en">`, keine
   Katalog-Warnung in der Konsole; Offline-Wechsel (K10).
+
+### 3.8 Skalierung auf weitere Sprachen (Konzept-Entwurf 21.11.2026, wartet auf Genehmigung)
+
+Der Rahmen aus §3.2–3.4 ist bereits sprachneutral; nur `de`/`en` sind heute
+hart verdrahtet. Für „praktisch alle Sprachen" gilt:
+
+1. **Quell-Katalog bleibt `de.ts`**, `en.ts` bleibt der von Hand gepflegte,
+   gelesene Zuverlässigkeits-Fallback (T61.11 Glossar bleibt Pflicht).
+2. **Jede weitere Sprache = eine generierte Datei**
+   `shared/i18n/generated/<lang>.ts` via `scripts/translate-catalog.mjs`:
+   liest `de.ts` + Glossar, schreibt vollständige Kataloge mit Header
+   `// machine-generated via <tool>, unreviewed`. Kein per-Sprache-Code;
+   die modulare Sprachliste (§3.3) wird aus dem Verzeichnis gespeist —
+   eine neue Sprache ist ein Datei-Commit plus optionaler Review-Pass.
+3. **Fallback-Kette:** gewählte Sprache → fehlender Schlüssel → `en` → `de`
+   (`t()`-Pfad, fail loud wie heute). Generierte Kataloge sind typisiert als
+   `Partial<Record<keyof typeof de, string>>` — das `tsc`-Gate (§3.2) bleibt
+   für `en` voll, für generierte Sprachen gilt Vollständigkeit per Skript.
+4. **Plural/Format:** unverändert über `Intl.PluralRules`/`Intl.*Format`;
+   das Skript übersetzt nur Werte, nie Schlüssel/Plural-Suffixe.
+5. **Übersetzungswerkzeug:** konfigurierbar (lokales Modell via gpubox-
+   Endpunkt oder vom Nutzer freigegebener Dienst) — bewusst keine
+   Übersetzungsplattform (§2 Out); ein Lauf pro Sprache zum Release, nicht
+   pro PR.
+6. **Qualitätsschiene:** `de`/`en` auf Menschenlesen-Niveau (T61.11);
+   Maschinensprachen sind ausdrücklich „ungeprüft, aber vollständig" —
+   ein Review-Pass pro Sprache ist Nutzeraufgabe, kein Gate.
 
 ## 4. Aufgaben (Checkliste T61.m)
 

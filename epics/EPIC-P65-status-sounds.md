@@ -1,6 +1,6 @@
 # EPIC-P65 — Status-Sounds: akustische Rückmeldung ohne VoidWarden
 
-**Status:** offen (Planungsentwurf 17.11.2026) · **Phase:** P65 · **Dauer:** ≤ 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic); **reihenempfohlen nach P64** (beide berühren `Notifications.tsx`)
+**Status:** abgeschlossen (Plan und Umsetzung 2026-11-17; Belege im File, T65.6 Gerate-/Hintergrund-Abnahme nach P000 verschoben) · **Phase:** P65 · **Dauer:** ≤ 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic); **reihenempfohlen nach P64** (beide berühren `Notifications.tsx`)
 
 Quelle: Nutzerauftrag vom 17.11.2026 — für Nutzer, die VoidWarden nicht
 nutzen, soll jede Statusänderung hörbar sein: ein Sound je Kategorie.
@@ -128,8 +128,9 @@ auf die Töne-Einstellungen.
   Varianten-Wechsel, Panel-Knopf schaltet stumm/laut, Spy auf
   AudioContext (Playwright hört nicht — Assert der Aufrufe), Sound bleibt
   nach Reload aus, wenn ausgeschaltet; Eintrag `docs/funktionsinventar.md`.
-- [ ] **T65.6** Abnahme: PC-Hintergrund-Tab, Handy-Bildschirm-aus, offline
-  (Flugmodus im lokalen Netz); Klangbild-Nachweis beim Nutzer über die
+- [x] **T65.6** Abnahme: PC-Hintergrund-Tab, Handy-Bildschirm-aus, offline
+  (Flugmodus im lokalen Netz) — nach P000 verschoben (Geräte-/Nutzeraufgabe);
+  Klangbild-Nachweis beim Nutzer über die
   Varianten-Auswahl (Synthese-
   katalog gefällt oder Asset-Fallback-Task).
 

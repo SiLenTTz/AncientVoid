@@ -1,6 +1,6 @@
 # EPIC-P18 — Desktop-Workspace: Widescreen und bis zu vier Sessions als Kacheln
 
-**Status:** Code abgeschlossen 2026-10-27, Merge und Roll-out offen · **Phase:** P18 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine. Es baut auf dem Desktop-Split aus P8 auf (T8.5, AC-P8-6 grün). P17 ist abgeschlossen. Präzedenz wie P13/P14/P17: ein unabhängiges Epic neben den offenen Geräte-Abnahmen P12/P16.
+**Status:** abgeschlossen 2026-10-27 (Code auf `main`; Roll-out/Hub-Neustart und Firefox-Kürzel-Test nach P000 verschoben) · **Phase:** P18 · **Dauer:** 1–1,5 Agenten-Wochen · **Abhängigkeit:** fachlich keine. Es baut auf dem Desktop-Split aus P8 auf (T8.5, AC-P8-6 grün). P17 ist abgeschlossen. Präzedenz wie P13/P14/P17: ein unabhängiges Epic neben den offenen Geräte-Abnahmen P12/P16.
 
 Auslöser: Wunsch des Nutzers vom 2026-10-26: „Die UI auf dem Desktop, vor allem
 im Widescreen, gefällt mir noch nicht. Am PC bis zu 4 Sessions gleichzeitig

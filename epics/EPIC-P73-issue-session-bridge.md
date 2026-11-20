@@ -1,6 +1,6 @@
 # EPIC-P73 — Issue-Session-Bridge und sichtbare Auto-Jobs
 
-**Status:** in Arbeit (Nutzerauftrag 19.11.2026) · **Phase:** P73 · **Dauer:** ~1 Agenten-Tag · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P72; P71 (Issue-Lebenszyklus) umgesetzt, liefert die Label/Triage-Basis. P30/P31 bleiben On hold und unberührt. ADR: [docs/adr/0094](../docs/adr/0094-issue-session-bridge-outbound-poll.md).
+**Status:** abgeschlossen 21.11.2026 (Status-Sync; Belege an den Tasks, Live-Beleg AC-P73-1 nachgetragen; das formale Retro folgt auf Zuruf) · **Phase:** P73 · **Dauer:** ~1 Agenten-Tag · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P72; P71 (Issue-Lebenszyklus) umgesetzt, liefert die Label/Triage-Basis. P30/P31 bleiben On hold und unberührt. ADR: [docs/adr/0094](../docs/adr/0094-issue-session-bridge-outbound-poll.md).
 
 ## 1. Ziel
 
@@ -84,24 +84,24 @@ Automations-Snapshot-Schlüssel (Version bumpen).
 
 ## 4. Aufgaben (Checkliste)
 
-- [ ] **T73.1** ADR-0094 + dieses Epic + `epics/README.md`-Zeile.
-- [ ] **T73.2** Contracts: `ExternalJobInfo` in `packages/contracts/src/automations/`
-  (+ Export), Unit-Test Grenzen (Status-Art, Längen).
-- [ ] **T73.3** Core `modules/issues`: GitHub-Client (list labeled open issues seit X,
+- [x] **T73.1** ADR-0094 + dieses Epic + `epics/README.md`-Zeile. — Commit 11b08724.
+- [x] **T73.2** Contracts: `ExternalJobInfo` in `packages/contracts/src/automations/`
+  (+ Export), Unit-Test Grenzen (Status-Art, Längen). — Commit bbe4b9c8, `contracts/test/automations/*.test.ts` grün.
+- [x] **T73.3** Core `modules/issues`: GitHub-Client (list labeled open issues seit X,
   Kommentar anlegen, Workflow-Runs lesen; fetch injectable), Journal-Store (K7),
   Bridge-Service (Poll-Loop, Session-Start, Inspect, Kommentare) — Unit-Tests mit Fake-
   fetch/Fake-Session-Manager: neue Issue → Session + Kommentar; erneuter Poll → Dedupe;
-  Session-Ende → Ergebnis-Kommentar; Poll-Fehler → fail loud, kein Zustandsverlust.
-- [ ] **T73.4** Hub: `issues`-Config (Zod, tokenFile, projectRoots-Prüfung beim Start),
-  Wiring in `main.ts`, `GET /api/automations/external` (501-Stub ohne Deps), Route-Tests.
-- [ ] **T73.5** PWA: `api.externalJobs()`, Sektion „Externe Automatismen" in
+  Session-Ende → Ergebnis-Kommentar; Poll-Fehler → fail loud, kein Zustandsverlust. — PR #186 (`c8321751`), `core/test/modules/issues/` grün (21.11.2026 erneut gelaufen).
+- [x] **T73.4** Hub: `issues`-Config (Zod, tokenFile, projectRoots-Prüfung beim Start),
+  Wiring in `main.ts`, `GET /api/automations/external` (501-Stub ohne Deps), Route-Tests. — Route in `automations.routes.ts`, Token-Seite PR #187, Config-Referenz d8bc2ca6; Route-/Config-Tests grün.
+- [x] **T73.5** PWA: `api.externalJobs()`, Sektion „Externe Automatismen" in
   `AutomationsPane` (Status-Pills, Links, konfiguriert/nicht konfiguriert ehrlich),
   Offline-Kopie erweitert; Unit-Tests + E2E-Spec (`e2e/specs/`), die die Sektion gegen
   den E2E-Hub (Bridge unkonfiguriert → ehrlicher Zustand; Actions-Liste via Stub)
-  prüft.
-- [ ] **T73.6** Sync-Doku: `.claude/skills/bug-report/SKILL.md` (labels-Frontmatter) und
-  `docs/issues.md` (Anlage-Klasse + Label-Konvention); Bridge-Prompt verweist darauf.
-- [ ] **T73.7** Retro gegen die AC; Erkenntnisse hier anhängen.
+  prüft. — `ExternalJobsSection.tsx`, CSS c115f376, `e2e/specs/external-jobs.spec.ts`.
+- [x] **T73.6** Sync-Doku: `.claude/skills/bug-report/SKILL.md` (labels-Frontmatter) und
+  `docs/issues.md` (Anlage-Klasse + Label-Konvention); Bridge-Prompt verweist darauf. — beides vorhanden (Bedingungs-Zusatz im Skill ab ADR-0094; neue Bridge-Bugs tragen `labels:` im Frontmatter).
+- [x] **T73.7** Retro gegen die AC; Erkenntnisse hier anhängen. — Retro-Fazit am Dateiende (Status-Sync 21.11.2026).
 
 ## 5. Acceptance Criteria (AC-P73-k)
 
@@ -153,3 +153,15 @@ Automations-Snapshot-Schlüssel (Version bumpen).
 - AC-P73-1 bis -P73-5 mit Belegen hier vermerkt; `epics/README.md` aktualisiert;
   Menschen-Abnahme (Handy-Blick auf die neue Sektion) nach P000 verschoben, wenn nötig.
 - Keine Contract-Änderung ohne ADR (ADR-0094 deckt `ExternalJobInfo` ab).
+
+## Retro (Status-Sync 21.11.2026)
+
+Raum: Auftrag 19.11., Umsetzung über PRs #186/#187 plus ADR/Doku-Commits,
+Live-Beleg AC-P73-1 am selben Tag (Test-Issue #190, Dispatch → Kommentar →
+settled). AC-P73-2–5 durch Unit-/Route-/E2E-Tests abgedeckt (21.11. erneut
+gegrünt). Erkenntnisse: (1) Outbound-Poll war die richtige Wahl — der
+Poll-Intervall-Deal steht im ADR und trägt; (2) der Dedupe-Journal-Pfad
+(K7) hat einen SIGKILL-Fall überlebt, gut; (3) die Bridge war beim Status-Sync
+der einzige Epic mit lebendem GitHub-Verkehr — Label-Konvention und
+bug-report-Skill haben im Alltag gegriffen. Retro-Fazit hier, formellen Lauf via
+Skill `retro` war durch den Sammel-Status-Sync ersetzt (Auftrag vom Nutzer).
