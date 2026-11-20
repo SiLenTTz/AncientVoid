@@ -1,7 +1,7 @@
 ---
 id: BUG-0233
 slug: graph-dateiklick-ohne-viewer
-status: open
+status: fixed
 severity: S2
 area: pwa
 instance: dev
@@ -63,6 +63,16 @@ Keine.
 `apps/pwa/src/features/graph/GraphPane.tsx` — Klick führt nur
 `selectPath()` aus; `onOpenFile` hängt an Enter/„Öffnen“. Der Dateibaum-Layer
 (`openLayer("files")`, `shared/layers.ts`) wird nie ausgelöst.
+
+## Befund
+
+Der Stern-Klick lief nur in `selectPath()` — Viewer/Editor öffneten erst
+über „Öffnen“/Enter, der Dateibaum gar nie. Fix: `openPath()` (Auswahl +
+`onOpenFile`) am Stern-Klick (Canvas-Tap wie Hit-Knopf); SessionTail öffnet
+bei ≥ 700 px zusätzlich den Dateibaum-Layer (`openLayer("files")`, gleiche
+Grenze wie TABLET/WIDE). Browsing bleibt über Suche/Nachbarn/Pfeiltasten
+ohne Öffnen. E2E rot-vor-grün (repo-graph direkt/Knoten-Klick + Dateibaum
+am Desktop; repo-galaxie Auswahl-Setup auf Suche umgestellt).
 
 ## Handoff
 

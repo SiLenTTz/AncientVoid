@@ -615,6 +615,11 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     const scale = Math.max(viewRef.current.scale, 1.2);
     flyTo({ scale, tx: size.w / 2 - star.x * scale, ty: size.h / 2 - star.y * scale });
   };
+  /** BUG-0233: Datei anklicken heißt anschauen — Auswahl plus Viewer/Editor. */
+  const openPath = (path: string) => {
+    selectPath(path);
+    onOpenFile(path);
+  };
   const enterSystem = (id: string) => {
     const s = layout?.systems.find((x) => x.id === id);
     if (!s || size.w === 0) return;
@@ -742,7 +747,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const idx = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-    if (idx >= 0) selectPath(report.nodes[idx].path);
+    if (idx >= 0) openPath(report.nodes[idx].path);
   };
   const onPointerLeave = () => {
     hoverRef.current = null;
@@ -962,7 +967,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
               style={h.style}
               onClick={() => {
                 if (suppressClickRef.current) return;
-                selectPath(h.path);
+                openPath(h.path);
               }}
             />
           ))}
