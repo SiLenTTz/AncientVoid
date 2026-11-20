@@ -20,7 +20,7 @@ und den Ursprung. Das Token liegt bereits im gemeinsamen `localStorage`.
 5. **Zustand:** `Workspace.detached: TileRef[]` (optional, alte Stände gültig). Ablösen leert die Kachel und merkt die Session; `return` öffnet sie wieder in einer Kachel. Die Liste zeigt das Abzeichen
    „⧉ eigenes Fenster“ nach **dem Register** (lebendes Fenster), nicht nach `detached`; ein Klick sendet `focus`, statt die Session ein zweites Mal zu öffnen.
 6. **Hauptfenster optional:** Fenster laufen allein weiter. Ein neu gestartetes Hauptfenster sendet `ping`, alle Fenster antworten mit `hello`.
-7. **Reihenfolge von `bye`:** `pagehide` sendet `bye`, auch bei einem Neuladen des Fensters; das Hauptfenster entfernt deshalb `detached` nicht auf `bye` (das Wiederherstellen ist T34.12).
+7. **Reihenfolge von `bye`:** `pagehide` sendet `bye` (seit BUG-0245 mit `target`), auch bei einem Neuladen des Fensters. Das Hauptfenster plant nach `bye` ein kurzes Vergessen von `detached` (~1,5 s); kommt in der Frist erneut `hello` für dasselbe Ziel (Reload), bleibt `detached`. Ohne `hello` (echtes Schließen) ist die Session frei — die Restore-Leiste (T34.12) gilt weiter für Abstürze ohne `bye` (TTL). Ablösen kompaktifiziert die Kacheln (keine leere Nachbar-Kachel).
 
 8. **Ziehgeste (T34.11):** am Griff `⠿` der Kachel gedrückt halten und über den Fensterrand ziehen; der Zeiger bleibt erfasst (`setPointerCapture`), die Kachel zeigt
    „Loslassen öffnet ein eigenes Fenster“, beim Loslassen außerhalb öffnet `window.open` mit `left`/`top` der Abwurfstelle (Bildschirmkoordinaten). Loslassen im Fenster oder Abbruch tut nichts.

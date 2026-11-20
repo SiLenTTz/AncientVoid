@@ -39,7 +39,8 @@ export type WindowTarget =
 export type WindowMessage =
   | { type: "hello"; id: string; target: WindowTarget }
   | { type: "heartbeat"; id: string }
-  | { type: "bye"; id: string }
+  /** BUG-0245: `target` optional — alte Fenster ohne Feld bleiben gültig; mit Target kann das Hauptfenster `detached` aufräumen. */
+  | { type: "bye"; id: string; target?: WindowTarget }
   | { type: "focus"; id: string }
   | { type: "return"; id: string; target: WindowTarget }
   /** ADR-0068: das Hauptfenster bittet ein Fenster, sich zurückzugeben (es antwortet mit `return` und schließt sich). */
@@ -67,6 +68,11 @@ export function targetKey(target: WindowTarget): string {
   if (target.kind === "graph") return `graph:${host}|${target.sessionId}`;
   if (target.kind === "file") return `file:${host}|${target.sessionId}|${target.path}`;
   return `session:${host}|${target.sessionId}`;
+}
+
+/** BUG-0245: stabiler Browsing-Context-Name — zweites `window.open` mit demselben Namen hebt das bestehende Fenster statt eines Duplikats. */
+export function windowName(target: WindowTarget): string {
+  return `av_${targetKey(target).replace(/[^a-zA-Z0-9_-]/g, "_")}`;
 }
 
 /** Das Token steht nie in der URL — es liegt im gemeinsamen localStorage. */
@@ -119,7 +125,12 @@ export function parseWindowMessage(raw: unknown): WindowMessage | null {
   const m = raw as { type?: unknown; id?: unknown; target?: unknown };
   if (m.type === "ping") return { type: "ping" };
   if (typeof m.id !== "string" || !m.id) return null;
-  if (m.type === "heartbeat" || m.type === "bye" || m.type === "focus" || m.type === "recall") return { type: m.type, id: m.id };
+  if (m.type === "heartbeat" || m.type === "focus" || m.type === "recall") return { type: m.type, id: m.id };
+  if (m.type === "bye") {
+    const target = m.target !== undefined ? parseTarget(m.target) : undefined;
+    if (m.target !== undefined && !target) return null;
+    return target ? { type: "bye", id: m.id, target } : { type: "bye", id: m.id };
+  }
   if (m.type === "hello" || m.type === "return") {
     const target = parseTarget(m.target);
     return target ? { type: m.type, id: m.id, target } : null;

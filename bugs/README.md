@@ -276,6 +276,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0241](bug-0241-omp-kontingent-reset-fehlt.md) | Das ausgeschöpfte OMP-Kontingent verliert seine Reset-Zeit | fixed | S3 | contracts, pwa | [#230](https://github.com/securesight-ai/AncientVoid/issues/230) |
 | [BUG-0242](bug-0242-harness-metadaten-fehlen.md) | Native ACP-Kontextmeldung wird verworfen | fixed | S3 | adapters, pwa | [#231](https://github.com/securesight-ai/AncientVoid/issues/231) |
 | [BUG-0243](bug-0243-archiv-loeschen.md) | Archiv-Sessions lassen sich nicht gesammelt oder zuverlässig löschen | fixed | S3 | pwa, hub, core | [#234](https://github.com/securesight-ai/AncientVoid/issues/234) |
+| [BUG-0244](bug-0244-neue-session-kachel1-layout.md) | Neue Session öffnet nicht in Kachel 1; Formular zu lang | fixed | S3 | pwa | [#236](https://github.com/securesight-ai/AncientVoid/issues/236) |
+| [BUG-0245](bug-0245-fenster-fokus-leer.md) | Eigenes Fenster: Duplikat statt Fokus; Schließen hinterlässt Leer-Kacheln | fixed | S2 | pwa | [#237](https://github.com/securesight-ai/AncientVoid/issues/237) |
 
 Die nächste freie Nummer ist **0244** (gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,

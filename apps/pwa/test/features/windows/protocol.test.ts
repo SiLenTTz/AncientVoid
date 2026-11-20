@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyWindowMessage, parseWindowMessage, popoutUrl, pruneWindows, targetKey, WINDOW_TTL_MS, windowFor } from "../../../src/features/windows/protocol.ts";
+import { applyWindowMessage, parseWindowMessage, popoutUrl, pruneWindows, targetKey, WINDOW_TTL_MS, windowFor, windowName } from "../../../src/features/windows/protocol.ts";
 
 const session = { kind: "session", sessionId: "s1" } as const;
 const remote = { kind: "session", sessionId: "s2", hostId: "h2" } as const;
@@ -16,6 +16,18 @@ describe("Fensterprotokoll (EPIC-P34 T34.10)", () => {
   it("targetKey unterscheidet Host, Session und Werkzeug", () => {
     expect(new Set([targetKey(session), targetKey(remote), targetKey(tool)]).size).toBe(3);
     expect(targetKey({ kind: "session", sessionId: "s1" })).toBe(targetKey(session));
+  });
+
+  it("BUG-0245: windowName ist ein stabiler Browsing-Context-Name ohne Sonderzeichen", () => {
+    expect(windowName(session)).toMatch(/^av_[a-zA-Z0-9_-]+$/);
+    expect(windowName(session)).toBe(windowName({ kind: "session", sessionId: "s1" }));
+    expect(windowName(remote)).not.toBe(windowName(session));
+  });
+
+  it("BUG-0245: bye mit Target bleibt gültig; ohne Target ebenfalls (alte Fenster)", () => {
+    expect(parseWindowMessage({ type: "bye", id: "w1", target: session })).toEqual({ type: "bye", id: "w1", target: session });
+    expect(parseWindowMessage({ type: "bye", id: "w1" })).toEqual({ type: "bye", id: "w1" });
+    expect(parseWindowMessage({ type: "bye", id: "w1", target: { kind: "session" } })).toBeNull();
   });
 
   it("EPIC-P39 T39.3: das Browser-Fenster hat eine eigene Route, einen eigenen Schlüssel und trägt nie ein Token", () => {

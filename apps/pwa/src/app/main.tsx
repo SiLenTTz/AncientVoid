@@ -34,7 +34,8 @@ import { RestoreBar } from "../features/windows/RestoreBar.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
-import { detachTile, forgetDetached, openInNewTile, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { detachTile, forgetDetached, openInNewTile, openInTile, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { targetKey } from "../features/windows/protocol.ts";
 import { NyxFab } from "../features/stt/NyxFab.tsx";
 import type { Page } from "./Dock.tsx";
 import "./styles/index.css";
@@ -314,8 +315,33 @@ function Main() {
   const [popoutNotice, setPopoutNotice] = useState("");
   const [retryPopout, setRetryPopout] = useState<(() => void) | null>(null);
   useEffect(() => {
+    /** BUG-0245: Reload sendet auch `bye` — kurz warten, ob dasselbe Ziel neu `hello` sagt, sonst `detached` wegräumen. */
+    const FORGET_GRACE_MS = 1500;
+    const pendingForget = new Map<string, ReturnType<typeof setTimeout>>();
     const stop = startWindowHub();
     const off = onWindowMessage((msg) => {
+      if (msg.type === "hello") {
+        const key = targetKey(msg.target);
+        const wait = pendingForget.get(key);
+        if (wait) {
+          clearTimeout(wait);
+          pendingForget.delete(key);
+        }
+      }
+      if (msg.type === "bye" && msg.target?.kind === "session") {
+        const target = msg.target;
+        const key = targetKey(target);
+        const prev = pendingForget.get(key);
+        if (prev) clearTimeout(prev);
+        pendingForget.set(
+          key,
+          setTimeout(() => {
+            pendingForget.delete(key);
+            const ref: TileRef = target.hostId ? { sessionId: target.sessionId, hostId: target.hostId } : { sessionId: target.sessionId };
+            latest.current.changeWorkspace(forgetDetached(latest.current.ws, defaultSessionRef(ref)));
+          }, FORGET_GRACE_MS),
+        );
+      }
       if (msg.type !== "return" || msg.target.kind !== "session") return;
       const ref: TileRef = msg.target.hostId ? { sessionId: msg.target.sessionId, hostId: msg.target.hostId } : { sessionId: msg.target.sessionId };
       latest.current.changeWorkspace(reattach(latest.current.ws, defaultSessionRef(ref)));
@@ -323,6 +349,8 @@ function Main() {
     return () => {
       off();
       stop();
+      for (const wait of pendingForget.values()) clearTimeout(wait);
+      pendingForget.clear();
     };
   }, []);
   const blockedNotice = "Das Fenster wurde nicht geöffnet. Der Browser blockiert Pop-ups für diese Seite — bitte erlauben und noch einmal versuchen.";
@@ -334,11 +362,11 @@ function Main() {
       setPopoutNotice(blockedNotice);
       // Rückfall der Ziehgeste: die Nutzeraktion kann abgelaufen sein — ein Klick auf den Knopf ist eine frische.
       setRetryPopout(() => () => void popoutTile(index));
+      return;
     }
-    else {
-      setPopoutNotice("");
-      latest.current.changeWorkspace(detachTile(latest.current.ws, index));
-    }
+    setPopoutNotice("");
+    // BUG-0245: nur neu geöffnete Fenster lösen die Kachel — „focused“ heißt das Fenster war schon da.
+    if (result === "opened") latest.current.changeWorkspace(detachTile(latest.current.ws, index));
   };
   // Opening a session adds a card; already detached sessions retain their explicit window.
   const openFromList = (session: SessionRecord) => {
@@ -360,6 +388,11 @@ function Main() {
     } else {
       if (route.page === "dashboard") return;
       ref = { sessionId: "", content: { kind: "page", page: route.page, ...(route.vaultFile ? { vaultFile: route.vaultFile } : {}), ...(route.vaultTab ? { vaultTab: route.vaultTab } : {}), hash: location.hash } };
+      // BUG-0244: Neue Session immer in Kachel 1.
+      if (route.page === "new") {
+        latest.current.changeWorkspace(openInTile(current, ref, 0));
+        return;
+      }
     }
     latest.current.changeWorkspace(openInNewTile(current, ref));
   }, [wide, route]);
