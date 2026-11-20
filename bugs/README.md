@@ -266,8 +266,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0231](bug-0231-graph-handy-unscharf-zoom-flach.md) | Repo-Graph am Handy unscharf und zu flacher Zoom — Backing-Store jetzt Gerätepixel × UI-Zoom (mit Scale-Listener), SCALE_MAX 32, Pinch-Zoom über Pointer-Map, Hit-Flächen gedeckelt | fixed | S2 | pwa | [#219](https://github.com/securesight-ai/AncientVoid/issues/219) |
 | [BUG-0232](bug-0232-graph-kategorien-stattdessen-gruppen.md) | Graph-Filter kannte nur Doc/Code/Config — Kategorie-Bereiche (epics, bugs, …) kommen jetzt dynamisch aus dem Repo: category im Contract/Scan, Chips je Häufigkeit, Filter + Persistenz | fixed | S3 | core, pwa | [#220](https://github.com/securesight-ai/AncientVoid/issues/220) |
 | [BUG-0233](bug-0233-graph-dateiklick-ohne-viewer.md) | Datei im Graph anklicken öffnete weder Viewer noch Dateibaum — Stern-Klick führt jetzt Auswahl + onOpenFile aus, ab 700 px geht der Dateibaum-Layer mit auf; Browsing über Suche/Nachbarn bleibt ohne Öffnen | fixed | S2 | pwa | [#221](https://github.com/securesight-ai/AncientVoid/issues/221) |
-Die nächste freie Nummer ist **0234** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
-gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
+| [BUG-0234](bug-0234-session-zurueck-pfeil-am-breiten-layout.md) | Zurück-Pfeil neben dem Session-Titel auch am Tablet/PC, obwohl die Liste dort dauerhaft sichtbar ist — ab 700 px ausgeblendet (Media Query wie TABLET/WIDE), am Handy erhalten | fixed | S4 | pwa | [#222](https://github.com/securesight-ai/AncientVoid/issues/222) |
+Die nächste freie Nummer ist **0235** (gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
 aus der P63-Planung; 0188 ist das host-ignorierende Projekt-Anlegen in der Neuanlage;

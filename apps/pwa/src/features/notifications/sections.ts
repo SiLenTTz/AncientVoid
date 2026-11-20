@@ -4,13 +4,16 @@
  * Meldungen offen stehen (Read-Mark je Host wie der Glocken-Zähler). Die
  * Ableitung ist rein — keine Komponenten-Importe, testbar und vom Renderbaum
  * entkoppelt (Muster: urgency.ts, EPIC-P64 T64.1).
+ *
+ * Nutzerwunsch 2026-11-20: vier Abschnitte mit fester Farbbedeutung —
+ * Fehler (rot), Rückfrage (blau), Fertig (grün), Sonstiges (gelb).
  */
-import { APPROVAL_KINDS } from "./urgency.ts";
+import { APPROVAL_KINDS, MAIN_SYNC_ACTION_KINDS } from "./urgency.ts";
 
-export type SectionKey = "errors" | "questions" | "rest";
+export type SectionKey = "errors" | "questions" | "done" | "rest";
 
-/** Abschnitts-Reihenfolge wie das Panel: Fehler, offene Fragen, Rest. */
-export const SECTION_KEYS: readonly SectionKey[] = ["errors", "questions", "rest"];
+/** Abschnitts-Reihenfolge wie das Panel: Fehler, Rückfragen, Fertig, Rest. */
+export const SECTION_KEYS: readonly SectionKey[] = ["errors", "questions", "done", "rest"];
 
 export interface SectionItem {
   /** Notification-Id je Host — Read-Mark-Vergleich. */
@@ -23,11 +26,14 @@ export interface SectionItem {
   kind: string;
 }
 
-/** Einteilung einer Meldung: Fehler-Level zuerst, dann live offene Fragen
- * (gleiche Prüfung wie bisher der angepinnte Fragen-Abschnitt), dann der Rest. */
+/** Einteilung einer Meldung: Fehler-Level zuerst, dann Entscheidungs-Pflicht
+ * (live offene Freigaben sowie Main-Sync-Rückfragen/Konflikte — gleiche
+ * Taxonomie wie der action-Glow, urgency.ts), dann Erfolge (Fertig), Rest. */
 export function sectionOf(n: SectionItem, pending: ReadonlySet<string>): SectionKey {
   if (n.level === "error") return "errors";
+  if (MAIN_SYNC_ACTION_KINDS.has(n.kind)) return "questions";
   if (APPROVAL_KINDS.has(n.kind) && pending.has(`${n.hostId ?? ""}#${n.sessionId}`)) return "questions";
+  if (n.level === "success") return "done";
   return "rest";
 }
 
@@ -38,7 +44,7 @@ export function unseenBySection(
   read: Record<string, number>,
   pending: ReadonlySet<string>,
 ): Record<SectionKey, number> {
-  const out: Record<SectionKey, number> = { errors: 0, questions: 0, rest: 0 };
+  const out: Record<SectionKey, number> = { errors: 0, questions: 0, done: 0, rest: 0 };
   for (const n of items) {
     if (n.id > (read[n.hostId ?? ""] ?? 0)) out[sectionOf(n, pending)] += 1;
   }
@@ -46,7 +52,7 @@ export function unseenBySection(
 }
 
 /** Einklapp-Vorgabe je Abschnitt: offen ⇔ ungesehene Meldungen ODER (nur beim
- * Fragen-Abschnitt) eine noch live offene Freigabe. Ein Read-Mark löscht eine
+ * Rückfrage-Abschnitt) eine noch live offene Freigabe. Ein Read-Mark löscht eine
  * offene Frage nicht — genauso wie beim Glocken-Glow (urgency.ts) — denn eine
  * unbeantwortete Frage ist nie „erledigt angesehen". */
 export function defaultExpanded(
@@ -56,5 +62,10 @@ export function defaultExpanded(
 ): Record<SectionKey, boolean> {
   const unseen = unseenBySection(items, read, pending);
   const openQuestion = items.some((n) => sectionOf(n, pending) === "questions");
-  return { errors: unseen.errors > 0, questions: unseen.questions > 0 || openQuestion, rest: unseen.rest > 0 };
+  return {
+    errors: unseen.errors > 0,
+    questions: unseen.questions > 0 || openQuestion,
+    done: unseen.done > 0,
+    rest: unseen.rest > 0,
+  };
 }
