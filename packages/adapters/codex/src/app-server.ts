@@ -108,7 +108,8 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
             ctx.emit(planEvent((params.plan as { step: string; status: string }[]) ?? []));
             break;
           case "thread/tokenUsage/updated": {
-            const last = (params.tokenUsage as { last?: { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; totalTokens?: number } })?.last;
+            const tokenUsage = params.tokenUsage as { modelContextWindow?: number | null; last?: { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; totalTokens?: number } } | undefined;
+            const last = tokenUsage?.last;
             if (last) {
               const cost = estimateCostUsd(state.model, last);
               // usage.input/output (ADR-0032): die Kontextfüllung der PWA —
@@ -119,6 +120,7 @@ export function createAppServerAdapter(cfg: AppServerConfig): Adapter {
                 summary: `codex: ${last.totalTokens ?? "?"} Tokens`,
                 payload: {
                   kind: "codex.token_usage",
+                  ...(typeof tokenUsage?.modelContextWindow === "number" && tokenUsage.modelContextWindow > 0 ? { contextWindowTokens: tokenUsage.modelContextWindow } : {}),
                   ...(typeof last.inputTokens === "number" || typeof last.outputTokens === "number"
                     ? { usage: { ...(typeof last.inputTokens === "number" ? { input: last.inputTokens } : {}), ...(typeof last.outputTokens === "number" ? { output: last.outputTokens } : {}) } }
                     : {}),

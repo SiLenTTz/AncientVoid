@@ -1,4 +1,4 @@
-import type { NormalizedEvent } from "@ancientvoid/contracts";
+import { createContextUsageReader, type NormalizedEvent } from "@ancientvoid/contracts";
 
 /**
  * ADR-0084: die Token-Bilanz einer Session, abgeleitet aus dem EventStore.
@@ -81,16 +81,18 @@ export function createTokenTally(): TokenTally {
   let cacheRead: number | null = null;
   let usageEvents = 0;
   let estimated = false;
+  const readContext = createContextUsageReader();
   return {
     add(events) {
       for (const e of events) {
         const r = reportedOf(e);
+        const fill = readContext(e.payload);
+        if (fill !== null) contextFill = fill;
         if (e.tokensSource === "estimated") estimated = true;
         if (r.est === null && r.output === null && r.input === null && r.cacheRead === null) continue;
         usageEvents += 1;
         if (r.est !== null) processed = (processed ?? 0) + r.est;
         if (r.output !== null) generated = (generated ?? 0) + r.output;
-        if (r.input !== null) contextFill = r.input;
         if (r.cacheRead !== null) cacheRead = (cacheRead ?? 0) + r.cacheRead;
       }
     },

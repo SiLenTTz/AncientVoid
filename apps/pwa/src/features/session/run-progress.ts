@@ -72,7 +72,7 @@ function median(values: number[]): number | null {
 }
 
 export function runProgress(events: readonly NormalizedEvent[], status: string, now = Date.now()): RunProgress | null {
-  if (status !== "working") return null;
+  if (status !== "working" && status !== "waiting_approval") return null;
   let start = 0;
   for (let i = events.length - 1; i >= 0; i--) {
     if (["session.prompt", "session.resumed"].includes(String(events[i]!.payload.kind))) {
@@ -98,6 +98,7 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
     .filter((s) => s.total > 0);
   const last = snapshots.at(-1);
   const lastTodos = todoEvents.at(-1) ? todosOf(todoEvents.at(-1)!) : null;
+  if (status === "waiting_approval" && !lastTodos?.length) return null;
   const turnDurations = turnDurationsMs(events);
   if (!last)
     return {
@@ -122,7 +123,7 @@ export function runProgress(events: readonly NormalizedEvent[], status: string, 
   // velocity. Fewer than two progress snapshots → no ETA at all, rather
   // than a guess that pretends to know.
   let etaMs: number | null = null;
-  if (done < total) {
+  if (status === "working" && done < total) {
     for (let i = snapshots.length - 1; i > 0 && etaMs === null; i--) {
       const prev = snapshots[i - 1]!;
       const cur = snapshots[i]!;

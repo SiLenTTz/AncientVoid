@@ -8,6 +8,15 @@ const here = dirname(fileURLToPath(import.meta.url));
 const fixture = (name: string) => join(here, "fixtures", name);
 
 describe("normalizeClaudeLine — real captured stream-json (claude 2.1.263)", () => {
+  it("BUG-0240: keeps the reported main model window and cached context", () => {
+    const events = checkFixture(fixture("tool-use.jsonl"), normalizeClaudeLine);
+    expect(events.findLast(e => e.payload?.kind === "claude.context")?.payload).toMatchObject({ contextInputTokens: 27_356 });
+    expect(events.find(e => e.payload?.kind === "claude.result")?.payload).toMatchObject({
+      model: "claude-sonnet-5",
+      contextWindowTokens: 1_000_000,
+      maxOutputTokens: 64_000,
+    });
+  });
   it("maps every line of the trivial-text fixture to schema-valid events", () => {
     // checkFixture (T1.4, @ancientvoid/adapter-testkit) loads the fixture, runs
     // every line through the normalizer, and asserts schema-validity —

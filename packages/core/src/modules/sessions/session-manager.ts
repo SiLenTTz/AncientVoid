@@ -2,7 +2,7 @@ import { win32 } from "node:path";
 import { SessionInterruption } from "./session-interruption.ts";
 import { SessionRecovery } from "./session-recovery.ts";
 import { SessionActivities } from "./session-activity.ts";
-import type { ActivityReport } from "@ancientvoid/contracts";
+import type { ActivityReport, SessionActivity } from "@ancientvoid/contracts";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { PromptAttachment, ToolPermissionAnswer, ToolPermissionPoll, ToolPermissionRequest, Adapter, SessionMetricsState, AdapterContext, BlobRef, EmittedEvent, EmittedStreamFrame, WsStreamFrames, HubLogger, HubMetrics, NormalizedEvent, SessionRecord, SessionSnapshot, SessionSpec, SessionStatus, SteerInput, Ack, WorkerProcess, WorkerRunner, UsageQuota, ReportingSink, DiscoverySource, DiscoveredSession, HubNotification, NotificationAction, PendingOperation, RunEstimate, TurnMetric, WorkspaceManifest, WorkspaceServiceStatus, WorkspaceSetupApproval, WorkspaceStatus, MainSyncSettings, MainSyncApplyResult, MainSyncCheckResult } from "@ancientvoid/contracts";
@@ -448,6 +448,10 @@ export class SessionManager {
     return row ? rowToRecord(row) : undefined;
   }
 
+  openActivities(sessionId: string): SessionActivity[] {
+    return [...(this.live.get(sessionId)?.activities.values() ?? [])];
+  }
+
   /** T2.2: the real, live working directory for a session — the worktree
    * path when T2.1 isolation succeeded, else `record.project`. Used by the
    * diff engine so it diffs where the session's changes actually are,
@@ -818,8 +822,7 @@ export class SessionManager {
       const ready = await this.gateWorkspace(session, worktreeCreated.baseSha, startSpec, actor);
       if (!ready) return { ...record }; // wartet auf Freigabe oder ist fehlerhaft
     }
-    const adoptedIdle = parsed.adoptNativeSessionId !== undefined && !parsed.prompt && !parsed.attachments?.length;
-    await this.launchAdapter(session, startSpec, adoptedIdle);
+    await this.launchAdapter(session, startSpec);
     return { ...record };
   }
 
@@ -966,13 +969,15 @@ export class SessionManager {
 
   /** EPIC-P29: der Adapter-Start, aus create() extrahiert — auch die
    * Freigabe-Fortsetzung (resolveWorkspaceSetup) startet hier. */
-  private async launchAdapter(session: LiveSession, startSpec: SessionSpec, adoptedIdle: boolean): Promise<void> {
+  private async launchAdapter(session: LiveSession, startSpec: SessionSpec): Promise<void> {
     try {
       session.handle = await session.adapter.start(startSpec, this.makeContext(session));
-      // BUG-0039: an adoption without a prompt has no turn — the history
-      // import already happened inside start(). "working" would lie (the
-      // PWA shows the loading state for a working session with no events).
-      await this.setStatus(session, adoptedIdle ? "idle" : "working");
+      // BUG-0039/ADR-0098: a start without a turn opens idle — "working"
+      // would lie (the PWA shows the loading state for a working session
+      // with no events) and nothing could ever settle it back down.
+      const startIdle = !startSpec.prompt?.trim() && !startSpec.attachments?.length &&
+        (startSpec.adoptNativeSessionId !== undefined || this.registry.get(session.record.adapter)?.capabilities.promptlessStartIdle === true);
+      await this.setStatus(session, startIdle ? "idle" : "working");
       await this.emitSystem(session, "session.started", {
         pid: session.handle.pid ?? null,
         capabilities: this.registry.get(session.record.adapter)?.capabilities,
@@ -1098,7 +1103,7 @@ export class SessionManager {
     const ok = await this.runWorkspaceSetup(session, approval.manifest, approval.manifestHash, approval.baseSha, decidedByLabel ?? null, "setup");
     if (!ok) return { ok: false, detail: "Workspace-Setup fehlgeschlagen — Schritt/Ursache steht im workspace.failed-Event" };
     session.workspace = { phase: "ready", manifestHash: approval.manifestHash, baseSha: approval.baseSha, pendingApprovalId: null };
-    await this.launchAdapter(session, startSpec, false);
+    await this.launchAdapter(session, startSpec);
     return { ok: true, detail: "Workspace bereit, Agent gestartet" };
   }
 
@@ -1867,14 +1872,13 @@ export class SessionManager {
     const caps = this.registry.get(session.record.adapter)?.capabilities;
     const nextTurn = caps?.promptDelivery === "next-turn";
     // ADR-0085: "jetzt nicht vormerken" ist eine ausdrueckliche Wahl des Nutzers. Sie ist
-    // nur dort erlaubt, wo der Adapter Eingaben mitten im laufenden Zug zusichert
-    // (midTurnInput — Pi). Fuer Claude gilt weiterhin ADR-0074: lenken ja, aber erst im
-    // naechsten Zug, und ein zweiter Prozess auf dieselbe native Session nicht.
+    // nur dort erlaubt, wo der Adapter Eingaben mitten im laufenden Zug zusichert.
     const wantsNow = meta?.queue === false && caps?.midTurnInput === true;
     if (input.kind === "prompt" && !wantsNow && (meta?.queue || nextTurn) && !meta?.fromQueue && session.handle && ["starting", "working", "waiting_approval"].includes(session.record.status)) {
       const item = this.queue.add(sessionId, input.text, input.attachments, actor ?? null);
       await this.emitSystem(session, "session.queued", { queueId: item.id, position: this.queue.count(sessionId), actor: actor ?? null });
       await this.commitSteer(session, meta, foreignWriter, actor);
+      if (this.canDrain(session)) this.scheduleDrain(sessionId);
       return { ok: true, detail: "queued" };
     }
     let delivered = input;
@@ -3218,6 +3222,7 @@ export class SessionManager {
     // die Session ehrlich auf working; statt turn_end steht die Ausnahme im Strom.
     if (session.activities.size > 0) {
       await this.emitSystem(session, "session.activity_pending", { open: [...session.activities.values()].map((a) => a.label) });
+      if (this.canDrain(session)) this.scheduleDrain(session.record.id);
       return;
     }
     if (session.record.status !== "working") return;
@@ -3359,9 +3364,9 @@ export class SessionManager {
     if (this.draining.has(sessionId) || this.queue.count(sessionId) === 0) return;
     this.draining.add(sessionId);
     setTimeout(() => {
+      this.draining.delete(sessionId);
       void this.drainNext(sessionId)
-        .catch((err) => this.logger.warn("queue drain failed", { sessionId, err: err instanceof Error ? err.message : String(err) }))
-        .finally(() => this.draining.delete(sessionId));
+        .catch((err) => this.logger.warn("queue drain failed", { sessionId, err: err instanceof Error ? err.message : String(err) }));
     }, 0);
   }
 
@@ -3394,16 +3399,22 @@ export class SessionManager {
     return this.chainWork(sessionId, () => this.drainSlot(sessionId));
   }
 
+  private canDrain(session: LiveSession): boolean {
+    return session.record.status === "idle" ||
+      (session.record.status === "working" && session.mainTurnIdle === true && !session.turnFailed &&
+        this.registry.get(session.record.adapter)?.capabilities.midTurnInput === true);
+  }
+
   private async drainSlot(sessionId: string): Promise<void> {
     const session = this.live.get(sessionId);
-    if (!session || session.record.status !== "idle") return;
+    if (!session || !this.canDrain(session)) return;
     // BUG-0163: Auf langsamen Maschinen kann der Working-Flip eines eben
     // abgeschlossenen Steers noch in einem parallelen Microtask nachlaufen
     // (sein Adapter-Callback feuert turn("working") knapp vor resolve).
     // Ein Macrotask-Yield + Re-Check schließt das Fenster, bevor etwas
     // Gesendetes in einen längst begonnenen Zug läuft (Occupant-Pinning).
     await new Promise<void>((resolve) => setImmediate(resolve));
-    if (session.record.status !== "idle") return;
+    if (!this.canDrain(session)) return;
     const item = this.queue.list(sessionId)[0];
     if (!item) return;
     if (this.uncertainQueue.has(item.id)) {

@@ -139,15 +139,56 @@ test.describe("Claude im Browser (T7.8, AI-P5-3)", () => {
   });
 
   test("T7.2: eine Rückfrage von Claude am Handy beantworten", async ({ app, hub }) => {
-    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" });
+    const id = await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE MITPLAN" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await app.getByRole("button", { name: "Chat" }).click();
     const card = app.locator(".session-approvals .approval-card");
     await expect(card.locator(".question-text")).toHaveText("Welche Farbe soll das Logo haben?");
+    await expect(card.locator(".badge.question")).toHaveText("Rückfrage");
+    await expect(card.locator(".question-free")).toHaveCount(0);
+    await expect(app.getByRole("button", { name: /1\/2 Aufgaben/ })).toBeVisible();
     await expect(card.getByRole("button", { name: "Antworten" })).toBeDisabled();
     await card.getByRole("button", { name: "Grün" }).click();
+    await expect(card.getByRole("button", { name: "Antworten" })).toBeEnabled();
     await card.getByRole("button", { name: "Antworten" }).click();
-    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE · Claude .* · Gewählt: Grün/)).toBeVisible();
+    await expect(app.locator(".tail-scroll").getByText(/Antwort auf: Bitte FRAGE MITPLAN · Claude .* · Gewählt: Grün/)).toBeVisible();
+  });
+
+  test("BUG-0240: native Kontextfenster für Claude und Codex erscheinen in Prozent", async ({ app, hub }) => {
+    const claude = await hub.createSession({ adapter: "claude", prompt: "KONTEXT" });
+    await app.goto(`${hub.origin}/#/sessions/${claude}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".run-strip")).toContainText("Kontext 12 % · frei 880 von 1.000");
+    await expect(app.locator(".run-strip")).toContainText("Ausgabelimit 300 Tokens");
+    const codex = await hub.createSession({ adapter: "codex", prompt: "KONTEXT" });
+    await app.goto(`${hub.origin}/#/sessions/${codex}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".run-strip")).toContainText("Kontext 50 % · frei 100 von 200");
+  });
+
+  test("BUG-0242: ACP usage_update erscheint mit seiner nativen Fenstergröße", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "NATIVER_KONTEXT" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".run-strip")).toContainText("Kontext 25 % · frei 135 von 180");
+  });
+
+  test("BUG-0241: ACP zeigt das Kontingent mit der Reset-Zeit des Providers", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "KONTINGENT_1308" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    await expect(app.locator(".run-strip .run-quota")).toHaveText("5 h: erschöpft · frei ab 2026-11-21 06:34:19");
+  });
+
+  test("BUG-0237: ACP erlaubt Antworten ohne optionale Freitextfelder", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "acp", prompt: "Bitte FRAGE" });
+    await app.goto(`${hub.origin}/#/sessions/${id}`);
+    await app.getByRole("button", { name: "Chat" }).click();
+    const card = app.locator(".session-approvals .approval-card");
+    await card.getByRole("button", { name: "Schnell" }).click();
+    await expect(card.getByRole("button", { name: "Antworten" })).toBeEnabled();
+    await card.getByRole("button", { name: "Antworten" }).click();
+    await expect(app.locator(".tail-scroll").getByText(/"content":\{"strategie":"schnell"\}/)).toBeVisible();
   });
 
   test("AC-P21-4: eine offene Frage überlebt einen Reload, danach erreicht die Antwort den Harness", async ({ app, hub }) => {

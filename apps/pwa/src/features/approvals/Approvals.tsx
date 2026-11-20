@@ -71,20 +71,30 @@ export function QuestionForm({
   oneTap?: boolean;
 }) {
   const [picked, setPicked] = useState<Record<string, string[]>>(() =>
-    preselect ? Object.fromEntries(questions.flatMap((q) => (q.multiSelect ? [] : [[q.question, [recommendedOption(q.options)].filter((l): l is string => l !== null)]]))) : {},
+    preselect ? Object.fromEntries(questions.flatMap((q) => (q.multiSelect || q.required === false ? [] : [[q.question, [recommendedOption(q.options)].filter((l): l is string => l !== null)]]))) : {},
   );
   const tapAnswers = oneTap && questions.length === 1 && !questions[0]!.multiSelect && isYesNo(questions[0]!.options);
-  const [free, setFree] = useState<Record<string, string>>({});
-  const toggle = (q: ToolQuestion, label: string) =>
+  const [free, setFree] = useState<Record<string, string | undefined>>({});
+  const pick = (q: ToolQuestion, label: string) => {
+    if (busy) return;
+    if (tapAnswers) {
+      onAnswer({ [q.question]: label });
+      return;
+    }
+    setFree((prev) => ({ ...prev, [q.question]: undefined }));
     setPicked((prev) => {
       const now = prev[q.question] ?? [];
       const next = q.multiSelect ? (now.includes(label) ? now.filter((l) => l !== label) : [...now, label]) : now.includes(label) ? [] : [label];
       return { ...prev, [q.question]: next };
     });
+  };
   // An own answer replaces the pick — it is what the person actually wrote.
-  const answers = Object.fromEntries(questions.map((q) => [q.question, free[q.question]?.trim() || (picked[q.question] ?? []).join(", ")]));
-  const answered = questions.filter((q) => answers[q.question]).length;
-  const complete = answered === questions.length;
+  const answers = Object.fromEntries(questions.flatMap((q) => {
+    const answer = free[q.question]?.trim() || (picked[q.question] ?? []).join(", ");
+    return answer ? [[q.question, answer]] : [];
+  }));
+  const answered = Object.keys(answers).length;
+  const complete = questions.every(q => q.required === false || Object.hasOwn(answers, q.question));
   const send = () => {
     if (complete && !busy) onAnswer(answers);
   };
@@ -93,7 +103,7 @@ export function QuestionForm({
     const n = /^[1-9]$/.test(e.key) ? Number(e.key) - 1 : -1;
     if (n >= 0 && q.options[n]) {
       e.preventDefault();
-      toggle(q, q.options[n]!.label);
+      pick(q, q.options[n]!.label);
     }
   };
   return (
@@ -107,6 +117,7 @@ export function QuestionForm({
         <div key={q.question} class={`question${answers[q.question] ? " answered" : ""}`} onKeyDown={onKey(q)}>
           {q.header && <span class="question-header">{q.header}</span>}
           <div class="question-text">{q.question}</div>
+          {q.required === false && <div class="question-hint dim">Optional</div>}
           {q.options.length > 0 && <div class="question-hint dim">{q.multiSelect ? "Mehrere möglich" : "Eine Antwort"} · Taste 1–{Math.min(q.options.length, 9)}</div>}
           <div class="choice-row" role="group" aria-label={q.question}>
             {q.options.map((o, i) => {
@@ -118,14 +129,8 @@ export function QuestionForm({
                   aria-pressed={on}
                   class={`choice ${on ? "active" : ""}`}
                   title={o.description}
-                  onClick={() => {
-                    if (tapAnswers) {
-                      if (!busy) onAnswer({ [q.question]: o.label });
-                      return;
-                    }
-                    setFree((prev) => ({ ...prev, [q.question]: "" }));
-                    toggle(q, o.label);
-                  }}
+                  disabled={busy}
+                  onClick={() => pick(q, o.label)}
                 >
                   <span class="choice-index">{i + 1}</span>
                   <span class="choice-body">
@@ -136,10 +141,20 @@ export function QuestionForm({
               );
             })}
           </div>
-          <input
+          {q.options.length > 0 && free[q.question] === undefined ? (
+            <Button disabled={busy} onClick={() => {
+              setPicked(prev => ({ ...prev, [q.question]: [] }));
+              setFree(prev => ({ ...prev, [q.question]: "" }));
+            }}>
+              Eigene Antwort
+            </Button>
+          ) : <input
             class="question-free"
+            aria-label={`Eigene Antwort auf „${q.question}“`}
             placeholder="Eigene Antwort…"
             value={free[q.question] ?? ""}
+            disabled={busy}
+            autoFocus={q.options.length > 0}
             onInput={(e) => setFree((prev) => ({ ...prev, [q.question]: (e.target as HTMLInputElement).value }))}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -147,12 +162,12 @@ export function QuestionForm({
                 send();
               }
             }}
-          />
+          />}
         </div>
       ))}
-      {complete && questions.length > 1 && (
+      {complete && answered > 0 && questions.length > 1 && (
         <ul class="question-summary dim" aria-label="Zusammenfassung">
-          {questions.map((q) => (
+          {questions.filter(q => Object.hasOwn(answers, q.question)).map((q) => (
             <li key={q.question}>
               {q.question} → <strong>{answers[q.question]}</strong>
             </li>
@@ -248,6 +263,8 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
   const [error, setError] = useState("");
   const pending = req.status === "pending";
   const destructive = req.class === "destructive";
+  const questions = req.tool?.questions;
+  const isQuestion = req.action === "tool.question" || Boolean(questions?.length);
 
   const decide = async (decision: "approve" | "reject", answers?: Record<string, string>) => {
     setBusy(true);
@@ -282,7 +299,7 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
   return (
     <Card class="approval-card">
       <div class="approval-card-head">
-        {riskBadge(req.class)}
+        {isQuestion ? <span class="badge question">Rückfrage</span> : riskBadge(req.class)}
         {pending && <span class="approval-countdown mono">läuft ab in {secondsLeft(req.timeoutAt)}s</span>}
         {!pending && <span class={`badge status-${req.status}`}>{req.status}</span>}
       </div>
@@ -301,13 +318,20 @@ export function ApprovalCard({ req, onDecided, api = hubApi }: { req: ApprovalRe
         Session {req.sessionId.slice(0, 8)} · {req.action}
       </div>
 
-      {pending && req.tool?.questions && (
+      {pending && !!questions?.length && (
         <>
           {error && <div style="color: var(--err); font-size: calc(12px * var(--font-scale, 1))">{error}</div>}
-          <QuestionForm questions={req.tool.questions} busy={busy} onAnswer={(answers) => void decide("approve", answers)} onReject={() => void decide("reject")} />
+          <QuestionForm questions={questions} busy={busy} onAnswer={(answers) => void decide("approve", answers)} onReject={() => void decide("reject")} />
         </>
       )}
-      {pending && !req.tool?.questions && (
+      {pending && isQuestion && !questions?.length && (
+        <>
+          <p role="alert">Der Harness hat keine beantwortbare Frage mitgeliefert.</p>
+          {error && <p role="alert">{error}</p>}
+          <Button disabled={busy} onClick={() => void decide("reject")} variant="danger">Ablehnen</Button>
+        </>
+      )}
+      {pending && !isQuestion && (
         <>
           {req.reasonRequired && (
             <textarea

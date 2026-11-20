@@ -50,6 +50,59 @@ function fakeClaudeProcess(content: string, chunkSize = content.length, exitCode
   };
 }
 
+/** ADR-0098: the streaming-input claude process — stays alive across turn
+ * ends, records stdin writes, and lets the test drive stdout/exit by hand. */
+function fakeStreamingClaude(): WorkerProcess & { writes: string[]; pushLines: (lines: string) => void; exitWith: (code: number | null) => void } {
+  const writes: string[] = [];
+  let exitResolve: (value: { code: number | null }) => void = () => {};
+  const stdoutCbs = new Set<(chunk: string) => void>();
+  const exitCbs = new Set<(code: number | null) => void>();
+  const exited = new Promise<{ code: number | null }>((resolve) => {
+    exitResolve = resolve;
+  });
+  let closed = false;
+  const finish = (code: number | null): void => {
+    if (closed) return;
+    closed = true;
+    exitResolve({ code });
+    for (const cb of exitCbs) cb(code);
+  };
+  return {
+    pid: 4242,
+    writes,
+    pushLines: (lines) => {
+      for (const cb of stdoutCbs) cb(lines);
+    },
+    exitWith: finish,
+    onStdout: (cb) => stdoutCbs.add(cb),
+    onStderr: () => undefined,
+    onExit: (cb) => exitCbs.add(cb),
+    write: (data) => {
+      writes.push(data);
+    },
+    kill: async () => finish(0),
+    exited: () => exited,
+  };
+}
+
+/** One turn's end, fixture-shaped: session_id d154ee1b-… like trivial-text.jsonl. */
+const RESULT_LINE = JSON.stringify({
+  type: "result",
+  subtype: "success",
+  is_error: false,
+  result: "ok",
+  session_id: "d154ee1b-a065-42dc-b523-c5810f077d2d",
+  duration_ms: 1,
+  num_turns: 1,
+  total_cost_usd: 0,
+  usage: { input_tokens: 1, output_tokens: 1 },
+}) + "\n";
+
+/** The user message the adapter must put on the stdin channel (ADR-0098). */
+function stdinPrompt(line: string): { type: string; message: { role: string; content: string }; parent_tool_use_id: null } {
+  return JSON.parse(line);
+}
+
 describe("claude adapter — lifecycle against a real captured stream", () => {
   it("identity + capabilities are honest", () => {
     const adapter = createAdapter();
@@ -117,7 +170,7 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     // after it had actually finished successfully.
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl")) });
     const adapter = createAdapter();
-    const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
 
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
     // Give the process's exit callback (fires after the same macrotask
@@ -131,7 +184,7 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       spawnWorker: async () => fakeClaudeProcess(loadFixture("trivial-text.jsonl"), undefined, 1),
     });
     const adapter = createAdapter();
-    const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
 
     let state = "healthy";
     for (let i = 0; i < 100 && state !== "down"; i++) {
@@ -150,59 +203,60 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       },
     });
     const adapter = createAdapter();
-    const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
     await adapter.stop(handle, ctx);
     expect(killed).toBe(true);
     expect((await adapter.status(handle)).state).toBe("down");
   });
 
-  it("steer(prompt) spawns a resumed process using the captured session_id", async () => {
+  it("steer(prompt) nach Exit resumed mit der session_id aus der init-Zeile des Streams", async () => {
     const spawnedCmds: string[][] = [];
+    const proc = fakeStreamingClaude();
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd) => {
         spawnedCmds.push(cmd);
-        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+        return proc;
       },
     });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "first" }, ctx);
-    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+    // die session_id aus der system/init-Zeile der Fixture übernehmen
+    proc.pushLines(`${JSON.stringify({ type: "system", subtype: "init", cwd: "/tmp", session_id: "d154ee1b-a065-42dc-b523-c5810f077d2d", tools: [] })}\n`);
+    proc.exitWith(0);
+    await proc.exited();
 
     const ack = await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
     expect(ack.ok).toBe(true);
     expect(spawnedCmds).toHaveLength(2);
     expect(spawnedCmds[1]).toContain("--resume");
-    expect(spawnedCmds[1]).toContain("d154ee1b-a065-42dc-b523-c5810f077d2d"); // session_id from the fixture's system/init line
+    expect(spawnedCmds[1]).toContain("d154ee1b-a065-42dc-b523-c5810f077d2d");
   });
 
-  it("T1.5-10: args.skill prefixes the prompt with /skill on the initial spawn, reapplied on steer", async () => {
-    const spawnedCmds: string[][] = [];
+  it("T1.5-10: args.skill prefixes every prompt with /skill — initial send and steering alike", async () => {
+    const proc = fakeStreamingClaude();
     const ctx = makeRecordingContext({
-      spawnWorker: async (cmd) => {
-        spawnedCmds.push(cmd);
-        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
-      },
+      spawnWorker: async () => proc,
     });
     const adapter = createAdapter();
     const handle = await adapter.start(
       { adapter: "claude", project: "/tmp", prompt: "fix it", args: { skill: "bugfix" } },
       ctx,
     );
-    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
-    expect(spawnedCmds[0]).toContain("/bugfix\n\nfix it");
+    expect(stdinPrompt(proc.writes[0]!).message.content).toBe("/bugfix\n\nfix it");
 
     await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
-    // Reapplied on the resumed turn too — a skill choice is fixed for the
+    // Reapplied on the steered turn too — a skill choice is fixed for the
     // whole session, not re-selectable per turn (ADR-0005).
-    expect(spawnedCmds[1]).toContain("/bugfix\n\nfollow up");
+    expect(stdinPrompt(proc.writes[1]!).message.content).toBe("/bugfix\n\nfollow up");
   });
 
   it("T1.5-10: args.agent appends --agent on the initial spawn only, never on a resume", async () => {
     const spawnedCmds: string[][] = [];
+    const proc = fakeStreamingClaude();
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd) => {
         spawnedCmds.push(cmd);
-        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+        return proc;
       },
     });
     const adapter = createAdapter();
@@ -210,9 +264,10 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       { adapter: "claude", project: "/tmp", prompt: "go", args: { agent: "hub-dev" } },
       ctx,
     );
-    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
     expect(spawnedCmds[0]).toContain("--agent");
     expect(spawnedCmds[0]).toContain("hub-dev");
+    proc.exitWith(0);
+    await proc.exited();
 
     await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
     // ADR-0005: whether --agent still does anything on --resume is
@@ -222,17 +277,19 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
 
   it("T1.6-6 / ADR-0033: the session's model rides on the first spawn and on every resumed turn", async () => {
     const spawnedCmds: string[][] = [];
+    const proc = fakeStreamingClaude();
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd) => {
         spawnedCmds.push(cmd);
-        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+        return proc;
       },
     });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", model: "opus" }, ctx);
-    await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
     expect(spawnedCmds[0]).toContain("--model");
     expect(spawnedCmds[0]).toContain("opus");
+    proc.exitWith(0);
+    await proc.exited();
 
     await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
     // Verified live against claude 2.1.288: --model is honoured on --resume.
@@ -245,13 +302,14 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     const modeOf = (cmd: string[] | undefined) => cmd?.[cmd.indexOf("--permission-mode") + 1];
     const harness = () => {
       const spawned: string[][] = [];
+      const proc = fakeStreamingClaude();
       const ctx = makeRecordingContext({
         spawnWorker: async (cmd) => {
           spawned.push(cmd);
-          return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+          return proc;
         },
       });
-      return { spawned, ctx };
+      return { spawned, ctx, proc };
     };
 
     it("declares its modes and model switching in the features", () => {
@@ -261,24 +319,41 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     });
 
     it("starts in the requested mode and keeps it on every later turn", async () => {
-      const { spawned, ctx } = harness();
+      const { spawned, ctx, proc } = harness();
       const adapter = createAdapter();
       const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", args: { permissionMode: "plan" } }, ctx);
-      await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+      proc.exitWith(0);
+      await proc.exited();
       await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
       expect(modeOf(spawned[0])).toBe("plan");
       expect(modeOf(spawned[1])).toBe("plan");
     });
 
     it("configure changes mode and model from the next turn on", async () => {
-      const { spawned, ctx } = harness();
+      const { spawned, ctx, proc } = harness();
       const adapter = createAdapter();
       const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", model: "haiku", args: { permissionMode: "manual" } }, ctx);
-      await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.result"));
+      proc.exitWith(0);
+      await proc.exited();
       expect((await adapter.steer(handle, { kind: "configure", permissionMode: "auto", model: "sonnet" }, ctx)).ok).toBe(true);
       await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
       expect(modeOf(spawned[1])).toBe("auto");
       expect(spawned[1]![spawned[1]!.indexOf("--model") + 1]).toBe("sonnet");
+    });
+
+
+    it("waits for the running CLI to acknowledge a model change", async () => {
+      const { ctx, proc, spawned } = harness();
+      const adapter = createAdapter();
+      const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "go", model: "haiku" }, ctx);
+      const configure = adapter.steer(handle, { kind: "configure", model: "sonnet" }, ctx);
+      const request = JSON.parse(proc.writes[1] ?? "null");
+      expect(request).toMatchObject({ type: "control_request", request: { subtype: "set_model", model: "sonnet" } });
+      proc.pushLines(JSON.stringify({ type: "control_response", response: {
+        subtype: "success", request_id: request.request_id, response: { model: "claude-sonnet-5" },
+      } }) + "\n");
+      expect(await configure).toEqual({ ok: true });
+      expect(spawned).toHaveLength(1);
     });
 
     it("refuses an unknown mode instead of ignoring it", async () => {
@@ -322,15 +397,32 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
     const content = '{"type":"system","subtype":"init","cwd":"/tmp","session_id":"x"}\n{not json\n';
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(content) });
     const adapter = createAdapter();
-    await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
     await waitFor(() => ctx.events.some((e) => e.summary.includes("non-JSON stdout line")));
+  });
+
+  it("e2e-Fund 2026-11-20: promptloser Start spawnt NICHTS — die Session bleibt idle, der erste steer spawnt", async () => {
+    const spawned: string[][] = [];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return fakeStreamingClaude();
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    expect(spawned).toHaveLength(0);
+    expect((await adapter.status(handle)).state).toBe("healthy");
+    await adapter.steer(handle, { kind: "prompt", text: "los" }, ctx);
+    expect(spawned).toHaveLength(1);
+    expect(spawned[0]).not.toContain("--resume");
   });
 
   it("BUG-0040: Klartext-Fehler 'Error: No deferred tool marker…' wird als lesbarer Resume-Hinweis gemeldet", async () => {
     const content = "Error: No deferred tool marker found in the resumed session\n";
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess(content) });
     const adapter = createAdapter();
-    await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.cli_error"));
     const ev = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "claude.cli_error")!;
     expect((ev.payload as { resumeStale?: boolean }).resumeStale).toBe(true);
@@ -341,7 +433,7 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
   it("BUG-0040: anderer 'Error:'-Klartext wird mit Text gemeldet, resumeStale ist false", async () => {
     const ctx = makeRecordingContext({ spawnWorker: async () => fakeClaudeProcess("Error: boom\n") });
     const adapter = createAdapter();
-    await adapter.start({ adapter: "claude", project: "/tmp" }, ctx);
+    await adapter.start({ adapter: "claude", project: "/tmp", prompt: "x" }, ctx);
     await waitFor(() => ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.cli_error"));
     const ev = ctx.events.find((e) => (e.payload as { kind?: string }).kind === "claude.cli_error")!;
     expect(ev.summary).toBe("claude: CLI-Fehler — Error: boom");
@@ -368,15 +460,19 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
 
   it("ADR-0018 §3: asks the hub through the permission bridge, with a long MCP tool timeout", async () => {
     const calls: { cmd: string[]; env?: Record<string, string> }[] = [];
+    const procs = [fakeStreamingClaude(), fakeStreamingClaude()];
     const ctx = makeRecordingContext({
       spawnWorker: async (cmd, opts) => {
         calls.push({ cmd, ...(opts?.env ? { env: opts.env } : {}) });
-        return fakeClaudeProcess(loadFixture("trivial-text.jsonl"));
+        return procs[calls.length - 1]!;
       },
       permissionBridge: async () => ({ mcpConfigPath: "/data/bridges/s.mcp.json", toolName: "mcp__ancientvoid__permission" }),
     });
     const adapter = createAdapter();
     const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "hallo" }, ctx);
+    // ADR-0098: der Respawn nach Exit trägt die Brücke genauso wie der erste Prozess.
+    procs[0]!.exitWith(0);
+    await procs[0]!.exited();
     await adapter.steer(handle, { kind: "prompt", text: "weiter" }, ctx);
     for (const call of calls) {
       expect(call.cmd.join(" ")).toContain("--mcp-config /data/bridges/s.mcp.json --permission-prompt-tool mcp__ancientvoid__permission");
@@ -398,7 +494,8 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
 
   it("T7.10: images and PDFs by path with --add-dir, other files as text", async () => {
     const calls: string[][] = [];
-    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return fakeClaudeProcess(loadFixture("trivial-text.jsonl")); } });
+    const proc = fakeStreamingClaude();
+    const ctx = makeRecordingContext({ spawnWorker: async (cmd) => { calls.push(cmd); return proc; } });
     await createAdapter({ permissionPrompts: "off" }).start({
       adapter: "claude",
       project: "/tmp",
@@ -409,11 +506,122 @@ describe("claude adapter — lifecycle against a real captured stream", () => {
       ],
     }, ctx);
     const cmd = calls[0]!;
-    const prompt = cmd[cmd.indexOf("-p") + 1]!;
+    const prompt = stdinPrompt(proc.writes[0]!).message.content;
     expect(prompt).toContain("scan.pdf");
     expect(prompt).toContain("Datei: /data/att/aaa]\n(als Datei übergeben)");
     expect(prompt).toContain("Artikel;Preis");
     expect(cmd.join(" ")).toContain("--add-dir /data/att");
+  });
+});
+
+describe("Streaming-Input-Prozess (ADR-0098 / BUG-0235)", () => {
+  it("capabilities verspricht midTurnInput — Zustellung wählbar wie bei Pi", () => {
+    expect(createAdapter().capabilities()).toMatchObject({ promptDelivery: "next-turn", midTurnInput: true, promptlessStartIdle: true });
+  });
+
+  it("start() spawnt einen persistenten stdin-Pipe-Prozess; der Prompt geht als NDJSON-Zeile, nie ins Argv", async () => {
+    const spawned: { cmd: string[]; opts?: { stdin?: string; persistent?: boolean } }[] = [];
+    const turns: string[] = [];
+    const proc = fakeStreamingClaude();
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd, opts) => {
+        spawned.push({ cmd, ...(opts !== undefined ? { opts } : {}) });
+        return proc;
+      },
+      turn: (state) => turns.push(state),
+    });
+    await createAdapter().start({ adapter: "claude", project: "/tmp", prompt: "erster Auftrag" }, ctx);
+
+    expect(spawned).toHaveLength(1);
+    expect(spawned[0]!.cmd).toContain("--input-format");
+    expect(spawned[0]!.cmd[spawned[0]!.cmd.indexOf("--input-format") + 1]).toBe("stream-json");
+    expect(spawned[0]!.cmd).not.toContain("erster Auftrag");
+    expect(spawned[0]!.opts).toMatchObject({ stdin: "pipe", persistent: true });
+    expect(proc.writes).toHaveLength(1);
+    expect(stdinPrompt(proc.writes[0]!)).toEqual({
+      type: "user",
+      message: { role: "user", content: "erster Auftrag" },
+      parent_tool_use_id: null,
+    });
+    expect(proc.writes[0]).toMatch(/\n$/);
+    expect(turns).toEqual(["working"]);
+  });
+
+  it("BUG-0235/ADR-0074: steer(prompt) schreibt in den LAUFENDEN Prozess — kein Zweitprozess, auch mitten im Zug", async () => {
+    const spawned: string[][] = [];
+    const proc = fakeStreamingClaude();
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return proc;
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "erster Auftrag" }, ctx);
+
+    // Kein result bisher — der Zug „läuft“. Der Zwischenruf geht trotzdem raus.
+    const ack = await adapter.steer(handle, { kind: "prompt", text: "zwischenruf: mach weiter so" }, ctx);
+    expect(ack.ok).toBe(true);
+    expect(spawned).toHaveLength(1);
+    expect(proc.writes).toHaveLength(2);
+    expect(stdinPrompt(proc.writes[1]!).message.content).toBe("zwischenruf: mach weiter so");
+  });
+
+  it("result im Stream meldet ctx.turn(idle) — die Queue des Hubs kann sofort weiterlaufen", async () => {
+    const turns: string[] = [];
+    const proc = fakeStreamingClaude();
+    const ctx = makeRecordingContext({
+      spawnWorker: async () => proc,
+      turn: (state) => turns.push(state),
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "eins" }, ctx);
+    proc.pushLines(RESULT_LINE);
+    await waitFor(() => turns.includes("idle"));
+    expect(turns).toEqual(["working", "idle"]);
+
+    // Nächster Zug: derselbe Prozess, kein Respawn.
+    await adapter.steer(handle, { kind: "prompt", text: "zwei" }, ctx);
+    expect(proc.writes).toHaveLength(2);
+    expect(turns).toEqual(["working", "idle", "working"]);
+  });
+
+  it("nach sauberem Exit startet der nächste Prompt einen --resume-Prozess (Prompt weiterhin auf stdin)", async () => {
+    const spawned: string[][] = [];
+    const procs = [fakeStreamingClaude(), fakeStreamingClaude()];
+    const ctx = makeRecordingContext({
+      spawnWorker: async (cmd) => {
+        spawned.push(cmd);
+        return procs[spawned.length - 1]!;
+      },
+    });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "first" }, ctx);
+    procs[0]!.pushLines(RESULT_LINE); // session_id d154ee1b-… wird übernommen
+    procs[0]!.exitWith(0);
+    await procs[0]!.exited();
+
+    await adapter.steer(handle, { kind: "prompt", text: "follow up" }, ctx);
+    expect(spawned).toHaveLength(2);
+    expect(spawned[1]).toContain("--resume");
+    expect(spawned[1]).toContain("d154ee1b-a065-42dc-b523-c5810f077d2d");
+    expect(spawned[1]).not.toContain("follow up");
+    expect(procs[1]!.writes).toHaveLength(1);
+    expect(stdinPrompt(procs[1]!.writes[0]!).message.content).toBe("follow up");
+  });
+
+  it("Attachments im laufenden Zug: --add-dir ist nicht nachrüstbar → sichtbares Event, Prompt geht trotzdem", async () => {
+    const proc = fakeStreamingClaude();
+    const ctx = makeRecordingContext({ spawnWorker: async () => proc });
+    const adapter = createAdapter();
+    const handle = await adapter.start({ adapter: "claude", project: "/tmp", prompt: "los" }, ctx);
+    await adapter.steer(handle, {
+      kind: "prompt",
+      text: "schau dir den Scan an",
+      attachments: [{ id: "a".repeat(64), name: "scan.pdf", mimeType: "application/pdf", kind: "pdf", bytes: 2048, path: "/data/att/aaa", text: "egal", method: "pdftotext" }],
+    }, ctx);
+    expect(ctx.events.some((e) => (e.payload as { kind?: string }).kind === "claude.add_dir_live_skipped")).toBe(true);
+    expect(stdinPrompt(proc.writes[1]!).message.content).toContain("/data/att/aaa");
   });
 });
 

@@ -120,6 +120,11 @@ export interface AdapterCapabilities {
    * Ablehnung von "jetzt senden" fuer alle Adapter ohne diese Zusicherung erhalten.
    */
   midTurnInput?: boolean;
+
+  /** ADR-0098: a start without prompt opens no turn — the session starts
+   * idle instead of "working" (which nothing could ever settle). Only
+   * adapters whose promptless start truly leaves no running work set this. */
+  promptlessStartIdle?: boolean;
   /** Adapter emits reasoning/thinking events. */
   reasoning: boolean;
   /** Adapter performs tool calls (tool_use/tool_result events). */
@@ -204,6 +209,8 @@ export interface SessionHandle {
  */
 export interface WorkerProcess {
   readonly pid?: number;
+  /** The worker's input channel, when known, including after adoption (ADR-0098). */
+  readonly stdinMode?: "tty" | "pipe";
   /** tmux attach command for emergency debugging, if the runner supports it. */
   readonly attachCmd?: string;
   onStdout(cb: (chunk: string) => void): void;

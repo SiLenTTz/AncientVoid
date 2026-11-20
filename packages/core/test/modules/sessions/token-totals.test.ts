@@ -65,4 +65,11 @@ describe("Token-Bilanz (ADR-0084, BUG-0184)", () => {
     expect(t.processed).toBe(42);
     expect(t.generated).toBe(7);
   });
+
+  it("BUG-0242: behält den nativen Kontext auch seitenübergreifend", () => {
+    const tally = createTokenTally();
+    tally.add([ev({ payload: { kind: "acp.context", contextInputTokens: 45, contextWindowTokens: 180 } })]);
+    tally.add([ev({ payload: { kind: "acp.turn_end", usage: { input: 30, output: 12 } }, tokensEst: 42 })]);
+    expect(tally.result()).toMatchObject({ contextFill: 45, processed: 42, generated: 12 });
+  });
 });

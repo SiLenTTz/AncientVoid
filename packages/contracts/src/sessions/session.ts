@@ -209,6 +209,8 @@ export interface SessionActivity {
   source: string;
   label: string;
   startedAt: string;
+  /** ADR-0099: renews the external-job lease without moving the original start. */
+  lastSeenAt?: string;
 }
 
 /**

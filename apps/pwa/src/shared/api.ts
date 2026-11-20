@@ -1,4 +1,4 @@
-import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine } from "@ancientvoid/contracts";
+import type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine, SessionActivity } from "@ancientvoid/contracts";
 import type { KnowledgeOverview, KnowledgeReadResult, KnowledgeSearchResult, KnowledgeSourceInputRaw, KnowledgeSourceView } from "@ancientvoid/contracts";
 export type { PromptRecommendation, SkillArtifact, RewriteEngine, SkippedEngine };
 import type { DeploymentIdentity, QueueDeliveryState, AiMetricsReport, StatisticsReport, Team, TeamStart, AutomationDefinition, AutomationInfo, AutomationHistoryEntry, ExternalJobsResponse, BrowserAction, BrowserFeedbackInput, BrowserPick, BrowserStatus, BrowserTestCase, BrowserTestRun, DeviceAction, DeviceStatus, DeviceTestCase, DeviceTestRun, DiagnosticsResult, FileMeta, GitGraphReport, GraphDiagnosis, GraphReport, ProjectTrust, FileRange, TreeListing, LoopInfo, LoopOnboardResult, LoopSpec, ReleaseNotesDetail, ReleaseNotesListReport, SttStreamTicket, TerminalList, TerminalTarget, TerminalTicket, VaultBrowse, VaultFile, VaultListing, VaultRead, VaultState, WorkspacePreviewTicket, WorkspaceServiceLogs, WorkspaceStatus } from "@ancientvoid/contracts";
@@ -10,6 +10,8 @@ export interface SessionRecord {
   project: string;
   worktreeSha: string | null;
   status: string;
+  /** Detailed session response, backed by the Hub's activity register. */
+  openActivities?: SessionActivity[];
   createdAt: string;
   model: string | null;
   /** ADR-0033: the permission mode the session runs in; absent on older hubs. */
@@ -77,6 +79,7 @@ export interface ToolQuestion {
   header?: string;
   options: { label: string; description?: string }[];
   multiSelect: boolean;
+  required?: boolean;
 }
 
 export interface ApprovalRequest {

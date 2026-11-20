@@ -36,6 +36,8 @@ export const ToolQuestion = z.object({
   header: z.string().optional(),
   options: z.array(ToolQuestionOption).default([]),
   multiSelect: z.boolean().default(false),
+  /** ADR-0099: false when the provider explicitly allows omitting this answer. */
+  required: z.boolean().optional(),
 });
 export type ToolQuestion = z.infer<typeof ToolQuestion>;
 

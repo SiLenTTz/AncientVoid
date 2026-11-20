@@ -26,12 +26,12 @@ export class SessionActivities {
     if (activity.state === "running") {
       // BUG-0220: Ein Running-Report für eine bereits geführte Aktivität ist
       // Herzschlag (hubctl alle 20 s; ein verklemmter Provider kann es in
-      // Burst-Geschwindigkeit sein) — startedAt auffrischen, damit die TTL
+      // Burst-Geschwindigkeit sein) — den Herzschlag auffrischen, damit die TTL
       // weiterläuft, aber kein zweites activity_begin in den EventStore
       // streuen. Erst nach activity_end darf dieselbe ID erneut beginnen.
       const known = session.activities.get(id);
       if (known) {
-        known.startedAt = new Date().toISOString();
+        known.lastSeenAt = new Date().toISOString();
         return;
       }
       const entry = { id, source, label: activity.label?.trim() || activity.id, startedAt: new Date().toISOString() };
@@ -62,7 +62,7 @@ export class SessionActivities {
   /** Herzschlag-Frist (ADR-0076): externe Arbeit ohne Lebenszeichen gilt als unklar. */
   async expire(session: LiveSession): Promise<void> {
     for (const entry of [...session.activities.values()]) {
-      if (entry.source === "external" && Date.now() - Date.parse(entry.startedAt) > EXTERNAL_ACTIVITY_TTL_MS) {
+      if (entry.source === "external" && Date.now() - Date.parse(entry.lastSeenAt ?? entry.startedAt) > EXTERNAL_ACTIVITY_TTL_MS) {
         await this.record(session, { id: entry.id.replace(/^job:/, ""), kind: "job", state: "failed", label: entry.label }, "external");
       }
     }

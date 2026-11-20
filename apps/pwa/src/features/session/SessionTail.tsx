@@ -83,6 +83,7 @@ import { takeHandOver } from "../../shared/media.ts";
 import { getSeen, markSeen, seenKey } from "../../shared/seen.ts";
 import { loadTail, saveTail } from "./tail-cache.ts";
 import { QuickConfirm, lastAssistantQuestion } from "./QuickConfirm.tsx";
+import { backgroundActivities } from "./background-activities.ts";
 import { ReplyTemplates } from "./ReplyTemplates.tsx";
 import type { CodeTarget } from "../../app/route.ts";
 import {
@@ -111,6 +112,7 @@ import {
   contextText,
   contextLevel,
   contextWindowFromEvents,
+  outputLimitFromEvents,
   latestModelName,
   turnStatsText,
 } from "./run-stats.ts";
@@ -935,6 +937,10 @@ export function SessionTail({
     };
   }, [session.adapter]);
   const progress = runProgress(events, status, now);
+  const activeBackground = useMemo(
+    () => record.openActivities?.filter(({ id }) => !id.startsWith("tool:")) ?? backgroundActivities(events),
+    [events, record.openActivities],
+  );
   const providerFailure = observerOnly ? null : currentProviderFailure(events);
   const factoryLink = useMemo(() => {
     for (const e of events) {
@@ -1954,6 +1960,7 @@ export function SessionTail({
               processedFallback={tokensKnown ? record.tokensEst : null}
               fill={tokenStats.lastContextTokens}
               windowTokens={windowTokens}
+              maxOutputTokens={outputLimitFromEvents(shownEvents)}
               quota={quota}
             />
           </div>
@@ -2024,35 +2031,21 @@ export function SessionTail({
               }}
             />
           )}
-          {status === "working" &&
-            (() => {
-              // ADR-0074/0076: begin/end-Paare zählen — der letzte Stand steht im Strom.
-              let count = 0;
-              const seen = new Set<string>();
-              for (const e of events) {
-                const p = e.payload as { kind?: string; id?: string };
-                if (
-                  p?.kind === "session.activity_begin" &&
-                  typeof p.id === "string"
-                ) {
-                  if (!seen.has(p.id)) {
-                    seen.add(p.id);
-                    count += 1;
-                  }
-                } else if (
-                  p?.kind === "session.activity_end" &&
-                  typeof p.id === "string" &&
-                  seen.delete(p.id)
-                )
-                  count -= 1;
-              }
-              return count > 0 ? (
-                <p class="dim" role="status">
-                  Hintergrundarbeit aktiv · {count} offene Aktivität
-                  {count === 1 ? "" : "en"}
-                </p>
-              ) : null;
-            })()}
+          {(status === "working" || status === "waiting_approval") && activeBackground.length > 0 && (
+            <div class="dim">
+              <p role="status">
+                Hintergrundarbeit aktiv · {activeBackground.length} offene Aktivität
+                {activeBackground.length === 1 ? "" : "en"}
+              </p>
+              <ul aria-label="Aktive Hintergrundaufgaben">
+                {activeBackground.map(({ id, label, startedAt }) => (
+                  <li key={id}>
+                    {label} · seit <time dateTime={startedAt}>{new Date(startedAt).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" })}</time>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {loopView && (
             <LoopPanel
               sessionId={session.id}

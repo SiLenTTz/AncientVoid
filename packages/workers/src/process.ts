@@ -45,6 +45,7 @@ export class ProcessRunner implements WorkerRunner {
     });
     return {
       ...(proc.pid !== undefined ? { pid: proc.pid } : {}),
+      stdinMode: "pipe",
       onStdout: (cb) => stdoutCbs.add(cb),
       onStderr: (cb) => stderrCbs.add(cb),
       onExit: (cb) => exitCbs.add(cb),

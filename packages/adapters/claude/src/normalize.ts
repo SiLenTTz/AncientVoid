@@ -92,7 +92,7 @@ function normalizeUsageQuota(info: Record<string, unknown> | undefined): UsageQu
   };
 }
 
-export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
+export function normalizeClaudeLine(raw: unknown, mainModel?: string): EmittedEvent[] {
   if (typeof raw !== "object" || raw === null) {
     return [
       { type: "system", summary: "claude: non-object stream-json line", payload: { raw: asString(raw) } },
@@ -118,11 +118,11 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
     case "result":
       // ADR-0015: a failed turn also says why, in words.
       return line.is_error === true && typeof line.result === "string"
-        ? [normalizeResult(line), providerErrorEvent("claude", line.result)]
-        : [normalizeResult(line)];
+        ? [normalizeResult(line, mainModel), providerErrorEvent("claude", line.result)]
+        : [normalizeResult(line, mainModel)];
     case "assistant":
     case "user": {
-      const message = line.message as { content?: ContentBlock[] } | undefined;
+      const message = line.message as { content?: ContentBlock[]; usage?: Record<string, unknown> } | undefined;
       const blocks = Array.isArray(message?.content) ? message!.content! : [];
       if (blocks.length === 0) {
         return [
@@ -133,7 +133,14 @@ export function normalizeClaudeLine(raw: unknown): EmittedEvent[] {
           },
         ];
       }
-      return blocks.flatMap((block) => normalizeContentBlock(block, line.type as "assistant" | "user"));
+      const events = blocks.flatMap((block) => normalizeContentBlock(block, line.type as "assistant" | "user"));
+      const usage = message?.usage;
+      if (line.type === "assistant" && typeof line.parent_tool_use_id !== "string" && usage && typeof usage.input_tokens === "number") {
+        const contextInputTokens = usage.input_tokens + (typeof usage.cache_read_input_tokens === "number" ? usage.cache_read_input_tokens : 0) +
+          (typeof usage.cache_creation_input_tokens === "number" ? usage.cache_creation_input_tokens : 0);
+        events.push({ type: "system", summary: "Claude · gemeldeter Kontext", payload: { kind: "claude.context", contextInputTokens } });
+      }
+      return events;
     }
     case "attachment":
       // Claude Code >= 2.1.28x emits top-level `attachment` events (files the
@@ -255,7 +262,7 @@ function normalizeSystem(line: Record<string, unknown>): EmittedEvent {
   return { type: "system", summary: `claude: system/${subtype}`, payload };
 }
 
-function normalizeResult(line: Record<string, unknown>): EmittedEvent {
+function normalizeResult(line: Record<string, unknown>, mainModel?: string): EmittedEvent {
   const costUsd = typeof line.total_cost_usd === "number" ? line.total_cost_usd : undefined;
   const isError = line.is_error === true;
   const costSuffix = costUsd !== undefined ? ` — $${costUsd.toFixed(4)}` : "";
@@ -266,6 +273,10 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
   const inputTokens = typeof usage?.input_tokens === "number" ? usage.input_tokens : undefined;
   const outputTokens = typeof usage?.output_tokens === "number" ? usage.output_tokens : undefined;
   const tokensEst = inputTokens !== undefined && outputTokens !== undefined ? inputTokens + outputTokens : undefined;
+  const models = line.modelUsage && typeof line.modelUsage === "object"
+    ? Object.entries(line.modelUsage as Record<string, { contextWindow?: unknown; maxOutputTokens?: unknown } | null>)
+    : [];
+  const modelDetails = mainModel ? models.find(([name]) => name === mainModel) : models.length === 1 ? models[0] : undefined;
   return {
     type: "system",
     summary: `claude: turn complete${isError ? " (error)" : ""}${costSuffix}`,
@@ -275,7 +286,11 @@ function normalizeResult(line: Record<string, unknown>): EmittedEvent {
       numTurns: line.num_turns,
       durationMs: line.duration_ms,
       result: typeof line.result === "string" ? line.result.slice(0, 500) : undefined,
-      // ADR-0032: the input part doubles as the context fill.
+      ...(modelDetails ? {
+        model: modelDetails[0],
+        ...(typeof modelDetails[1]?.contextWindow === "number" && modelDetails[1].contextWindow > 0 ? { contextWindowTokens: modelDetails[1].contextWindow } : {}),
+        ...(typeof modelDetails[1]?.maxOutputTokens === "number" && modelDetails[1].maxOutputTokens > 0 ? { maxOutputTokens: modelDetails[1].maxOutputTokens } : {}),
+      } : {}),
       ...(inputTokens !== undefined || outputTokens !== undefined
         ? { usage: { ...(inputTokens !== undefined ? { input: inputTokens } : {}), ...(outputTokens !== undefined ? { output: outputTokens } : {}) } }
         : {}),

@@ -3,8 +3,8 @@ import { test, expect } from "../support/fixtures.ts";
 
 /**
  * EPIC-P15 T15.2 / ADR-0033: Modus und Modell einer Session in der App wählen
- * und wechseln. Bewiesen wird am Init-Event des nächsten Zugs, was die (Attrappe
- * der) Claude-CLI wirklich bekam.
+ * und im persistenten Worker wechseln. Die Antwort des nächsten Zugs meldet
+ * die Werte, die in der CLI-Attrappe tatsächlich gelten.
  */
 test.describe("Modus und Modell", () => {
   const inits = async (hub: { events: (id: string) => Promise<{ summary: string; payload: Record<string, unknown> }[]> }, id: string) =>
@@ -30,13 +30,13 @@ test.describe("Modus und Modell", () => {
     await app.getByLabel("Modus").selectOption("plan");
     await expect.poll(async () => ((await hub.events(id)).find((e) => (e.payload as { kind?: string }).kind === "session.configured")?.payload as { permissionMode?: string } | undefined)?.permissionMode).toBe("plan");
     await app.getByLabel("Modell").selectOption("opus");
-    await expect(app.getByLabel("Modell")).toHaveValue("opus");
+    await expect.poll(async () => (await hub.events(id)).some(e => e.payload.kind === "session.configured" && e.payload.model === "opus")).toBe(true);
 
     const before = (await inits(hub, id)).length;
-    await app.getByPlaceholder("Antworten…").fill("Noch eine Frage");
+    await app.getByPlaceholder("Antworten…").fill("PRUEFE_EINSTELLUNGEN");
     await app.getByRole("button", { name: "Senden" }).click();
-    await hub.until(async () => (await inits(hub, id)).length > before, "zweiter Zug");
-    expect((await inits(hub, id)).at(-1)).toMatchObject({ permissionMode: "plan", model: "opus" });
+    await hub.until(async () => (await hub.events(id)).some(e => e.type === "assistant" && e.summary.includes("Claude opus · Modus plan")), "neues Modell und neuer Modus im zweiten Zug");
+    expect(await inits(hub, id)).toHaveLength(before);
   });
 
   test("der Wechsel überlebt das Neuladen der Seite (AC-P15-3)", async ({ app, hub }) => {
