@@ -61,7 +61,7 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await expect(app.locator(".toast")).toHaveCount(0);
   });
 
-  test("Fehler und offene Fragen stehen angepinnt oben, der Rest darunter (Nutzerfund 2026-11-15)", async ({ app, hub }) => {
+  test("Fehler, Rückfragen und Fertiges stehen in eigenen Abschnitten (Nutzerwunsch 2026-11-20)", async ({ app, hub }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Bitte KONTINGENT" }); // Fehler
     await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" }); // offene Frage, bleibt offen
     await hub.createSession({ adapter: "opencode", prompt: "Kurz" }); // Zug fertig
@@ -76,16 +76,16 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     );
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     const sections = app.locator(".notif-section");
-    await expect(sections).toHaveCount(3);
-    // Reihenfolge ist die Wichtigkeit: Fehler, offene Fragen, Rest. Der
-    // Abschnittskopf trägt seit dem Einklappen die Anzahl (Muster Übersicht).
+    // Reihenfolge ist die Wichtigkeit: Fehler, Rückfrage, Fertig, Sonstiges.
+    // „Sonstiges“ bleibt hier ungerendert (leerer Abschnitt, keine Warnung/Info
+    // im Szenario). Der Abschnittskopf trägt die Anzahl (Muster Übersicht).
     await expect(sections.nth(0).locator(".section-title")).toHaveText(/^Fehler/);
     await expect(sections.nth(0).locator(".notif-item")).toContainText("Kontingent erschöpft");
-    await expect(sections.nth(1).locator(".section-title")).toHaveText(/^Offene Fragen/);
+    await expect(sections.nth(1).locator(".section-title")).toHaveText(/^Rückfrage/);
     await expect(sections.nth(1).locator(".notif-item")).toContainText("Rückfrage");
-    await expect(sections.nth(2).locator(".section-title")).toHaveText(/^Übrige Meldungen/);
+    await expect(sections.nth(2).locator(".section-title")).toHaveText(/^Fertig/);
     await expect(sections.nth(2).locator(".notif-item")).toContainText("Zug fertig");
-    // Der Fehler liegt im DOM über der Frage und der Frage über dem Rest.
+    // Der Fehler liegt im DOM über der Frage und der Frage über dem Fertigen.
     const order = await app.evaluate(() =>
       [...document.querySelectorAll(".notif-item")].map((el) => el.textContent ?? ""),
     );
@@ -131,11 +131,12 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     const { body } = await hub.api<{ items: unknown[] }>("/api/notifications");
     await expect(app.getByRole("button", { name: `Benachrichtigungen (${body.items.length} neu)` })).toBeVisible();
 
-    // Erster Öffnen: alles noch ungesehen → alle drei Abschnitte offen.
+    // Erster Öffnen: alles noch ungesehen → alle vorhanden Abschnitte offen
+    // („Sonstiges“ existiert im Szenario nicht — kein Eintrag, kein Abschnitt).
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     await expect(fold("Fehler")).toHaveAttribute("aria-expanded", "true");
-    await expect(fold("Offene Fragen")).toHaveAttribute("aria-expanded", "true");
-    await expect(fold("Übrige Meldungen")).toHaveAttribute("aria-expanded", "true");
+    await expect(fold("Rückfrage")).toHaveAttribute("aria-expanded", "true");
+    await expect(fold("Fertig")).toHaveAttribute("aria-expanded", "true");
     await expect(app.locator(".notif-item").filter({ hasText: "Kontingent erschöpft" })).toBeVisible();
     await app.locator(".notif-panel-head").getByRole("button", { name: "✕" }).click();
 
@@ -143,8 +144,8 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     // bleibt Vorgabe-offen (Read-Mark löscht keine offene Frage, wie der Glow).
     await app.getByRole("button", { name: /Benachrichtigungen/ }).click();
     await expect(fold("Fehler")).toHaveAttribute("aria-expanded", "false");
-    await expect(fold("Offene Fragen")).toHaveAttribute("aria-expanded", "true");
-    await expect(fold("Übrige Meldungen")).toHaveAttribute("aria-expanded", "false");
+    await expect(fold("Rückfrage")).toHaveAttribute("aria-expanded", "true");
+    await expect(fold("Fertig")).toHaveAttribute("aria-expanded", "false");
     await expect(app.locator(".notif-item").filter({ hasText: "Rückfrage" })).toBeVisible();
     await expect(app.locator(".notif-item").filter({ hasText: "Kontingent erschöpft" })).toHaveCount(0);
 
@@ -154,9 +155,10 @@ test.describe("Fehler und Benachrichtigungen (ADR-0015)", () => {
     await fold("Fehler").click();
     await expect(app.locator(".notif-item").filter({ hasText: "Kontingent erschöpft" })).toHaveCount(0);
 
-    // Neu angekommen, während das Panel offen ist: nur der betroffene Abschnitt klappt auf.
+    // Neu angekommen, während das Panel offen ist: nur der betroffene Abschnitt klappt auf
+    // („Zug fertig“ zählt jetzt zum grünen Fertig-Abschnitt, nicht mehr zu Sonstiges).
     await hub.createSession({ adapter: "opencode", prompt: "Nochmal Kurz" });
-    await expect(fold("Übrige Meldungen")).toHaveAttribute("aria-expanded", "true", { timeout: 15_000 });
+    await expect(fold("Fertig")).toHaveAttribute("aria-expanded", "true", { timeout: 15_000 });
     await expect(fold("Fehler")).toHaveAttribute("aria-expanded", "false");
     await expect(app.locator(".notif-item").filter({ hasText: "Zug fertig" })).toHaveCount(2);
   });

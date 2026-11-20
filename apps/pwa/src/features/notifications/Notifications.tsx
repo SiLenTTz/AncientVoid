@@ -4,7 +4,7 @@ import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
-import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS } from "./urgency.ts";
+import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS, APPROVAL_KINDS } from "./urgency.ts";
 import { SECTION_KEYS, defaultExpanded, sectionOf, type SectionKey } from "./sections.ts";
 import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
 import { applyNotificationPage, type FleetNotification } from "./merge.ts";
@@ -24,10 +24,19 @@ const TOAST_MS: Record<HubNotification["level"], number> = { error: 30_000, warn
 interface Toast {
   key: string;
   level: HubNotification["level"];
+  /** Kind der Meldung (null bei lokalen Status-Toasts) — steuert die
+   * Rückfrage-Färbung blau statt Level-gelb (Nutzerwunsch 2026-11-20). */
+  kind: string | null;
   title: string;
   detail: string | null;
   sessionId: string | null;
   hostId: string | null;
+}
+
+/** Nutzerwunsch 2026-11-20: Rückfragen toasten blau — gleiche Kinds wie
+ * questions-Sektion und action-Glow (Single Source urgency.ts). */
+function isQuestionKind(kind: string | null): boolean {
+  return kind !== null && (APPROVAL_KINDS.has(kind) || MAIN_SYNC_ACTION_KINDS.has(kind));
 }
 
 function readMarks(): Record<string, number> {
@@ -68,12 +77,14 @@ function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
  * with the recent list. Polls the hub; the first load only fills the list,
  * so opening the app never replays old toasts.
  */
-const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
 
 /** `corner`: the list column is folded away, so bell and gear sit in the window corner.
  * EPIC-P64 T64.4: `flow` — am PC mit sichtbarer Liste sitzt die Glocke als
  * Flusselement im Kopf der Listenspalte (App-Topbar), nicht als Overlay. */
-export const SECTION_LABEL: Record<SectionKey, string> = { errors: "Fehler", questions: "Offene Fragen", rest: "Übrige Meldungen" };
+/** Nutzerwunsch 2026-11-20: vier Abschnitte mit fester Farbbedeutung —
+ * Fehler (rot), Rückfrage (blau), Fertig (grün), Sonstiges (gelb); die Farbe
+ * trägt die CSS-Klasse je Abschnitt (14-notifications.css). */
+export const SECTION_LABEL: Record<SectionKey, string> = { errors: "Fehler", questions: "Rückfrage", done: "Fertig", rest: "Sonstiges" };
 export function NotificationCenter({ corner = false, flow = false }: { corner?: boolean; flow?: boolean }) {
   const [items, setItems] = useState<FleetNotification[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -81,7 +92,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   const [read, setRead] = useState(readMarks);
   /** Nutzerwunsch 2026-11-18: einklappbare Abschnitte — Vorgabe beim Öffnen
    * (und bei Neuankünften im offenen Panel): nur Ungesehenes steht offen. */
-  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ errors: true, questions: true, rest: true });
+  const [expanded, setExpanded] = useState<Record<SectionKey, boolean>>({ errors: true, questions: true, done: true, rest: true });
   /** Sessions mit noch offener Freigabe/Frage — live geprüft, damit eine
    * beantwortete Frage aus dem angepinnten Abschnitt verschwindet. */
   const [pendingApprovals, setPendingApprovals] = useState<ReadonlySet<string>>(new Set());
@@ -144,7 +155,6 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
     setToasts((prev) => [t, ...prev].slice(0, 4));
     setTimeout(() => setToasts((prev) => prev.filter((x) => x.key !== t.key)), TOAST_MS[t.level]);
   };
-
   const take = (hostId: string | null, page: { items: HubNotification[]; lastId: number }) => {
     const key = hostId ?? "";
     const known = lastIds.current[key] ?? null;
@@ -165,7 +175,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       // EPIC-P65: der Sound dazu läuft trotzdem — pro neu ankommende Meldung
       // (nie beim Laden), Kategorie-Mapping im getesteten Modul, Rate-Limit im Modul.
       for (const n of [...added].reverse()) {
-        const show = () => toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
+        const show = () => toast({ key: n.key, level: n.level, kind: n.kind, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
         // Premortem P8-2: an approval decided meanwhile (e.g. a peer's
         // notification that arrived late) is no toast any more.
         if (APPROVAL_KINDS.has(n.kind))
@@ -229,14 +239,14 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         try {
           const page = await hubApi.notifications(lastIds.current[""] ?? 0);
           if (!alive) return;
-          if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
+          if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", kind: null, title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
           failures.current = 0;
           take(null, page);
         } catch {
           if (!alive) return;
           failures.current += 1;
           if (failures.current === HUB_DOWN_AFTER) {
-            toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
+            toast({ key: `hub-${Date.now()}`, level: "warning", kind: null, title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
           }
         }
         // EPIC-P6 T6.6: other hosts' notifications through this hub. A host
@@ -273,7 +283,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
   /** EPIC-P64 T64.2: höchste offene Dringlichkeit steuert den Glow der Glocke. */
   const urgency = urgencyOf(items, read, pendingApprovals);
 
-  const sections: Record<SectionKey, FleetNotification[]> = { errors: [], questions: [], rest: [] };
+  const sections: Record<SectionKey, FleetNotification[]> = { errors: [], questions: [], done: [], rest: [] };
   for (const n of items) sections[sectionOf(n, pendingApprovals)].push(n);
   const toggleSection = (key: SectionKey) =>
     setExpanded((prev) => {
@@ -293,7 +303,9 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       await hostApi(n.hostId).runNotificationAction(n.action.path);
       goTo(n.sessionId, n.hostId);
     } catch {
-      // laut genug: Toast-Text bleibt, der Knopf wird wieder frei
+      // Fail loud (AGENTS.md): ein gescheiterter Aktionsruf darf nicht nur den
+      // Knopf freigeben — der Nutzer sieht sonst nicht, dass nichts passierte.
+      toast({ key: `action-${n.key}-${Date.now()}`, level: "error", kind: null, title: "Aktion fehlgeschlagen", detail: n.title, sessionId: n.sessionId, hostId: n.hostId });
     } finally {
       const done = itemsRef.current.find((i) => i.key === n.key);
       if (done) done.actionBusy = false;
@@ -369,7 +381,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       </button>
       <div class="toast-stack" role="status" aria-live="polite">
         {visibleToasts(toasts).map((t) => (
-          <div key={t.key} class={`toast ${t.level}`}>
+          <div key={t.key} class={`toast ${t.level}${isQuestionKind(t.kind) ? " question" : ""}`}>
             <button class="toast-body" type="button" onClick={() => goTo(t.sessionId, t.hostId)}>
               <strong>{t.title}</strong>
               {t.detail && <span>{t.detail}</span>}
@@ -418,7 +430,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
                 const list = sections[key];
                 if (list.length === 0) return null;
                 return (
-                  <section key={key} class="notif-section" aria-label={SECTION_LABEL[key]}>
+                  <section key={key} class={`notif-section ${key}`} aria-label={SECTION_LABEL[key]}>
                     {/* Nutzerwunsch 2026-11-18: ganze Kopfzeile klappt den Abschnitt
                      * (Muster .section-fold der Übersicht, EPIC-P43 T43.3). */}
                     <h3 class="section-title">

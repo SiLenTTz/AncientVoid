@@ -1,11 +1,12 @@
-/* T2.6: approval queue */
+/* T2.6: approval queue. Nutzerwunsch 2026-11-20: Eine offene Freigabe ist eine
+ * Rückfrage — blau (--info), nicht warn-gelb; gelb bleibt echten Warnungen. */
 .approval-banner {
   display: block;
   width: 100%;
   text-align: left;
-  background: color-mix(in srgb, var(--warn) 16%, var(--bg-elev));
-  border: 1px solid var(--warn);
-  color: var(--warn);
+  background: color-mix(in srgb, var(--info) 16%, var(--bg-elev));
+  border: 1px solid var(--info);
+  color: var(--info);
   border-radius: var(--radius);
   padding: 10px 14px;
   font: inherit;
