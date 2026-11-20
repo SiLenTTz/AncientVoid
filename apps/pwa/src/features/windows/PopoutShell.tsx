@@ -101,7 +101,7 @@ export function PopoutShell() {
         document.documentElement.dataset.focusRequests = String(Number(document.documentElement.dataset.focusRequests ?? "0") + 1);
       }
     });
-    const bye = () => postWindowMessage({ type: "bye", id });
+    const bye = () => postWindowMessage({ type: "bye", id, target });
     window.addEventListener("pagehide", bye);
     return () => {
       clearInterval(beat);

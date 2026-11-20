@@ -82,6 +82,35 @@ export function openInNewTile(ws: Workspace, ref: TileRef): Workspace {
   return at >= 0 ? { ...ws, layout, focus: at } : put({ ...ws, layout }, index, ref);
 }
 
+/** BUG-0244: feste Kachel (Neue Session → Index 0). Belegte Kachel wird verschoben, nicht verworfen. */
+export function openInTile(ws: Workspace, ref: TileRef, index: number): Workspace {
+  if (index < 0) return openInNewTile(ws, ref);
+  const at = ws.slots.findIndex((t) => same(t, ref));
+  if (at === index) return { ...ws, focus: index };
+  const slots = Array.from({ length: Math.max(4, ws.slots.length, index + 1) }, (_, i) => ws.slots[i] ?? null);
+  if (at >= 0) slots[at] = null;
+  const displaced = slots[index];
+  slots[index] = at >= 0 ? (ws.slots[at] as TileRef) : ref;
+  if (displaced && !(at >= 0 && same(displaced, ref))) {
+    const empty = slots.findIndex((t, i) => i !== index && t === null);
+    if (empty >= 0) slots[empty] = displaced;
+    else slots.push(displaced);
+  }
+  const needed = slots.reduce((last, t, i) => (t === null ? last : i + 1), 0);
+  const layout = needed > COUNT[ws.layout] ? (GROW[needed - 1] ?? "2x2") : ws.layout;
+  return { ...ws, slots, layout, focus: index };
+}
+
+/** BUG-0245: Lücken nach Ablösen/Schließen schließen und Layout auf die belegten Kacheln schrumpfen. */
+export function compactTiles(ws: Workspace): Workspace {
+  const filled = ws.slots.filter((t): t is TileRef => t !== null);
+  const slots = Array.from({ length: Math.max(4, filled.length) }, (_, i) => filled[i] ?? null);
+  const n = Math.max(1, filled.length);
+  const layout: Layout = n <= 1 ? "1" : n === 2 ? (ws.layout === "2h" ? "2h" : "2v") : n === 3 ? (ws.layout === "3v" ? "3v" : "1+2") : "2x2";
+  const focus = Math.min(ws.focus, Math.max(0, Math.min(n, COUNT[layout]) - 1));
+  return { ...ws, slots, layout, focus };
+}
+
 export function setLayout(ws: Workspace, layout: Layout): Workspace {
   return { ...ws, layout, focus: Math.min(ws.focus, COUNT[layout] - 1) };
 }
@@ -129,12 +158,14 @@ export function isDetached(ws: Workspace, ref: TileRef): boolean {
   return (ws.detached ?? []).some((d) => same(d, ref));
 }
 
-/** Die Kachel wandert in ein eigenes Fenster: Platz frei, Session wird vermerkt. */
+/** Die Kachel wandert in ein eigenes Fenster: Slot weg (kompakt), Session wird vermerkt. */
 export function detachTile(ws: Workspace, index: number): Workspace {
   const ref = ws.slots[index];
   if (!ref) return ws;
   const detached = isDetached(ws, ref) ? (ws.detached ?? []) : [...(ws.detached ?? []), ref];
-  return { ...put(ws, index, null), focus: ws.focus, detached };
+  const slots = [...ws.slots];
+  slots[index] = null;
+  return compactTiles({ ...ws, slots, detached, focus: ws.focus === index ? 0 : ws.focus > index ? ws.focus - 1 : ws.focus });
 }
 
 /** „In die App zurück“: aus der Liste der Fenster nehmen und wieder in eine Kachel öffnen. */

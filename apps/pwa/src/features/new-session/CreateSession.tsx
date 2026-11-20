@@ -326,7 +326,9 @@ export function CreateSession({
 
   return (
     <ApiContext.Provider value={api}>
-    <Card class="form-grid">
+    {/* BUG-0244: zwei Spalten ab ausreichender Kachelbreite (Container-Query), weniger Scrollen am PC/Tablet. */}
+    <Card class="form-grid new-session-form">
+      <div class="new-session-col">
       {/* BUG-0188: Der Host führt das Formular an — Pfad, wählbares Repo,
           Adapter und Skills hängen alle von ihm ab; erst danach folgen
           Projekt und Pfad. */}
@@ -399,6 +401,8 @@ export function CreateSession({
           spellcheck={false}
         />
       </label>
+      </div>
+      <div class="new-session-col">
       <LoopPicker api={api} value={loop} confirmed={loopConfirmed} onConfirmed={setLoopConfirmed} onChange={(next, info) => { setLoop(next); setLoopInfo(info); setOnboard(emptyOnboard); }} onboard={onboard} onOnboard={setOnboard} reload={loopReload} initial={last.loop ?? null} project={project} />
       {(!loop || loop.id === "securesight-factory") && (
         <>
@@ -479,6 +483,8 @@ export function CreateSession({
       )}
         </>
       )}
+      </div>
+      <div class="new-session-span">
       <label>
         Prompt (optional)
         <Composer
@@ -508,6 +514,7 @@ export function CreateSession({
       <Button  aria-busy={busy} onClick={submit} disabled={busy || !project || !!loopBlock || (!loop && workplaceBlocked)} variant="primary" class={busy ? "busy" : undefined}>
         {busy ? "lädt…" : "Starten"}
       </Button>
+      </div>
     </Card>
     </ApiContext.Provider>
   );

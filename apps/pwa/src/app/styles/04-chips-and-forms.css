@@ -342,6 +342,30 @@ button.badge-stale {
   min-width: 0;
 }
 
+/* BUG-0244: Neue Session — Breite der Kachel zählt (wie settings-cols), nicht die Fensterbreite. */
+.new-session-form {
+  container-type: inline-size;
+  align-items: start;
+}
+
+.new-session-col,
+.new-session-span {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+@container (min-width: 560px) {
+  .new-session-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+
+  .new-session-span {
+    grid-column: 1 / -1;
+  }
+}
+
 /* EPIC-P63 T63.9: statische CreateSession-Styles statt style={{…}} */
 .form-warnings {
   margin: 2px 0;

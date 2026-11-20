@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closeTile, detachTile, isDetached, reattach, cycleLayout, emptyWorkspace, focusTile, openInNewTile, openSession, parseWorkspace, serializeWorkspace, setLayout, swapWith, tileCount, visibleTiles } from "../../../src/features/workspace/tiles.ts";
+import { closeTile, compactTiles, detachTile, isDetached, openInTile, reattach, cycleLayout, emptyWorkspace, focusTile, openInNewTile, openSession, parseWorkspace, serializeWorkspace, setLayout, swapWith, tileCount, visibleTiles } from "../../../src/features/workspace/tiles.ts";
 
 const a = { sessionId: "a" };
 const b = { sessionId: "b" };
@@ -102,16 +102,43 @@ describe("Kachel-Zustand (T18.2)", () => {
   });
 });
 
+describe("BUG-0244: Neue Session in Kachel 1", () => {
+  const neu = { sessionId: "", content: { kind: "page" as const, page: "new" as const } };
+
+  it("pinnt Neue Session auf Index 0 und verschiebt die alte Kachel 1", () => {
+    let ws = openSession(setLayout(emptyWorkspace(), "2v"), a);
+    ws = openInTile(ws, neu, 0);
+    expect(visibleTiles(ws)[0]).toEqual(neu);
+    expect(visibleTiles(ws).some((t) => t?.sessionId === "a")).toBe(true);
+    expect(ws.focus).toBe(0);
+  });
+
+  it("erneutes Öffnen fokussiert Kachel 1, ohne zu verdoppeln", () => {
+    let ws = openInTile(openSession(emptyWorkspace(), a), neu, 0);
+    ws = openInTile(ws, neu, 0);
+    expect(visibleTiles(ws).filter((t) => t && JSON.stringify(t) === JSON.stringify(neu))).toHaveLength(1);
+    expect(ws.focus).toBe(0);
+  });
+});
+
 describe("Abgelöste Kacheln (EPIC-P34 T34.10)", () => {
-  it("ablösen leert die Kachel und merkt die Session; zurückholen öffnet sie wieder", () => {
+  it("ablösen entfernt die Kachel kompakt und merkt die Session; zurückholen öffnet sie wieder", () => {
     let ws = openSession(setLayout(emptyWorkspace(), "2v"), a);
     ws = openSession(ws, b);
     ws = detachTile(ws, 0);
-    expect(visibleTiles(ws)).toEqual([null, b]);
+    // BUG-0245: keine leere Nachbar-Kachel — Layout schrumpft auf die Rest-Session.
+    expect(visibleTiles(ws)).toEqual([b]);
+    expect(ws.layout).toBe("1");
     expect(isDetached(ws, a)).toBe(true);
     ws = reattach(ws, a);
     expect(isDetached(ws, a)).toBe(false);
     expect(visibleTiles(ws).some((t) => t?.sessionId === "a")).toBe(true);
+  });
+
+  it("compactTiles schließt Lücken und schrumpft das Layout", () => {
+    const ws = compactTiles({ layout: "2x2", slots: [null, a, null, b], focus: 3 });
+    expect(visibleTiles(ws)).toEqual([a, b]);
+    expect(ws.layout).toBe("2v");
   });
 
   it("eine leere Kachel löst nichts ab; doppeltes Ablösen führt die Session nur einmal", () => {

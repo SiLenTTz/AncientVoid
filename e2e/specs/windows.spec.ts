@@ -189,7 +189,7 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
     await popup.close();
   });
 
-  test("AC-P34-10: ein geschlossenes Fenster gibt seine Session frei, die Leiste bietet Wiederherstellen an @desktop", async ({ app, hub, context }) => {
+  test("AC-P34-10 / BUG-0245: ein geschlossenes Fenster räumt detached auf — Session ist wieder in einer Kachel öffnbar @desktop", async ({ app, hub, context }) => {
     await hub.createSession({ adapter: "opencode", prompt: "Wieder Aufgabe" });
     await card(app, "Wieder Aufgabe").click();
     const popupP = context.waitForEvent("page");
@@ -199,21 +199,12 @@ test.describe("Eigene Fenster (EPIC-P34)", () => {
 
     await popup.close();
     await expect(app.locator(".badge-window")).toHaveCount(0);
-    const bar = app.locator(".restore-bar");
-    await expect(bar).toContainText("1 Fenster");
-    // Wiederherstellen: ein Klick, ein Fenster.
-    const againP = context.waitForEvent("page");
-    await bar.getByRole("button", { name: /öffnen/ }).click();
-    const again = await againP;
-    await expect(again.locator(".session-topbar")).toBeVisible();
-    await expect(bar).toHaveCount(0);
-    await expect(app.locator(".badge-window")).toBeVisible();
-    await again.close();
-
-    // Verwerfen: die Session ist frei und lässt sich wieder in einer Kachel öffnen.
-    await expect(bar).toBeVisible();
-    await bar.getByRole("button", { name: "Verwerfen" }).click();
-    await expect(bar).toHaveCount(0);
+    // Grace nach bye: Reload würde hello senden und forget abbrechen; echtes Schließen vergisst detached.
+    await expect.poll(async () => {
+      const stored = JSON.parse((await app.evaluate(() => localStorage.getItem("ancientvoid.workspace")))!);
+      return stored.detached;
+    }).toBeUndefined();
+    await expect(app.locator(".restore-bar")).toHaveCount(0);
     await card(app, "Wieder Aufgabe").click();
     await expect(app.locator('[data-tile="1"] .session-topbar')).toBeVisible();
   });
