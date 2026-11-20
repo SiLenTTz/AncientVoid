@@ -31,6 +31,26 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect(app).toHaveURL(new RegExp(`#/sessions/${id}/datei/README\\.md$`));
   });
 
+  // BUG-0229: Ziehen verschiebt die Karte (Maus wie Finger) statt auszuwählen —
+  // das Hit-Overlay stand flächig über dem Canvas und schluckte Pan/Tap.
+  test("Ziehen am Stern verschiebt die Karte, statt die Datei auszuwählen", async ({ app, hub }) => {
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Pan Auftrag" });
+    await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
+    const star = app.locator(".graph-node-hit").first();
+    await expect(star).toBeVisible();
+    const key = `ancientvoid.galaxy:session=${id}`;
+    const readTx = () => app.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? "{}") as { camera?: { tx?: number } }).camera?.tx ?? null, key);
+    const before = await readTx();
+    const box = await star.boundingBox();
+    await app.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await app.mouse.down();
+    await app.mouse.move(box!.x + box!.width / 2 + 90, box!.y + box!.height / 2 + 60, { steps: 6 });
+    await app.mouse.up();
+    // Pan statt Klick: keine Auswahl, und die Kamera ist um die Ziehstrecke gewandert.
+    await expect(app.locator("[data-testid=graph-selection]")).toHaveCount(0);
+    await expect.poll(async () => (await readTx()) - before).toBeGreaterThan(50);
+  });
+
   test("Prüfen: JSON-Fehler markiert die Datei rot, Gegenprobe wird wieder normal", async ({ app, hub }) => {
     writeFileSync(join(hub.alpha, "kaputt.json"), "{\n");
     const id = await hub.createSession({ adapter: "dummy", prompt: "Diagnose", workspaceMode: "direct", confirmDirty: true });

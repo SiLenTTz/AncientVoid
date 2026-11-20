@@ -642,10 +642,14 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   };
 
   const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  // Nach einem Pan darf der browser-eigene Klick auf dem Stern-Knopf nicht mehr als Auswahl zählen.
+  const suppressClickRef = useRef(false);
   const onPointerDown = (e: PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // BUG-0229: Capture nur außerhalb der Treffer-Knöpfe — sonst schluckt sie der Wrap-Klick.
+    if (!(e.target as Element).closest?.("button")) (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     cancelAnimationFrame(flightRef.current);
     dragRef.current = { x: e.clientX, y: e.clientY, moved: false };
+    suppressClickRef.current = false;
     setDragging(true);
   };
   const onPointerMove = (e: PointerEvent) => {
@@ -681,6 +685,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     dragRef.current = null;
     setDragging(false);
     if (drag?.moved) setViewTick((t) => t + 1);
+    suppressClickRef.current = drag?.moved === true;
     if (!drag || drag.moved || !report) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -691,6 +696,11 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const onPointerLeave = () => {
     hoverRef.current = null;
     setHover(null);
+    // Drag ohne Capture (Start auf einem Treffer-Knopf): beim Verlassen der Fläche sauber enden.
+    if (dragRef.current) {
+      dragRef.current = null;
+      setDragging(false);
+    }
   };
 
   const counts = useMemo(() => {
@@ -862,7 +872,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       {diagErr && <div class="files-error">Prüfung fehlgeschlagen: {diagErr}</div>}
       <div class="graph-body">
       {/* Zoom an der ganzen Fläche: über einem Stern liegt dessen Klick-Knopf, nicht das Canvas. */}
-      <div class="graph-wrap" ref={wrapRef} onWheel={onWheel}>
+      <div class="graph-wrap" ref={wrapRef} onWheel={onWheel} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={onPointerLeave}>
         {full && (
           <Button aria-label="Vollbild verlassen" onClick={() => setFull(false)} class="graph-float">
             ←
@@ -870,15 +880,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
         )}
         {!report && !loadErr && <div class="graph-state">Lade Graph …</div>}
         {report && report.nodes.length === 0 && <div class="graph-state">Keine Dateien im Ziel gefunden.</div>}
-        <canvas
-          ref={canvasRef}
-          class="graph-canvas"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          onPointerLeave={onPointerLeave}
-        />
+        <canvas ref={canvasRef} class="graph-canvas" />
         <div class={`graph-node-hits${dragging ? " graph-node-hits-dragging" : ""}`}>
           {!systemId && layout && layout.systems.map((s) => {
             const { scale, tx, ty } = viewRef.current;
@@ -890,7 +892,10 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
                 class="graph-system-hit"
                 aria-label={`System ${systemLabel(s.id)}`}
                 style={{ left: `${s.x * scale + tx - side / 2}px`, top: `${(s.y - s.radius) * scale + ty - side}px`, width: `${side}px`, height: `${side}px` }}
-                onClick={() => enterSystem(s.id)}
+                onClick={() => {
+                  if (suppressClickRef.current) return;
+                  enterSystem(s.id);
+                }}
               />
             );
           })}
@@ -901,7 +906,10 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
               class={`graph-node-hit${h.hasError ? " has-error" : ""}${h.dead ? " dead" : ""}`}
               aria-label={`Datei ${h.path} auswählen`}
               style={h.style}
-              onClick={() => selectPath(h.path)}
+              onClick={() => {
+                if (suppressClickRef.current) return;
+                selectPath(h.path);
+              }}
             />
           ))}
         </div>
