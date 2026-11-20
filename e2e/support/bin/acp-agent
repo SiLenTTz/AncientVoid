@@ -49,11 +49,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function prompt(id, { sessionId, prompt: blocks }) {
   const text = blocks.map((b) => (b.type === "text" ? b.text : `[${b.type}]`)).join(" ");
+  if (text.includes("KONTINGENT_1308")) return send({ id, error: { code: -32000, message: "429 已达到 5 小时的使用上限。您的限额将在 2026-11-21 06:34:19 重置。 (type=1308)" } });
   if (text.includes("FEHLER")) return send({ id, error: { code: -32000, message: "Rate limit exceeded (429) — slow down" } });
   if (text.includes("STUMM")) return;
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Ich überlege" } });
   update(sessionId, { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: " kurz." } });
   let tail = "";
+  if (text.includes("NATIVER_KONTEXT")) update(sessionId, { sessionUpdate: "usage_update", used: 45, size: 180 });
   if (text.includes("PLAN")) {
     update(sessionId, { sessionUpdate: "plan", entries: [{ content: "Lesen", status: "completed", priority: "high" }, { content: "Ändern", status: "in_progress", priority: "high" }, { content: "Testen", status: "pending", priority: "medium" }] });
   }

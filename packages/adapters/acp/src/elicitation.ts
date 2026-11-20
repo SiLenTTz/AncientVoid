@@ -9,6 +9,7 @@ interface ElicitQuestion {
   header?: string;
   options: { label: string; description?: string }[];
   multiSelect: boolean;
+  required: boolean;
 }
 
 interface Field {
@@ -67,7 +68,7 @@ export function fieldsFromSchema(message: string, schema: Schema): Field[] {
         options.push({ label: c.label, ...(c.description ? { description: c.description } : {}) });
       }
     }
-    return { key, type, values, question: { question: text, ...(keys.length > 1 && message ? { header: message.slice(0, 40) } : {}), options, multiSelect } };
+    return { key, type, values, question: { question: text, ...(keys.length > 1 && message ? { header: message.slice(0, 40) } : {}), options, multiSelect, required: schema.required?.includes(key) ?? false } };
   });
 }
 

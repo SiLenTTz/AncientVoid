@@ -14,16 +14,20 @@ test("Hintergrundarbeit bleibt bis zum letzten Job aktiv @desktop", async ({ app
   const id = await hub.createSession({ adapter: "codex", prompt: "Ein kurzer Auftrag" });
   await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "main turn ended");
   const activity = async (job: string, state: string) => {
-    const response = await hub.api(`/api/sessions/${id}/activity`, { body: { id: job, kind: "job", state } });
+    const response = await hub.api(`/api/sessions/${id}/activity`, { body: { id: job, kind: "job", state, label: `Job ${job}` } });
     expect(response.status).toBe(200);
   };
   await activity("gate", "running");
   await activity("watcher", "running");
   await app.goto(`${hub.origin}/#/sessions/${id}`);
   await expect(app.getByText("Hintergrundarbeit aktiv · 2 offene Aktivitäten")).toBeVisible();
+  const jobs = app.getByRole("list", { name: "Aktive Hintergrundaufgaben" });
+  await expect(jobs.getByText("Job gate")).toBeVisible();
+  await expect(jobs.getByText("Job watcher")).toBeVisible();
   await activity("gate", "completed");
   expect((await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status).toBe("working");
   await expect(app.getByText("Hintergrundarbeit aktiv · 1 offene Aktivität", { exact: true })).toBeVisible();
+  await expect(jobs.getByText("Job gate")).toHaveCount(0);
   await activity("watcher", "completed");
   await hub.until(async () => (await hub.api<{ status: string }>(`/api/sessions/${id}`)).body.status === "idle", "last job ended");
 });

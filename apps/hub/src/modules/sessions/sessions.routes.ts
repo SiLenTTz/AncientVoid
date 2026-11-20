@@ -94,7 +94,7 @@ export function registerSessionsRoutes(app: FastifyInstance, ctx: RouteContext):
     }
     const session = deps.sessions.get(id);
     if (!session) return reply.code(404).send({ error: "unknown session" });
-    return withAttachCmd(session);
+    return { ...(await withAttachCmd(session)), openActivities: deps.sessions.openActivities(id) };
   });
 
 

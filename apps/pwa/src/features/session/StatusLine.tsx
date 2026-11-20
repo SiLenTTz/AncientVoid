@@ -20,6 +20,7 @@ export function StatusLine({
   processedFallback,
   fill,
   windowTokens,
+  maxOutputTokens,
   quota,
 }: {
   /** Die Bilanz aus `GET /api/sessions/:id/tokens`, null solange sie lädt. */
@@ -28,6 +29,7 @@ export function StatusLine({
   processedFallback: number | null;
   fill: number | null;
   windowTokens: number | null;
+  maxOutputTokens: number | null;
   quota: QuotaSummary;
 }) {
   const shown = totals ?? { generated: null, processed: processedFallback, contextFill: null, cacheRead: null, usageEvents: 0, estimated: false };
@@ -45,8 +47,9 @@ export function StatusLine({
     const pct = Math.round((fill / windowTokens) * 100);
     parts.push(`Kontext ${pct} % · frei ${fmt.format(Math.max(0, windowTokens - fill))} von ${fmt.format(windowTokens)}`);
   } else if (fill !== null) parts.push(`Kontext ${fmt.format(fill)} Tokens`);
+  else if (windowTokens !== null) parts.push(`Kontextfenster ${fmt.format(windowTokens)} Tokens`);
   const quotaKnown = quota.level !== "none";
-  if (parts.length === 0 && !quotaKnown) return null;
+  if (parts.length === 0 && !quotaKnown && maxOutputTokens === null) return null;
   const text = parts.join(" · ");
   return (
     <div class="run-meta status-line num">
@@ -56,6 +59,7 @@ export function StatusLine({
         </span>
       )}
       {windowKnown && <ContextBar fill={fill} windowTokens={windowTokens} />}
+      {maxOutputTokens !== null && <span>Ausgabelimit {fmt.format(maxOutputTokens)} Tokens</span>}
       {quotaKnown && <span class={`run-quota ${quota.level}`}>{quota.text}</span>}
     </div>
   );

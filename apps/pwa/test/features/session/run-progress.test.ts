@@ -77,6 +77,19 @@ describe("runProgress", () => {
     expect(runProgress(events, "idle", Date.parse(at(90)))).toBeNull();
   });
 
+  it("BUG-0238: keeps reported todos visible while awaiting a question answer", () => {
+    const events = [
+      ev(1, 0, "user", { kind: "session.prompt" }),
+      ev(2, 5, "tool_use", todos(["completed", "in_progress"])),
+      ev(3, 10, "gate", { kind: "tool.permission_requested", question: true }),
+    ];
+    expect(runProgress(events, "waiting_approval", Date.parse(at(30)))).toMatchObject({
+      percent: 50,
+      etaMs: null,
+      todos: [{ text: "Aufgabe 0", status: "completed" }, { text: "Aufgabe 1", status: "in_progress" }],
+    });
+  });
+
   it("only counts the plan of the current turn", () => {
     const events = [
       ev(1, 0, "user", { kind: "session.prompt", text: "a" }),

@@ -45,6 +45,11 @@
   color: var(--warn);
 }
 
+.approval-card .badge.question {
+  background: color-mix(in srgb, var(--info) 22%, transparent);
+  color: var(--info);
+}
+
 .badge.risk-destructive {
   background: color-mix(in srgb, var(--err) 22%, transparent);
   color: var(--err);

@@ -40,6 +40,26 @@ describe("turnTokenStats — Kontextfüllung aus allen Adapter-Formaten", () => 
 });
 
 describe("contextWindowFromEvents / latestModelName — Modell-Ansagen", () => {
+  it("BUG-0240: uses the native Codex window and keeps Claude's per-call context over its cumulative turn usage", () => {
+    expect(contextWindowFromEvents([ev("system", { kind: "codex.token_usage", contextWindowTokens: 258_400 })])).toBe(258_400);
+    const events = [
+      ev("system", { kind: "claude.context", contextInputTokens: 27_356 }),
+      ev("system", { kind: "claude.result", model: "claude-sonnet-5", contextWindowTokens: 1_000_000, usage: { input: 4, output: 82 } }),
+    ];
+    expect(contextWindowFromEvents(events)).toBe(1_000_000);
+    expect(turnTokenStats(events).lastContextTokens).toBe(27_356);
+  });
+
+  it("BUG-0242: keeps ACP's context report over the turn's usage totals", () => {
+    const events = [
+      ev("system", { kind: "acp.model", model: "local", contextWindowTokens: 100 }),
+      ev("system", { kind: "acp.context", contextInputTokens: 90, contextWindowTokens: 200 }),
+      ev("system", { kind: "acp.turn_end", usage: { input: 120, output: 20 } }),
+    ];
+    expect(contextWindowFromEvents(events)).toBe(200);
+    expect(turnTokenStats(events).lastContextTokens).toBe(90);
+    expect(latestModelName(events)).toBe("local");
+  });
   it("cursor.model trägt eine Fenstergröße wie acp/pi/opencode", () => {
     const events = [ev("system", { kind: "cursor.model", model: "auto", contextWindowTokens: 131_072 })];
     expect(contextWindowFromEvents(events)).toBe(131_072);

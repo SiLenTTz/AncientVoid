@@ -21,6 +21,7 @@ export * from "./observability/client-report.ts";
 export * from "./sessions/identity.ts";
 export * from "./harness/inventory.ts";
 export * from "./harness/provider-error.ts";
+export * from "./sessions/context-usage.ts";
 export * from "./harness/spawn-shape.ts";
 export * from "./notifications/notification.ts";
 export * from "./fleet/fleet.ts";

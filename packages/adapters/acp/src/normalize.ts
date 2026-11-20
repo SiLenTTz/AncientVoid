@@ -31,6 +31,8 @@ export interface SessionUpdate {
   rawOutput?: unknown;
   entries?: { content?: string; status?: string; priority?: string }[];
   message?: string;
+  used?: unknown;
+  size?: unknown;
 }
 
 function summarize(text: string, max = 200): string {
@@ -129,12 +131,21 @@ export class UpdateMapper {
         ];
       case "notice":
         return [{ type: "system", summary: summarize(`${this.label}: ${update.message ?? "Hinweis"}`), payload: { kind: "acp.notice" } }];
+      case "usage_update":
+        if (typeof update.used === "number" && Number.isSafeInteger(update.used) && update.used >= 0 &&
+          typeof update.size === "number" && Number.isSafeInteger(update.size) && update.size > 0) {
+          return [{
+            type: "system",
+            summary: `${this.label}: gemeldeter Kontext`,
+            payload: { kind: "acp.context", contextInputTokens: update.used, contextWindowTokens: update.size },
+          }];
+        }
+        return [{ type: "system", summary: `${this.label}: ACP-Kontextmeldung ohne gültige Tokenzahlen`, payload: { kind: "acp.invalid_usage" } }];
       case "user_message_chunk":
       case "available_commands_update":
       case "current_mode_update":
       case "config_option_update":
       case "session_info_update":
-      case "usage_update":
       case "plan_update":
       case "plan_removed":
       case "compaction_update":

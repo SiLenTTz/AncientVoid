@@ -1,3 +1,4 @@
+import { createContextUsageReader } from "@ancientvoid/contracts";
 import type { NormalizedEvent } from "../../shared/ws.ts";
 
 /**
@@ -28,11 +29,12 @@ export function turnTokenStats(events: readonly NormalizedEvent[]): SessionToken
   let generated: number | null = null;
   let context: number | null = null;
   let lastContext: number | null = null;
+  const readContext = createContextUsageReader();
   for (const e of events) {
     if (typeof e.tokensEst === "number") tokens += e.tokensEst;
     const out = usageOutput(e);
     if (out !== null) generated = (generated ?? 0) + out;
-    const input = usageInput(e);
+    const input = readContext(e.payload);
     // Auch laufend: der Balken zeigt die letzte gemeldete Füllung, nicht
     // erst ab dem ersten beendeten Zug (sonst „unbekannt" mitten im Zug,
     // obwohl der Provider Zahlen geschickt hat).
@@ -47,18 +49,6 @@ export function turnTokenStats(events: readonly NormalizedEvent[]): SessionToken
     }
   }
   return { turns, lastContextTokens: lastContext };
-}
-
-/** Zwei reale Formate: die meisten Adapter melden `usage.input` (claude,
- * cursor, acp, pi), codex exec hingegen `usage.inputTokens` (camelCase,
- * aus seinem normalizedUsage) — beide sind eine gemeldete Füllung. */
-function usageInput(e: NormalizedEvent): number | null {
-  const usage = (e.payload as { usage?: unknown }).usage;
-  if (!usage || typeof usage !== "object") return null;
-  const input = (usage as { input?: unknown }).input;
-  if (typeof input === "number") return input;
-  const inputTokens = (usage as { inputTokens?: unknown }).inputTokens;
-  return typeof inputTokens === "number" ? inputTokens : null;
 }
 
 /** Ausgabe-Tokens desselben Musters: claude/cursor `output_tokens`, codex
@@ -86,19 +76,33 @@ export function turnsClosedBetween(turns: readonly TurnStats[], prevSeq: number,
 /** Die Modell-Ansagen der Adapter, die eines dieser Events emitieren —
  * Cursor gehört dazu: adapter-cursor meldet `cursor.model` mit echter
  * Fenstergröße (contextWindowFor), derselbe Vertrag wie acp/pi/opencode. */
-const MODEL_EVENT_KINDS = ["acp.model", "opencode.model", "pi.model", "cursor.model"] as const;
+const MODEL_EVENT_KINDS = new Set(["acp.model", "acp.context", "opencode.model", "pi.model", "cursor.model"]);
+
+function isModelMetadata(payload: Record<string, unknown>): boolean {
+  return MODEL_EVENT_KINDS.has(String(payload.kind)) ||
+    (payload.kind === "codex.token_usage" && typeof payload.contextWindowTokens === "number") ||
+    (payload.kind === "claude.result" && typeof payload.model === "string");
+}
 
 /** Die session's current model is its LATEST announce — its window or none.
  * An older model's window is not this model's window, so it never shines
  * through. */
 export function contextWindowFromEvents(events: readonly NormalizedEvent[]): number | null {
+  const value = modelMetadataFromEvents(events)?.contextWindowTokens;
+  return typeof value === "number" ? value : null;
+}
+
+export function outputLimitFromEvents(events: readonly NormalizedEvent[]): number | null {
+  const value = modelMetadataFromEvents(events)?.maxOutputTokens;
+  return typeof value === "number" ? value : null;
+}
+
+function modelMetadataFromEvents(events: readonly NormalizedEvent[]): Record<string, unknown> | undefined {
   for (let i = events.length - 1; i >= 0; i--) {
-    const payload = events[i]!.payload as { kind?: unknown; contextWindowTokens?: unknown };
-    if ((MODEL_EVENT_KINDS as readonly string[]).includes(String(payload.kind))) {
-      return typeof payload.contextWindowTokens === "number" ? payload.contextWindowTokens : null;
-    }
+    const { payload } = events[i]!;
+    if (isModelMetadata(payload)) return payload;
   }
-  return null;
+  return undefined;
 }
 
 /** Der zuletzt angekündigte Modellname (Kopfzeile der Session-Ansicht) —
@@ -107,7 +111,7 @@ export function contextWindowFromEvents(events: readonly NormalizedEvent[]): num
 export function latestModelName(events: readonly NormalizedEvent[]): string | null {
   for (let i = events.length - 1; i >= 0; i--) {
     const payload = events[i]!.payload as { kind?: unknown; model?: unknown };
-    if ((MODEL_EVENT_KINDS as readonly string[]).includes(String(payload.kind)) && typeof payload.model === "string" && payload.model) {
+    if (isModelMetadata(payload) && typeof payload.model === "string" && payload.model) {
       return payload.model;
     }
   }
