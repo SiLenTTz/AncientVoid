@@ -31,7 +31,7 @@ describe("Kachel-Zustand (T18.2)", () => {
     expect(ws.focus).toBe(1);
   });
 
-  it("in einer neuen Kachel öffnen wächst 1 → 2v → 1+2 → 2x2, danach ersetzt es die Fokus-Kachel", () => {
+  it("in einer neuen Kachel öffnen wächst 1 → 2v → 1+2 → 2x2, danach wächst das Grid ohne Verdrängen", () => {
     let ws = openSession(emptyWorkspace(), a);
     ws = openInNewTile(ws, b);
     expect(ws.layout).toBe("2v");
@@ -42,7 +42,7 @@ describe("Kachel-Zustand (T18.2)", () => {
     expect(visibleTiles(ws).map((t) => t?.sessionId)).toEqual(["a", "b", "c", "d"]);
     ws = openInNewTile(ws, { sessionId: "e" });
     expect(ws.layout).toBe("2x2");
-    expect(visibleTiles(ws)[ws.focus]?.sessionId).toBe("e");
+    expect(visibleTiles(ws).map((t) => t?.sessionId)).toEqual(["a", "b", "c", "d", "e"]);
   });
 
   it("kleineres Layout verliert nichts: zurück auf 2x2 sind alle wieder da", () => {

@@ -1,3 +1,7 @@
+import { StatisticsPage } from "../statistics/StatisticsPage.tsx";
+import { CreateSession } from "../new-session/CreateSession.tsx";
+import { ApprovalQueuePane } from "../approvals/Approvals.tsx";
+import { sessionHash } from "../../app/route.ts";
 import { useEffect, useLayoutEffect } from "preact/hooks";
 import type { ListPage } from "../../app/route.ts";
 import { registerShortcut, comboLabel, ariaCombo } from "../../shared/shortcuts/registry.ts";
@@ -14,6 +18,9 @@ import { ReleaseNotesPage } from "../release-notes/ReleaseNotesPage.tsx";
 import { useHubStatus } from "./hub-status.ts";
 
 const TITLES: Partial<Record<ListPage, string>> = {
+  new: "Neue Session",
+  approvals: "Freigaben",
+  statistics: "Statistik",
   settings: "Einstellungen",
   media: "Medien",
   pc: "Am PC eintippen",
@@ -40,6 +47,8 @@ export function ToolPane({
   onPopout,
   closeLabel = "Schließen",
   escCloses = true,
+  closeButton = escCloses,
+  initialHash,
 }: {
   page: ListPage;
   onClose: () => void;
@@ -52,6 +61,8 @@ export function ToolPane({
   closeLabel?: string;
   /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
   escCloses?: boolean;
+  closeButton?: boolean;
+  initialHash?: string;
 }) {
   const hub = useHubStatus();
   // BUG-0106: Preact 11 spült passive Effekte erst im nächsten
@@ -81,7 +92,7 @@ export function ToolPane({
               ⧉
             </button>
           )}
-          {escCloses && (
+          {closeButton && (
             <button type="button" class="tool-pane-close" aria-label={closeLabel} title={`${closeLabel} (${comboLabel("tool.close")})`} aria-keyshortcuts={ariaCombo("tool.close")} data-shortcut="tool.close" onClick={onClose}>
               ×
             </button>
@@ -89,12 +100,15 @@ export function ToolPane({
         </span>
       </header>
       <div class="tool-pane-body">
+        {page === "new" && <CreateSession adapters={hub.adapters} hosts={hub.hosts} onCreated={(session) => { location.hash = sessionHash(session.id, session.hostId); }} />}
+        {page === "approvals" && <ApprovalQueuePane />}
+        {page === "statistics" && <StatisticsPage />}
         {page === "settings" && <SettingsPage onSwitchToken={onSwitchToken} />}
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
         {page === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} initialTab={vaultTab} />}
-        {page === "teams" && <TeamsPane />}
+        {page === "teams" && <TeamsPane initialHash={initialHash} />}
         {page === "automationen" && <AutomationsPane />}
         {page === "aimetrics" && <AiMetricsPage />}
         {page === "terminal" && <TerminalPage />}

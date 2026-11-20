@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import type { TreeEntry, TreeListing } from "@ancientvoid/contracts";
 import { hostApi, remoteHost } from "../../shared/api.ts";
@@ -168,6 +169,7 @@ export function FilesSidebar({
   }, [rKey]);
 
   const openFile = (path: string) => {
+    if (root && openWorkspaceContent({ sessionId: root.kind === "session" ? root.id : "", ...(root.hostId ? { hostId: root.hostId } : {}), content: { kind: "file", target: rootTarget(root), path } })) return;
     const existing = state.tabs.findIndex((t) => t.rootKey === rKey && t.path === path && !t.sha);
     if (existing >= 0) update({ active: existing });
     else update({ tabs: [...state.tabs, { rootKey: rKey, path }], active: state.tabs.length });

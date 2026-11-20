@@ -1,3 +1,4 @@
+import { SidebarSettings } from "./SidebarSettings.tsx";
 import { FleetSettings } from "../fleet/Fleet.tsx";
 import { KnowledgeSettings } from "../knowledge/KnowledgeSettings.tsx";
 import { PresetSettings } from "./PresetSettings.tsx";
@@ -25,6 +26,7 @@ export function SettingsPage({ onSwitchToken }: { onSwitchToken: () => void }) {
       <div class="settings-cols">
         <div class="settings-col">
           <AppearanceSettings />
+          <SidebarSettings />
           <FontSettings />
           <PresetSettings />
           <PreviewSettings />

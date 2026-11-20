@@ -422,3 +422,19 @@
   color: var(--warn);
   font-size: var(--text-sm);
 }
+
+/* A narrow grid card must not place its menu behind the neighboring session list. */
+.tile .tile-tabs:has(.subtabs-more),
+.tile .tile-tabs .subtabs-more-wrap {
+  position: static;
+}
+.tile .tile-tabs .subtabs-more {
+  left: 0;
+  right: auto;
+  width: 240px;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}

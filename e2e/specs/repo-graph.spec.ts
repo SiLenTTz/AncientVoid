@@ -127,16 +127,17 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     expect(fileWin.url()).toContain(`/sessions/${id}/datei/README.md`);
     await expect(fileWin.getByText("Das Handbuch beschreibt den Handoff")).toBeVisible();
 
-    // Hauptfenster: Knoten-Klick öffnet Viewer UND den Dateibaum (BUG-0233, ab 700 px).
+    // Hauptfenster: Knoten-Klick öffnet eine zusätzliche Dateikarte; der Graph bleibt erhalten.
     await app.getByRole("button", { name: "Datei README.md auswählen" }).click();
     await expect(app.locator(".session-live[data-tab='datei']")).toBeVisible();
-    await expect(app.getByTestId("files-sidebar")).toBeVisible();
+    await expect(app.locator(".session-live[data-tab=graph]")).toBeVisible();
+    await expect(app.getByTestId("files-sidebar")).toHaveCount(0);
     await app.getByRole("button", { name: "Datei in eigenes Fenster" }).click();
     await expect(fileWin.locator("html")).toHaveAttribute("data-focus-requests", "1");
   });
 
   // BUG-0128: Herauslösen bündelt Baum und alle offenen Dateien in genau einem Fenster (nie Einzeldateien).
-  test("Datei-Tab der rechten Datei-Seitenleiste lässt sich herauslösen (T46.8-Rest) @desktop", async ({ app, hub, context }) => {
+  test("Dateibaum lässt sich herauslösen, geöffnete Datei bleibt als Grid-Karte @desktop", async ({ app, hub, context }) => {
     await app.setViewportSize({ width: 1440, height: 900 });
     const id = await hub.createSession({ adapter: "dummy", prompt: "Seitenleiste" });
     await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
@@ -145,12 +146,14 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await app.keyboard.press("Control+Shift+e");
     await expect(app.locator('[data-testid=files-sidebar]')).toBeVisible();
     await app.locator(".files-row").filter({ hasText: "README.md" }).click();
-    await expect(app.locator('[data-testid=files-sidebar] .files-tab')).toHaveCount(1);
+    await expect(app.locator(".tile .file-card")).toHaveCount(1);
+    await expect(app.locator('[data-testid=files-sidebar] .files-tab')).toHaveCount(0);
     const popupP = context.waitForEvent("page");
-    await app.locator(".files-tab-popout").click();
+    await app.getByRole("button", { name: "Baum und offene Dateien in eigenem Fenster" }).click();
     const popup = await popupP;
     await popup.waitForLoadState();
     expect(popup.url()).toContain("#/dateibaum");
-    await expect(popup.getByText("Das Handbuch beschreibt den Handoff")).toBeVisible();
+    await expect(popup.getByTestId("files-sidebar")).toBeVisible();
+    await expect(app.locator(".tile .file-card")).toContainText("Das Handbuch beschreibt den Handoff");
   });
 });

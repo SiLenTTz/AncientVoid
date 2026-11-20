@@ -112,20 +112,22 @@ test.describe("Desktop-Workspace (EPIC-P18)", () => {
     const split = await app.locator(".split").boundingBox();
     expect(split!.width).toBeGreaterThan(2560 * 0.95);
     await app.getByRole("button", { name: "Liste einklappen" }).click();
-    await expect(app.locator(".split-list")).toBeHidden();
+    await expect(app.locator(".split-list .dashboard")).toBeHidden();
+    await expect(app.getByRole("navigation", { name: "Sidebar", exact: true })).toBeVisible();
     const grid = await app.locator(".tile-grid").boundingBox();
     expect(grid!.width).toBeGreaterThanOrEqual(2560 * 0.9);
     // One tile: the chat keeps a readable line length instead of 2,500 px lines.
     const row = await tile(app, 1).locator(".topbar").boundingBox();
     expect(row!.width).toBeLessThanOrEqual(1300);
     await app.reload();
-    await expect(app.locator(".split-list")).toBeHidden();
+    await expect(app.locator(".split-list .dashboard")).toBeHidden();
+    await expect(app.getByRole("navigation", { name: "Sidebar", exact: true })).toBeVisible();
     await app.getByRole("button", { name: "Liste ausklappen" }).click();
     await expect(app.locator(".split-list")).toBeVisible();
   });
 
-  test("unter 1280 px gibt es keine Kacheln (AC-P18-4)", async ({ app, hub }) => {
-    await app.setViewportSize({ width: 1024, height: 900 });
+  test("unter 700 px gibt es keine Kacheln (Smartphone)", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 699, height: 900 });
     const id = await hub.createSession({ adapter: "opencode", prompt: "Schmal" });
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.locator(".session-top-title")).toHaveText("Schmal");

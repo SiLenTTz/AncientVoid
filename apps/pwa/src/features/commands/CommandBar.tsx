@@ -1,3 +1,4 @@
+import { openWorkspaceContent } from "../workspace/open-content.ts";
 import { readStatusNote, STATUS_NOTE_EVENT } from "../../shared/status-notes.ts";
 import { jumpToSource, sourcesOf, SOURCES_EVENT } from "../../shared/sources.ts";
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -50,8 +51,8 @@ export function openCommandBar(): void {
  * shows its target and waits for "Ausführen". Approvals, passkeys and
  * secrets stay taps (the hub says so).
  */
-export function CommandBar() {
-  const [open, setOpen] = useState(false);
+export function CommandBar({ embedded = false, active = true, onClose }: { embedded?: boolean; active?: boolean; onClose?: () => void } = {}) {
+  const [open, setOpen] = useState(embedded);
   const [text, setText] = useState("");
   const [plan, setPlan] = useState<CommandPlan | null>(null);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -68,7 +69,7 @@ export function CommandBar() {
   const jumps = plan || results || edit ? [] : quickMatches(text, { ...sources, sourceRefs: sourcesOf(here.sessionId ?? "new"), notes: sources.sessions.flatMap(s => { const text = readStatusNote(s.id); return text ? [{ sessionId: s.id, hostId: s.hostId ?? null, text }] : []; }), here: here.sessionId ? { sessionId: here.sessionId, hostId: here.hostId } : null });
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || !active) return;
     let alive = true;
     // Wie App.tsx: die Flotte, sonst die Sessions dieses Hubs.
     void hubApi.fleet().then((f) => f.sessions).catch(() => hubApi.sessions()).then((sessions) => alive && setSources((s) => ({ ...s, sessions }))).catch(() => undefined);
@@ -76,7 +77,7 @@ export function CommandBar() {
     return () => {
       alive = false;
     };
-  }, [open]);
+  }, [open, active]);
   useEffect(() => setSelected(-1), [text]);
   useEffect(() => {
     const sync = () => setSourceTick(n => n + 1);
@@ -92,8 +93,7 @@ export function CommandBar() {
       input.current?.focus();
       return;
     }
-    setOpen(false);
-    setText("");
+    if (!embedded) { setOpen(false); setText(""); }
     if (t.kind === "quelle") jumpToSource(t);
     else if (t.kind === "statusnotiz") {
       sessionStorage.setItem("ancientvoid.open-status-note", t.sessionId);
@@ -112,13 +112,18 @@ export function CommandBar() {
   // EPIC-P51 T51.5: Kürzel über die Registry (zentraler Dispatcher). Die
   // Registrierung lebt im useEffect mit [open] — der Handler sieht frischen State.
   // T51.6: Fokus rein/Tab-Falle/zurück (useOverlayFocus).
-  const { ref: sheet } = useOverlayFocus<HTMLDivElement>(open, { preferred: () => input.current });
+  const { ref: sheet } = useOverlayFocus<HTMLDivElement>(open && !embedded, { preferred: () => input.current });
   useEffect(() => {
-    const openIt = () => setOpen(true);
+    if (embedded) {
+      if (!active) return;
+      return registerShortcut("command.close", (e) => { e.preventDefault(); onClose?.(); });
+    }
+    const openGrid = () => openWorkspaceContent({ sessionId: "", content: { kind: "search" } });
+    const openIt = () => { if (!openGrid()) setOpen(true); };
     window.addEventListener("ancientvoid:command-bar", openIt);
     const offToggle = registerShortcut("command.toggle", (e) => {
       e.preventDefault();
-      setOpen((o) => !o);
+      if (!openGrid()) setOpen((o) => !o);
     });
     const offClose = open
       ? registerShortcut("command.close", (e) => {
@@ -131,16 +136,16 @@ export function CommandBar() {
       offToggle();
       offClose?.();
     };
-  }, [open]);
+  }, [open, embedded, active, onClose]);
   useEffect(() => {
-    if (open) setTimeout(() => input.current?.focus(), 0);
-    else {
+    if (open && active) setTimeout(() => input.current?.focus(), 0);
+    else if (!open) {
       setPlan(null);
       setResults(null);
       setMessage("");
       setAnswers({});
     }
-  }, [open]);
+  }, [open, active]);
 
   const execute = async (p: CommandPlan) => {
     setBusy(true);
@@ -167,7 +172,7 @@ export function CommandBar() {
       const res = await hubApi.commandExecute(p.id, commandContext());
       for (const r of res.results) if (r.client) r.detail = runClientStep(r.client) || r.detail;
       setResults(res.results);
-      if (res.results.every((r) => r.ok) && p.steps.every((s) => s.risk === "read")) setOpen(false);
+      if (!embedded && res.results.every((r) => r.ok) && p.steps.every((s) => s.risk === "read")) setOpen(false);
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "fehlgeschlagen");
     } finally {
@@ -198,7 +203,7 @@ export function CommandBar() {
 
   const writes = plan && plan.steps.some((s) => s.risk !== "read");
   return (
-    <div class="command-sheet" role="dialog" aria-label="Auftrag in Worten" ref={sheet}>
+    <div class={`command-sheet${embedded ? " command-card" : ""}`} role={embedded ? "region" : "dialog"} aria-label={embedded ? "Suchen" : "Auftrag in Worten"} ref={sheet}>
       <form
         class="command-form"
         onSubmit={(e) => {
@@ -229,7 +234,7 @@ export function CommandBar() {
         <Button type="submit" disabled={busy || !text.trim()} variant="primary">
           {busy ? "…" : "Planen"}
         </Button>
-        <Button aria-label="Schließen" onClick={() => setOpen(false)}>
+        <Button aria-label="Schließen" onClick={() => embedded ? onClose?.() : setOpen(false)}>
           ✕
         </Button>
       </form>

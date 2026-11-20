@@ -1,3 +1,4 @@
+import { Sidebar } from "../features/shell/Sidebar.tsx";
 // EPIC-P43 T43.3: das Dock hat vier Ziele und eine Haupttaste — Start, Suchen, ＋, Teams, Mehr.
 // Alles Übrige (Medien, Notizen, Automationen, Einstellungen, Provider-Status) liegt einen
 // Tipp weiter im Blatt „Mehr“; am PC (Leiste links, 21-icon-rail.css) stehen diese Ziele weiterhin
@@ -28,6 +29,13 @@ const MORE: readonly { page: Page; icon: TabIconName; label: string; title: stri
  * Die eine globale Navigation. Am Handy und Tablet eine Reihe unten, am PC die Leiste links.
  */
 export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavigate: (page: Page) => void }) {
+  const [desktop, setDesktop] = useState(() => matchMedia("(min-width: 700px)").matches);
+  useEffect(() => {
+    const mq = matchMedia("(min-width: 700px)");
+    const sync = () => setDesktop(mq.matches);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const [more, setMore] = useState(false);
   useEffect(() => {
     if (!more) return;
@@ -55,6 +63,7 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
     e.preventDefault();
     next.focus();
   };
+  if (desktop) return <Sidebar active={active} onNavigate={onNavigate} />;
   return (
     <nav class="dock" aria-label="Navigation" ref={dockRef} onKeyDown={onDockKey}>
       <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
