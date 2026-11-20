@@ -64,9 +64,13 @@ export function KnowledgePanel() {
     void reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   const persist = (next: Partial<KnowledgeSnapshot>) => {
-    const merged: KnowledgeSnapshot = { at: new Date().toISOString(), sources: sources ?? [], ...(overview ? { overview } : {}), ...(next as KnowledgeSnapshot) };
+    const merged: KnowledgeSnapshot = {
+      at: new Date().toISOString(),
+      sources: next.sources ?? sources ?? [],
+      ...(next.overview !== undefined ? { overview: next.overview } : overview ? { overview } : {}),
+      ...(next.query !== undefined || next.hits !== undefined ? { query: next.query, hits: next.hits } : {}),
+    };
     writeKnowledgeSnapshot(merged);
     setCachedAt(merged.at);
   };
@@ -261,7 +265,7 @@ export function KnowledgePanel() {
         <div class="knowledge-hits">
           {hits.truncated && <div class="knowledge-truncated">Ergebnis gekappt — topK/Snippet-Grenze erreicht.</div>}
           {hits.items.length === 0 ? (
-            <EmptyState>Kein Treffer.</EmptyState>
+            <EmptyState text="Kein Treffer." />
           ) : (
             <ul role="list">
               {hits.items.map((h) => (
@@ -372,9 +376,7 @@ export function KnowledgePanel() {
       )}
 
       {sources !== null && sources.length === 0 && (
-        <EmptyState>
-          Noch keine Wissens-Quelle angebunden — in den Einstellungen unter „Wissensquellen“ anlegen (URL + Token).
-        </EmptyState>
+        <EmptyState text="Noch keine Wissens-Quelle angebunden — in den Einstellungen unter „Wissensquellen“ anlegen (URL + Token)." />
       )}
     </div>
   );

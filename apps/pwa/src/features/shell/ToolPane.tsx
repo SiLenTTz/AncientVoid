@@ -49,7 +49,7 @@ export function ToolPane({
   /** EPIC-P74 T74.6: Reiter im Notizen-Bereich (#/notizen/wissen). */
   vaultTab?: "notizen" | "wissen";
   onPopout?: () => void;
-  closeLabel: string;
+  closeLabel?: string;
   /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
   escCloses?: boolean;
 }) {
@@ -93,7 +93,7 @@ export function ToolPane({
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
-        {page === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} vaultTab={vaultTab} />}
+        {page === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} initialTab={vaultTab} />}
         {page === "teams" && <TeamsPane />}
         {page === "automationen" && <AutomationsPane />}
         {page === "aimetrics" && <AiMetricsPage />}

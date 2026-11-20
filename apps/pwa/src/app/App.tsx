@@ -200,7 +200,7 @@ export function App({
 
       {shown === "pc" && <DesktopPage />}
 
-      {shown === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} vaultTab={vaultTab} />}
+      {shown === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} initialTab={vaultTab} />}
       {shown === "teams" && <TeamsPane />}
       {shown === "automationen" && <AutomationsPane />}
       {shown === "aimetrics" && <AiMetricsPage />}
