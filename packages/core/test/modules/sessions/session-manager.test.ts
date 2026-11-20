@@ -269,6 +269,22 @@ describe("SessionManager", () => {
     }
   });
 
+  it("BUG-0246: delete räumt Notifications und Drafts der Session mit auf", async () => {
+    const { manager, db } = makeManager(dir, { eventsPerSecond: 10 });
+    try {
+      const record = await manager.create({ adapter: "dummy", project: dir });
+      await manager.stop(record.id);
+      db.prepare("INSERT INTO notifications (session_id, level, title, detail, kind, created_at) VALUES (?, 'info', 't', null, 'test', ?)").run(record.id, new Date().toISOString());
+      db.prepare("INSERT INTO drafts (session_id, text, attachment_ids, revision, updated_at) VALUES (?, 'x', '[]', 1, ?)").run(record.id, new Date().toISOString());
+      expect((db.prepare("SELECT count(*) AS n FROM notifications WHERE session_id = ?").get(record.id) as { n: number }).n).toBe(1);
+      expect((await manager.delete(record.id)).ok).toBe(true);
+      expect((db.prepare("SELECT count(*) AS n FROM notifications WHERE session_id = ?").get(record.id) as { n: number }).n).toBe(0);
+      expect((db.prepare("SELECT count(*) AS n FROM drafts WHERE session_id = ?").get(record.id) as { n: number }).n).toBe(0);
+    } finally {
+      await manager.shutdown();
+    }
+  });
+
   it("BUG-0033: a refused steer says why in its session.steer event — the chat can show it", async () => {
     const db = new HubDatabase(":memory:");
     const store = new EventStore(dir);
@@ -982,14 +998,9 @@ describe("SessionManager", () => {
       await manager.archive(running.id, true);
       expect(existsSync(runningPath)).toBe(true);
 
-      // A failed permanent cleanup must keep the archive entry available for a retry.
+      // BUG-0246: endgültiges Löschen entriegelt und entfernt auch gesperrte Worktrees.
       await manager.stop(dirty.id);
       await execFileAsync("git", ["-C", repoDir, "worktree", "lock", dirtyPath]);
-      const failedDelete = await manager.delete(dirty.id);
-      expect(failedDelete.ok).toBe(false);
-      expect(manager.get(dirty.id)?.archived).toBe(true);
-      expect(await manager.tail(dirty.id, 0)).not.toHaveLength(0);
-      await execFileAsync("git", ["-C", repoDir, "worktree", "unlock", dirtyPath]);
       expect((await manager.delete(dirty.id)).ok).toBe(true);
       expect(existsSync(dirtyPath)).toBe(false);
       expect(manager.get(dirty.id)).toBeUndefined();

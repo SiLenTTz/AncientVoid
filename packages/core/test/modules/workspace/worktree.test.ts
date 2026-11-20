@@ -117,4 +117,25 @@ describe("WorktreeManager — against a real git repo, not a mock", () => {
 
     await wt.remove("session-alive", repoDir);
   });
+
+  it("BUG-0246: remove löscht den Worktree auch wenn das Projekt kein Git-Repo mehr ist", async () => {
+    const wt = new WorktreeManager(worktreesDir);
+    const created = await wt.create("session-dead-project", repoDir);
+    expect(created).not.toBeNull();
+    expect(existsSync(created!.path)).toBe(true);
+    // Projekt verliert sein .git (umbenannt/gelöscht) — früher: git worktree remove → 409.
+    await rm(join(repoDir, ".git"), { recursive: true, force: true });
+    await wt.remove("session-dead-project", repoDir);
+    expect(existsSync(created!.path)).toBe(false);
+    // Repo für nachfolgende Tests wiederherstellen.
+    realHeadSha = await initRealRepo(repoDir);
+  });
+
+  it("BUG-0246: remove räumt auf wenn der Projektpfad fehlt", async () => {
+    const wt = new WorktreeManager(worktreesDir);
+    const created = await wt.create("session-missing-project", repoDir);
+    expect(existsSync(created!.path)).toBe(true);
+    await wt.remove("session-missing-project", join(tmpdir(), "ancientvoid-does-not-exist-" + Date.now()));
+    expect(existsSync(created!.path)).toBe(false);
+  });
 });

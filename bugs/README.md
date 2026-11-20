@@ -278,6 +278,7 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0243](bug-0243-archiv-loeschen.md) | Archiv-Sessions lassen sich nicht gesammelt oder zuverlässig löschen | fixed | S3 | pwa, hub, core | [#234](https://github.com/securesight-ai/AncientVoid/issues/234) |
 | [BUG-0244](bug-0244-neue-session-kachel1-layout.md) | Neue Session öffnet nicht in Kachel 1; Formular zu lang | fixed | S3 | pwa | [#236](https://github.com/securesight-ai/AncientVoid/issues/236) |
 | [BUG-0245](bug-0245-fenster-fokus-leer.md) | Eigenes Fenster: Duplikat statt Fokus; Schließen hinterlässt Leer-Kacheln | fixed | S2 | pwa | [#237](https://github.com/securesight-ai/AncientVoid/issues/237) |
+| [BUG-0246](bug-0246-session-delete-orphan-projekt.md) | Session-Löschen scheitert an toten Projekten; Reste bleiben | fixed | S2 | core, hub | [#240](https://github.com/securesight-ai/AncientVoid/issues/240) |
 
 Die nächste freie Nummer ist **0244** (gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
