@@ -236,6 +236,11 @@
   outline: 1px solid var(--accent);
 }
 
+/* BUG-0232: Kategorie-Chips in eigener Zeile unter den Gruppen. */
+.graph-cat-filters {
+  margin-top: 2px;
+}
+
 .graph-empty {
   margin: 0;
 }
