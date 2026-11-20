@@ -108,8 +108,65 @@ describe("terminal routes (ADR-0087)", () => {
       });
     });
     expect(outcome.opened, `WS upgrade durch die Auth: ${JSON.stringify(outcome)}`).toBe(true);
-    expect(outcome.firstFrame).toContain("\"t\":\"o\"");
+    // Erstes Frame ist die Sitzungs-id (Nachtrag ADR-0087), dann die Ausgabe.
+    expect(outcome.firstFrame).toContain("\"t\":\"s\"");
     await new Promise((done) => ws.on("close", () => done(null)));
+  });
+
+  it("Sitzung überlebt das Trennen und hängt per ?session= wieder an", async () => {
+    // Nutzerwunsch 20.11.2026: aus dem Terminal springen darf die Shell nicht
+    // beenden; beim Zurückkommen kommt dieselbe Shell samt Ausgabe wieder.
+    await app.listen({ host: "127.0.0.1", port: 0 });
+    const address = app.addresses()[0] as { address: string; port: number };
+    const base = `http://${address.address}:${address.port}`;
+    const open = async (session?: string) => {
+      const res = await fetch(`${base}/api/terminals/hub/ticket`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: "{}",
+      });
+      const { ticket } = (await res.json()) as { ticket: string };
+      const extra = session ? `&session=${encodeURIComponent(session)}` : "";
+      const ws = new WebSocket(`${base.replace("http", "ws")}/api/terminals/hub/stream?ticket=${encodeURIComponent(ticket)}&cols=80&rows=24${extra}`);
+      const frames: { t: string; d?: string; id?: string }[] = [];
+      ws.on("message", (raw) => frames.push(JSON.parse(String(raw)) as { t: string; d?: string; id?: string }));
+      await new Promise((done, fail) => {
+        ws.once("open", done);
+        ws.once("error", fail);
+      });
+      return { ws, frames };
+    };
+    const until = async (check: () => boolean, label: string) => {
+      const stop = Date.now() + 10_000;
+      while (!check()) {
+        if (Date.now() > stop) throw new Error(`timeout: ${label}`);
+        await new Promise((r) => setTimeout(r, 25));
+      }
+    };
+    const output = (frames: { t: string; d?: string }[]) => frames.filter((f) => f.t === "o").map((f) => f.d).join("");
+    const sessionId = (frames: { t: string; id?: string }[]) => frames.find((f) => f.t === "s")?.id;
+
+    const first = await open();
+    await until(() => Boolean(sessionId(first.frames)), "Sitzungs-id");
+    const id = sessionId(first.frames)!;
+    first.ws.send(JSON.stringify({ t: "i", d: "export HALTE=$((40+2)); echo marke-$HALTE\n" }));
+    await until(() => output(first.frames).includes("marke-42"), "erste Ausgabe");
+    first.ws.close(1000, "Tab verlassen");
+    await new Promise((done) => first.ws.once("close", done));
+
+    const back = await open(id);
+    await until(() => output(back.frames).includes("marke-42"), "Backlog nach Wiederverbinden");
+    expect(sessionId(back.frames)).toBe(id);
+    back.ws.send(JSON.stringify({ t: "i", d: "echo noch-$HALTE\n" }));
+    await until(() => output(back.frames).includes("noch-42"), "dieselbe Shell");
+    back.ws.close(4000, "beenden");
+    await new Promise((done) => back.ws.once("close", done));
+
+    const fresh = await open(id);
+    await until(() => Boolean(sessionId(fresh.frames)), "neue Sitzung");
+    expect(sessionId(fresh.frames)).not.toBe(id);
+    fresh.ws.close(4000, "beenden");
+    await new Promise((done) => fresh.ws.once("close", done));
   });
 
   it("Stream: abgelaufenes/falsches Ticket wird abgewiesen", async () => {

@@ -54,6 +54,31 @@ test.describe("Terminal-Tab (ADR-0087)", () => {
     expect(ticketPosts).toHaveLength(1);
     expect(ticketPosts[0]).toContain("/api/terminals/zweit/ticket");
   });
+
+  test("Tab verlassen hält die Sitzung, Zurückkommen hängt wieder an", async ({ app }) => {
+    // Nutzerwunsch 20.11.2026: die letzte Sitzung bleibt offen, auch wenn man rausspringt.
+    test.setTimeout(60_000);
+    await openTerminal(app);
+    await app.getByRole("button", { name: "Verbinden" }).click();
+    await expect(app.getByText("verbunden")).toBeVisible({ timeout: 15_000 });
+    await app.getByTestId("terminal-xterm").click();
+    await app.keyboard.type("export HALTE=$((40+2)); echo marke-$HALTE\n");
+    await expect(app.getByTestId("terminal-xterm")).toContainText("marke-42", { timeout: 15_000 });
+
+    await app.evaluate(() => { location.hash = "#/"; });
+    await expect(app.getByTestId("terminal-page")).toHaveCount(0);
+    await app.evaluate(() => { location.hash = "#/terminal"; });
+
+    await expect(app.getByText("verbunden")).toBeVisible({ timeout: 15_000 });
+    await expect(app.getByTestId("terminal-xterm")).toContainText("marke-42");
+    await app.getByTestId("terminal-xterm").click();
+    await app.keyboard.type("echo noch-$HALTE\n");
+    await expect(app.getByTestId("terminal-xterm")).toContainText("noch-42", { timeout: 15_000 });
+
+    await app.getByRole("button", { name: "Beenden" }).click();
+    await expect(app.getByText("getrennt")).toBeVisible();
+    expect(await app.evaluate(() => localStorage.getItem("ancientvoid.terminal.last"))).toBeNull();
+  });
 });
 
 test.describe("Terminal ohne Config", () => {

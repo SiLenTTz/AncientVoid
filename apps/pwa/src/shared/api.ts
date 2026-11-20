@@ -1457,9 +1457,10 @@ function createHubApi(P: (path: string) => string) {
   terminals: () => api<TerminalList>(P("/api/terminals")),
   terminalTicket: (id: string) =>
     api<TerminalTicket>(P(`/api/terminals/${encodeURIComponent(id)}/ticket`), { method: "POST", body: "{}" }),
-  terminalStreamUrl: (id: string, ticket: string, cols: number, rows: number) => {
+  terminalStreamUrl: (id: string, ticket: string, cols: number, rows: number, session?: string) => {
+    const resume = session ? `&session=${encodeURIComponent(session)}` : "";
     const path = P(
-      `/api/terminals/${encodeURIComponent(id)}/stream?ticket=${encodeURIComponent(ticket)}&cols=${cols}&rows=${rows}`,
+      `/api/terminals/${encodeURIComponent(id)}/stream?ticket=${encodeURIComponent(ticket)}&cols=${cols}&rows=${rows}${resume}`,
     );
     const url = new URL(path, window.location.href);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
