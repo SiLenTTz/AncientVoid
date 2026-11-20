@@ -150,6 +150,14 @@
   line-height: 1;
 }
 
+/* BUG-0234: ab 700 px ist die Session-Liste dauerhaft sichtbar (TabletSplit
+ * bzw. Split) — der Zurück-Pfeil neben dem Titel gehört nur auf das Handy. */
+@media (min-width: 700px) {
+  .session-topbar .back-btn {
+    display: none;
+  }
+}
+
 .session-top-main {
   flex: 1;
   min-width: 0;
