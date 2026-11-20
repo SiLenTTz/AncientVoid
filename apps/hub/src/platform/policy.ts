@@ -58,6 +58,7 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   if (/^\/api\/sessions\/[^/]+\/stop$/.test(path)) return "sessions.stop";
   if (/^\/api\/sessions\/[^/]+\/budget$/.test(path)) return "sessions.budget";
   if (/^\/api\/sessions\/[^/]+\/apply$/.test(path)) return "sessions.apply";
+  if (method === "DELETE" && /^\/api\/sessions\/[^/]+$/.test(path)) return "sessions.archive";
   if (/^\/api\/sessions\/[^/]+\/(archive|meta)$/.test(path)) return "sessions.archive";
   // EPIC-P29 T29.6: Workspace-Retry führt genehmigte argv erneut aus —
   // nur ein Mensch (ADR-0051 §3); Preview-Ticket ebenso an die Person gebunden.

@@ -9,6 +9,21 @@
   font-size: var(--text-sm);
 }
 
+.archive-actions,
+.archive-selection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.archive-selection {
+  width: fit-content;
+  min-height: var(--target);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
 /* Discovery groups found sessions by project — collapsible (BUG-0035
  * follow-up): the newest project expanded, the rest folded. */
 .project-tile {
