@@ -1,5 +1,5 @@
 import { test, expect, cardAction } from "../support/fixtures.ts";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 
@@ -39,7 +39,7 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     const star = app.locator(".graph-node-hit").first();
     await expect(star).toBeVisible();
     const key = `ancientvoid.galaxy:session=${id}`;
-    const readTx = () => app.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? "{}") as { camera?: { tx?: number } }).camera?.tx ?? null, key);
+    const readTx = () => app.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? "{}") as { camera?: { tx?: number } }).camera?.tx ?? 0, key);
     const before = await readTx();
     const box = await star.boundingBox();
     await app.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
@@ -65,6 +65,29 @@ test.describe("Repo-Graph (EPIC-P48)", () => {
     await expect(close).toHaveText(/Vollbild verlassen/);
     await close.click();
     await expect(app.locator(".graph-pane[data-fullscreen='0']")).toBeVisible();
+  });
+
+  // BUG-0232: Kategorie-Filter kommen dynamisch aus dem Repo (Top-Level-Bereiche wie epics/bugs).
+  test("Kategorie-Chips kommen aus dem Repo und filtern nach Bereich @desktop", async ({ app, hub }) => {
+    await app.setViewportSize({ width: 1440, height: 900 });
+    mkdirSync(join(hub.alpha, "epics"), { recursive: true });
+    mkdirSync(join(hub.alpha, "bugs"), { recursive: true });
+    writeFileSync(join(hub.alpha, "epics/eins.md"), "# e1\n");
+    writeFileSync(join(hub.alpha, "epics/zwei.md"), "# e2\n");
+    writeFileSync(join(hub.alpha, "bugs/drei.md"), "# b1\n");
+    writeFileSync(join(hub.alpha, "bugs/vier.md"), "# b2\n");
+    const id = await hub.createSession({ adapter: "dummy", prompt: "Kategorien Auftrag", workspaceMode: "direct", confirmDirty: true });
+    await app.goto(`${hub.origin}/#/sessions/${id}/graph`);
+    await expect(app.locator(".graph-legend")).toBeVisible();
+    const chip = app.locator(".graph-cat-filters").getByRole("button", { name: "epics 2", exact: true });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    // Der aktive Kategorie-Filter gehört zum gespeicherten Ansichtsstand.
+    const key = `ancientvoid.galaxy:session=${id}`;
+    await expect
+      .poll(() => app.evaluate((k) => (JSON.parse(localStorage.getItem(k) ?? "{}") as { cats?: string[] }).cats ?? [], key))
+      .toEqual(["epics"]);
   });
 
   test("Prüfen: JSON-Fehler markiert die Datei rot, Gegenprobe wird wieder normal", async ({ app, hub }) => {

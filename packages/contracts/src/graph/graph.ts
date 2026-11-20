@@ -16,6 +16,9 @@ export interface GraphNode {
   in: number;
   /** Einstiegspunkt-Heuristik: zählt ohne Zufluss nicht als tote Datei. */
   entry: boolean;
+  /** Top-Level-Bereich des Pfads (z. B. „epics“, „bugs“); Wurzeldateien: null.
+   *  Grundlage der dynamischen Kategorie-Filter der PWA (BUG-0232). */
+  category?: string | null;
 }
 
 export interface GraphEdge {
@@ -103,4 +106,10 @@ export function isGraphEntry(path: string): boolean {
   if (name in ENTRY_FILES) return true;
   if (ENTRY_NAMES.test(name)) return true;
   return ENTRY_PREFIXES.some((p) => name.startsWith(p));
+}
+
+/** Kategorie-Bereich eines Pfads — erstes Verzeichnissegment, Wurzeldateien null (BUG-0232). */
+export function graphCategoryOf(path: string): string | null {
+  const slash = path.indexOf("/");
+  return slash > 0 ? path.slice(0, slash) : null;
 }

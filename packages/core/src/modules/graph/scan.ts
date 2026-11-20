@@ -2,7 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { GRAPH_MAX_FILES, GRAPH_SCAN_MAX_BYTES, graphGroupOf, isGraphEntry, type GraphEdge, type GraphEdgeKind, type GraphNode, type GraphReport } from "@ancientvoid/contracts";
+import { GRAPH_MAX_FILES, GRAPH_SCAN_MAX_BYTES, graphCategoryOf, graphGroupOf, isGraphEntry, type GraphEdge, type GraphEdgeKind, type GraphNode, type GraphReport } from "@ancientvoid/contracts";
 
 const run = promisify(execFile);
 
@@ -232,6 +232,7 @@ export async function buildFileGraph(root: string, opts: GraphScanOptions = {}):
     outDeg.set(e.from, (outDeg.get(e.from) ?? 0) + 1);
     inDeg.set(e.to, (inDeg.get(e.to) ?? 0) + 1);
   }
-  const nodes: GraphNode[] = limited.map((p) => ({ path: p, group: graphGroupOf(p), bytes: sizes.get(p) ?? 0, out: outDeg.get(p) ?? 0, in: inDeg.get(p) ?? 0, entry: isGraphEntry(p) }));
+  // BUG-0232: Kategorie = Top-Level-Bereich — dynamische Filter der PWA (epics, bugs, …).
+  const nodes: GraphNode[] = limited.map((p) => ({ path: p, group: graphGroupOf(p), bytes: sizes.get(p) ?? 0, out: outDeg.get(p) ?? 0, in: inDeg.get(p) ?? 0, entry: isGraphEntry(p), category: graphCategoryOf(p) }));
   return { root, scope: "working-tree", nodes, edges, meta: { files: nodes.length, edgeCount: edges.length, truncated, maxFiles, unresolved, enumeration } };
 }

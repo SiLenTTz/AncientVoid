@@ -1,7 +1,7 @@
 ---
 id: BUG-0232
 slug: graph-kategorien-stattdessen-gruppen
-status: open
+status: fixed
 severity: S3
 area: pwa
 instance: dev
@@ -64,6 +64,18 @@ Keine.
 `packages/contracts/src/graph/graph.ts:9` — `GraphNode` trägt nur die
 Erweiterungs-`group`; `packages/core/src/modules/graph/scan.ts:235` erzeugt
 keine Bereichsangabe; `GalaxyPanel.tsx` rendert nur die statischen Gruppen.
+
+## Befund
+
+`GraphNode` trug nur die Erweiterungsgruppe (doc/code/config/other) —
+Repo-Bereiche waren nicht abbildbar. Fix: `category` (erstes
+Pfadsegment, Wurzeldateien null) als optionales Contract-Feld, vom Scan
+mitgegeben (`graphCategoryOf`); die PWA leitet daraus dynamische
+Kategorie-Chips ab (`categoriesOf`: häufige zuerst, ab 2 Dateien, max. 12,
+Wurzel gebündelt), filtert darüber wie bei Gruppen und persistiert die
+Wahl im Ansichtsstand (Relikte werden beim Restaurieren verworfen).
+Unit (core+galaxy-query) und E2E (Chips aus Repo-Verzeichnissen,
+aria-pressed + Persistenz) belegt.
 
 ## Handoff
 

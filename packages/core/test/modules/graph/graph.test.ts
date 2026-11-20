@@ -25,7 +25,7 @@ function repo(files: Record<string, string>): string {
 }
 
 const edgeSet = (g: { edges: { from: string; to: string; kind: string }[] }) => new Set(g.edges.map((e) => `${e.from} → ${e.to} (${e.kind})`));
-const node = (g: { nodes: { path: string; group: string; in: number; out: number; entry: boolean }[] }, path: string) => g.nodes.find((n) => n.path === path);
+const node = (g: { nodes: { path: string; group: string; in: number; out: number; entry: boolean; category?: string | null }[] }, path: string) => g.nodes.find((n) => n.path === path);
 
 describe("EPIC-P48 buildFileGraph (ADR-0062)", () => {
   it("resolve relative imports: Erweiterung, index, dynamisch, require", async () => {
@@ -174,6 +174,23 @@ describe("EPIC-P48 buildFileGraph (ADR-0062)", () => {
     // K8-Geist: Der Scan blockiert den Hub nicht übermäßig (dokumentierte Schwelle, bewusst großzügig).
     expect(ms).toBeLessThan(15_000);
     console.log(`referenz-graph: ${g.meta.files} Dateien, ${g.meta.edgeCount} Kanten, ${ms} ms`);
+  });
+});
+
+describe("BUG-0232 Kategorie-Bereiche", () => {
+  it("weist jedem Knoten das erste Pfadsegment als Kategorie zu, Wurzeldateien bleiben null", async () => {
+    const root = repo({
+      "epics/EPIC-P1.md": "# e\n",
+      "bugs/bug-0001-x.md": "# b\n",
+      "bugs/bug-0002-y.md": "# b\n",
+      "packages/core/src/a.ts": "export const a = 1\n",
+      "README.md": "# r\n",
+    });
+    const g = await buildFileGraph(root);
+    expect(node(g, "epics/EPIC-P1.md")?.category).toBe("epics");
+    expect(node(g, "bugs/bug-0002-y.md")?.category).toBe("bugs");
+    expect(node(g, "packages/core/src/a.ts")?.category).toBe("packages");
+    expect(node(g, "README.md")?.category).toBeNull();
   });
 });
 

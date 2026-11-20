@@ -9,6 +9,29 @@ export interface GalaxyNeighbor {
   hop: 1 | 2;
 }
 
+/** BUG-0232: Anzeigename für Dateien ohne Bereich (direkt in der Wurzel). */
+export const ROOT_CATEGORY = "(Wurzel)";
+
+export interface GalaxyCategory {
+  name: string;
+  count: number;
+}
+
+/** BUG-0232: Kategorie-Bereiche des gescannten Repos — dynamisch erkannt (z. B. epics, bugs),
+ *  häufige zuerst, seltene (unter minCount) und der Rest über `limit` weggefiltert. */
+export function categoriesOf(nodes: readonly { category?: string | null }[], minCount = 2, limit = 12): GalaxyCategory[] {
+  const counts = new Map<string, number>();
+  for (const n of nodes) {
+    const name = n.category ?? ROOT_CATEGORY;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+  }
+  return [...counts]
+    .filter(([, count]) => count >= minCount)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([name, count]) => ({ name, count }));
+}
+
 /**
  * Kanten der Auswahl, eine Zeile je Kante (damit die Länge mit `in`/`out` übereinstimmt).
  * Bei zwei Schritten zusätzlich je ein weiterer Knoten hinter jedem direkten Nachbarn.
@@ -122,6 +145,8 @@ export interface GalaxyViewState {
   system: string | null;
   twoHop: boolean;
   groups: GraphGroup[];
+  /** BUG-0232: aktive Kategorie-Filter (Anzeigenamen, siehe categoriesOf). */
+  cats: string[];
   deadOnly: boolean;
   errorOnly: boolean;
 }
@@ -140,6 +165,7 @@ export function loadGalaxyView(target: string): GalaxyViewState | null {
       system: typeof v.system === "string" ? v.system : null,
       twoHop: v.twoHop === true,
       groups: Array.isArray(v.groups) ? v.groups : [],
+      cats: Array.isArray(v.cats) ? v.cats : [],
       deadOnly: v.deadOnly === true,
       errorOnly: v.errorOnly === true,
     };

@@ -4,7 +4,7 @@ import { hostApi } from "../../shared/api.ts";
 import { ctxMotionOn } from "../../app/ui-scale.ts";
 import { GalaxyPanel } from "./GalaxyPanel.tsx";
 import { galaxyLayout, systemLabel } from "./galaxy-layout.ts";
-import { loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
+import { ROOT_CATEGORY, categoriesOf, loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
 import { FLIGHT_MS, backingScale, baseName, detailLevel, fitCircle, flightAt, pinchStep, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
 import { Button } from "../../shared/ui/index.ts";
 
@@ -69,6 +69,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const [query, setQuery] = useState("");
   const [twoHop, setTwoHop] = useState(false);
   const [groups, setGroups] = useState<GraphGroup[]>([]);
+  // BUG-0232: aktive Kategorie-Filter (dynamisch aus dem Repo erkannt).
+  const [cats, setCats] = useState<string[]>([]);
   const [deadOnly, setDeadOnly] = useState(false);
   const [errorOnly, setErrorOnly] = useState(false);
   const [sheet, setSheet] = useState<"line" | "open">("line");
@@ -85,8 +87,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const persistReady = useRef(false);
   const skipSave = useRef(true);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const focusRef = useRef<{ selected: string | null; bright: Set<string> | null; system: string | null; groups: GraphGroup[]; deadOnly: boolean; errorOnly: boolean }>({
-    selected: null, bright: null, system: null, groups: [], deadOnly: false, errorOnly: false,
+  const focusRef = useRef<{ selected: string | null; bright: Set<string> | null; system: string | null; groups: GraphGroup[]; cats: string[]; deadOnly: boolean; errorOnly: boolean }>({
+    selected: null, bright: null, system: null, groups: [], cats: [], deadOnly: false, errorOnly: false,
   });
 
   useEffect(() => {
@@ -213,6 +215,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       setSystemId(saved.system && layout.systems.some((s) => s.id === saved.system) ? saved.system : null);
       setTwoHop(saved.twoHop);
       setGroups(saved.groups);
+      // BUG-0232: nur Kategorien restaurieren, die es im aktuellen Repo noch gibt — sonst dimmt ein Relikt alles.
+      const present = new Set(report.nodes.map((n) => n.category ?? ROOT_CATEGORY));
+      setCats(saved.cats.filter((c) => present.has(c)));
       setDeadOnly(saved.deadOnly);
       setErrorOnly(saved.errorOnly);
       skipSave.current = true;
@@ -230,8 +235,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       skipSave.current = false;
       return;
     }
-    saveGalaxyView(target, { camera: viewRef.current, selected, system: systemId, twoHop, groups, deadOnly, errorOnly });
-  }, [viewTick, selected, systemId, twoHop, groups, deadOnly, errorOnly, target, report]);
+    saveGalaxyView(target, { camera: viewRef.current, selected, system: systemId, twoHop, groups, cats, deadOnly, errorOnly });
+  }, [viewTick, selected, systemId, twoHop, groups, cats, deadOnly, errorOnly, target, report]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -370,6 +375,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
           if (star && star.system !== f.system) return true;
         }
         if (f.groups.length > 0 && !f.groups.includes(n.group)) return true;
+        if (f.cats.length > 0 && !f.cats.includes(n.category ?? ROOT_CATEGORY)) return true;
         if (f.deadOnly && !(n.in === 0 && !n.entry)) return true;
         if (f.errorOnly && !errIdx.has(i)) return true;
         return false;
@@ -556,12 +562,13 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     bright: selected ? new Set([selected, ...neighborList.map((n) => n.path)]) : null,
     system: systemId,
     groups,
+    cats,
     deadOnly,
     errorOnly,
   };
   useEffect(() => {
     drawRef.current?.();
-  }, [selected, systemId, twoHop, groups, deadOnly, errorOnly, neighborList]);
+  }, [selected, systemId, twoHop, groups, cats, deadOnly, errorOnly, neighborList]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -756,6 +763,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     }
     return { c, dead };
   }, [report]);
+  // BUG-0232: Kategorie-Bereiche dynamisch aus dem Datenstand — nicht einbrennen.
+  const categories = useMemo(() => categoriesOf(report?.nodes ?? []), [report]);
   const errorTotal = diag ? diag.byFile.reduce((sum, f) => sum + f.errors, 0) : 0;
   // DOM-Hit-Flächen für E2E/Tastatur: die ~400 grad-stärksten Knoten, viewport-gecullt,
   // reines Overlay — Positionen werden nach Zoom/Pan-Ende nachgezogen, nicht pro Frame.
@@ -981,6 +990,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
           onTwoHop={setTwoHop}
           groups={groups}
           onToggleGroup={(g) => setGroups((cur) => (cur.includes(g) ? cur.filter((x) => x !== g) : [...cur, g]))}
+          categories={categories}
+          cats={cats}
+          onToggleCategory={(c) => setCats((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]))}
           deadOnly={deadOnly}
           onDeadOnly={setDeadOnly}
           errorOnly={errorOnly}

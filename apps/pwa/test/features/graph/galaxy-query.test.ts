@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { GraphEdge } from "@ancientvoid/contracts";
-import { loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles } from "../../../src/features/graph/galaxy-query.ts";
+import { ROOT_CATEGORY, categoriesOf, loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles } from "../../../src/features/graph/galaxy-query.ts";
 
 const edges: GraphEdge[] = [
   { from: "src/main.ts", to: "src/auth.ts", kind: "import" },
@@ -76,13 +76,39 @@ describe("Ansichtszustand", () => {
       system: "src",
       twoHop: true,
       groups: ["code"],
+      cats: ["bugs"],
       deadOnly: false,
       errorOnly: true,
     });
     expect(loadGalaxyView(target)?.selected).toBe("README.md");
     expect(loadGalaxyView(target)?.camera.scale).toBe(1.5);
+    // BUG-0232: Kategorie-Filter überlebt den Roundtrip.
+    expect(loadGalaxyView(target)?.cats).toEqual(["bugs"]);
     localStorage.setItem(`ancientvoid.galaxy:${target}`, "{");
     expect(loadGalaxyView(target)).toBeNull();
     vi.unstubAllGlobals();
+  });
+});
+
+describe("BUG-0232 Kategorie-Bereiche", () => {
+  it("categoriesOf erkennt Bereichs-Kategorien dynamisch, häufige zuerst", () => {
+    const cats = categoriesOf([
+      { category: "epics" },
+      { category: "epics" },
+      { category: "bugs" },
+      { category: "bugs" },
+      { category: "bugs" },
+      { category: null },
+      { path: "README.md" },
+    ]);
+    expect(cats).toEqual([
+      { name: "bugs", count: 3 },
+      { name: ROOT_CATEGORY, count: 2 },
+      { name: "epics", count: 2 },
+    ]);
+    // Seltene Bereiche unter minCount fallen weg, Wurzeldateien bündeln sich unter (Wurzel).
+    expect(categoriesOf([{ category: "x" }, { category: "y" }])).toEqual([]);
+    expect(categoriesOf([{ category: null }, { category: null }, { category: null }])).toEqual([{ name: ROOT_CATEGORY, count: 3 }]);
+    expect(categoriesOf([{ category: "x" }, { category: "x" }]).map((c) => c.name)).toEqual(["x"]);
   });
 });

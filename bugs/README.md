@@ -264,7 +264,8 @@ Ein Bug ist **ein** Verhalten. Zwei Symptome → zwei Dateien.
 | [BUG-0229](bug-0229-graph-pan-touch-blockiert.md) | Repo-Graph: Pan und Tap gehen nicht (Maus wie Touch) — das Hit-Overlay lag flächig über dem Canvas und schluckte jede Pointer-Eingabe; Handler liegen jetzt am Wrap, Overlay ist durchlässig, Klick nach Pan unterdrückt | fixed | S1 | pwa | — |
 | [BUG-0230](bug-0230-graph-vollbild-ohne-schliessen.md) | Graph-Vollbild am PC ohne erkennbaren Schließen-Knopf (nur „←“), Fläche bei UI-Zoom über den Bildschirm — beschrifteter „✕ Vollbild verlassen“-Knopf oben rechts, Höhe durch --ui-zoom geteilt | fixed | S2 | pwa | — |
 | [BUG-0231](bug-0231-graph-handy-unscharf-zoom-flach.md) | Repo-Graph am Handy unscharf und zu flacher Zoom — Backing-Store jetzt Gerätepixel × UI-Zoom (mit Scale-Listener), SCALE_MAX 32, Pinch-Zoom über Pointer-Map, Hit-Flächen gedeckelt | fixed | S2 | pwa | — |
-Die nächste freie Nummer ist **0232** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
+| [BUG-0232](bug-0232-graph-kategorien-stattdessen-gruppen.md) | Graph-Filter kannte nur Doc/Code/Config — Kategorie-Bereiche (epics, bugs, …) kommen jetzt dynamisch aus dem Repo: category im Contract/Scan, Chips je Häufigkeit, Filter + Persistenz | fixed | S3 | core, pwa | — |
+Die nächste freie Nummer ist **0233** (0169–0175 mit PR #17, 0176 auf main, 0177 mit PR #33
 gemerged, 0178/0179 mit PR #37 gemerged, 0181 mit PR #41 und 0182 mit PR #26 gemerged,
 0183 mit PR #50, 0184 mit PR #48 und 0185 mit dem Nightly-Fix aus den Issues #54–#57 gemerged,
 0180 mit PR #40; 0186 ist das eingemauerte Manifest auf dem Handy; 0187 sind die Geister-Tokens
