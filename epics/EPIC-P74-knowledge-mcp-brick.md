@@ -434,3 +434,25 @@ AC-Belegstand (20.11.2026):
 7. **AC-P74-7** ⏳ Checkpoint/Re-Index — HiveMind-Seite (T74.5).
 8. **AC-P74-8** ⏳ Benchmark — HiveMind-Seite (T74.8); Parameter sind AV-seitig
    sichtbar (EPIC-134-Vorbedingung erfüllt).
+
+## 11. Vorbereitungsstand 20.11.2026 (Hermes, vor T74.4-Start)
+
+- **Librarian live verifiziert:** `http://100.74.58.126:18101` antwortet; `POST /query`
+  liefert 10 Treffer, genestet in `data.data.results` (Felder: `id`, `content`, `score`,
+  `importance`, `status`, `agentId`, `source:"vector"`). Die Fassade (T74.4) muss dieses
+  Nesting auf flache `kb_search`-Hits mappen — Ref = `id`, Snippet aus `content`.
+- **Nemesis koordiniert:** Bus-Task `997edb1d-afe6-4d6e-9010-01d9a300b3dc` (18:14 via
+  `POST /message:send`) mit Auftrag T74.4/T74.5/T74.8, §3.3.1-Verweis, Protokollversionen,
+  Tenant-Entscheidung mit Kerrigan, Port-Hinweis (8787–8798 ist AV-reserviert — Fassade
+  außen vor), EPIC-134-Lehren (MIN_SCORE/Fusion nie hardcoden, Caps+truncated). Antwort-Poll
+  via Hermes-Cron alle 15 min, Meldung an Jan bei Completed/Failure.
+- **AV-Bestand verifiziert:** Repo `main`, Working Tree sauber, PR #201 gemerged.
+  `packages/contracts/src/knowledge/knowledge.ts` + Test (6 grün),
+  `packages/core/src/modules/knowledge/{index,mcp-source,service}.ts` + Test (17 grün).
+  `structuredContent`-mit-Text-Spiegel und Health-über-`kb_overview` sind implementiert.
+- **Lücke gefunden (für T74.3/T74.8):** `KnowledgeQuery`-Schema hat aktuell nur `q`+`topK`;
+  `fusion`/`minScore` aus §3.2/§3.3.1 fehlen noch im Contract UND im `mcp-source`-Aufruf.
+  Muss nachgeholt werden, bevor T74.8-Defaults dokumentierbar sind — EPIC-134-Lehre:
+  Parameter sichtbar, nicht hardcoden.
+- **Nichts geändert:** Librarian-Kern, Brain-DBs, Hub-Services unangetastet; nur Lesezugriffe
+  plus diese Doku-Zeile.
