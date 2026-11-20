@@ -40,7 +40,7 @@ Dann nur die Spalten fahren, die betroffen sind.
 | `apps/hub/src/modules/*`, `packages/core/src/modules/sessions/*`, `packages/adapters/*` | zusätzlich die betroffene Spec in `e2e/specs/` |
 | Epic- oder Bugfix-PR | `npm run gate` **nur auf ausdrücklichen Auftrag** — CI fährt `ci.yml` (schnell) und `nightly.yml` (voll) |
 | `apps/hub/**`, `packages/core/**`, `packages/workers/**` | `npx vitest run <Ordner des betroffenen Moduls>`; `npm run loadtest` bei State-/EventStore-Änderungen (K5/K7/K8) |
-| `*.md` | kein Gate |
+| `*.md` | kein Gate; bei `epics/**` und `docs/epic-status.md`: `npm run check:epics` + `npm run check:context` |
 
 ## Die Kommandos
 
@@ -50,6 +50,7 @@ npm run test:fast        # vitest Tier A: schneller Loop (parallel; ohne die Dat
 npm run test:slow         # langsamer Satz (VITEST_SET=slow) — Liste scripts/slow-tests.json
 npm run test:e2e          # Playwright-E2E-Gate (docs/testing-e2e.md)
 npm run gate              # check:* + typecheck + lint + volle Suite + test:e2e
+npm run check:epics       # Status-/Checklisten-Drift der Epics (exit 1 bei Drift)
 npm run lint              # eslint .
 npm run typecheck         # tsc -p . --noEmit
 npm run loadtest          # K8: 20 Sessions × 30 ev/s

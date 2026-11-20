@@ -92,6 +92,7 @@ Index aktualisiert: epics/README.md <ja|nein>
 ## Determinismus-Checkliste
 
 - [ ] Alle 7 Abschnitte vorhanden.
+- [ ] Beim Abschluss: Statuszeile und Checkboxen auf echten Stand, `epics/README.md` nachgezogen, `npm run check:epics` grün.
 - [ ] Premortem nicht übersprungen.
 - [ ] Abhängigkeit zur Vorphase explizit genannt.
 - [ ] Kein `epic.yaml`, kein PM-Board-Bezug.

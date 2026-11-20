@@ -1,6 +1,6 @@
 # EPIC-P66 — Metrik-Konsolidierung: alles an einem Ort, aufgeräumt und klappbar
 
-**Status:** in Umsetzung (Startauftrag 17.11.2026: „komplett alle Metriken einsehen — lokaler Server, Modelle, System, Cloud — filterbar, UI wie der Rest von AncientVoid, klappbar und customizable") · **Phase:** P66
+**Status:** abgeschlossen 2026-11-17 (T66.1–T66.4 nachweisbar unten; Nutzerabnahme nach P000 verschoben) · **Phase:** P66
 **Dauer:** 2–3 Agenten-Sessions
 **Abhängigkeit:** EPIC-P56 grün (T56.1a–T56.4 gemerged, PR #123; T56.6-Abnahme läuft parallel), EPIC-P59 grün (ADR-0078). P56-T56.5 (Compression, P55/P31) und EUR-Kosten (P31) bleiben gesperrt — auch hier.
 

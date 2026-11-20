@@ -1,6 +1,6 @@
 # EPIC-P68 — Prompt verbessern: lokales Modell zuerst, Projektkontext, Skill-Vorschläge pflegen statt duplizieren
 
-**Status:** lokal verifiziert (2026-11-18); PR/CI und Live-Abnahme offen · **Phase:** P68 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P67; baut auf T1.5-8/T1.5-10, T3.9, T5.10, BUG-0061 auf); P30/P31 bleiben On hold und unberührt
+**Status:** abgeschlossen 2026-11-18 (T68.1–T68.7, PR #160 gemerged, Abschlussprüfungen grün; Live-Abnahme am echten llama.cpp nach P000 verschoben) · **Phase:** P68 · **Dauer:** 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P67; baut auf T1.5-8/T1.5-10, T3.9, T5.10, BUG-0061 auf); P30/P31 bleiben On hold und unberührt
 
 Quelle: Nutzerauftrag vom 18.11.2026. Beobachtet: (1) Der Zauberstab
 „Verbessern“ läuft praktisch immer über OpenCode — jeder Adapter ohne eigenen
@@ -142,7 +142,7 @@ Nichts wird geschrieben — Speichern bleibt ein eigener, bewusster Klick (PUT).
 - [x] **T68.5** Routen `GET /api/skills/artifact`, `PUT /api/skills`, `POST /api/skills/revise`, Modell-Richter in `/api/prompt-recommendation`; Policy-Mapping; Integrations-Tests.
 - [x] **T68.6** PWA: Engine-Anzeige, Empfehlungskarte mit vorhandenem Skill, Editor, Anpassung vorschlagen, Speichern (PUT/POST).
 - [x] **T68.7** E2E-Spec `e2e/specs/prompt-enhance-skills.spec.ts` (lokal, belegt ⇒ Adapter, Skill anpassen + speichern) und bestehende Composer-Specs grün.
-- [ ] **T68.8** `docs/funktionsinventar.md`, Epic-Abschluss-Notiz; Nutzerabnahme am echten llama.cpp (Nutzeraufgabe).
+- [x] **T68.8** `docs/funktionsinventar.md`, Epic-Abschluss-Notiz; Nutzerabnahme am echten llama.cpp (Nutzeraufgabe). — Inventar aktualisiert, Abschluss-Notiz unten; Nutzerabnahme nach P000 verschoben.
 
 Reihenfolge: T68.1 → T68.2/T68.3 → T68.4 → T68.5 → T68.6 → T68.7 → T68.8.
 

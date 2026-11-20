@@ -12,6 +12,7 @@ npm run epics:status            # Baum mit Farbe (TTY) bzw. ohne (Pipe)
 npm run epics:status -- --json  # maschinenlesbar, für Editor-/Tool-Integration
 npm run epics:status -- --plain # nie Farbcodes
 npm run epics:status -- --epics <dir> # anderes Verzeichnis (Tests)
+npm run check:epics  # Gate-Modus: meldet Status-/Checklisten-Drift mit Exit 1
 ```
 
 `NO_COLOR` wird respektiert; `--color` erzwingt Farbe auch in Pipes.
@@ -28,6 +29,23 @@ auf ihren Grund zurückführbar.
 | **S2** | Der Statustext beginnt *nicht* mit Abschluss-Vokabular: `abgeschlossen`, `Code abgeschlossen`, `umgesetzt`, `Exit grün`, `grün`, `Fertiggestellt`. Konservativ (Fail-loud): nur ein ausdrücklicher Abschluss schließt; „Planungsentwurf“, „in Umsetzung“, „Umsetzung (Branch …)“, „Gebaut …“, „offen“, „Evaluations-Exit ‚vertagt‘“ … bleiben offen. | „**Planungsentwurf** · Umsetzung: gesperrt“ (P30–P31, P44, P54–P56); „**Umsetzung** (Branch …)“ (P42); „**Gebaut** (2026-10-28 …)“ (P19) |
 | **C1** | Mindestens eine offene Markdown-Checkbox `- [ ]`, deren **Zeile keinen Delegationsvermerk** enthält („verschoben nach …“ oder „nach P<n>“). Delegierte Zeilen leben sichtbar im Ziel-Epic weiter und halten die Quelldatei nicht offen. | T12.4 in P12 (9 offene Checkboxen); P9/P10/P11 haben delegierte Zeilen („→ verschoben nach P12 T12.4“) und zählen daher nicht |
 | **C2** | Expliziter `TODO:`-Marker (Doppelpunkt). | aktuell keine im Korpus |
+
+### Sync-Gate (`check:epics`) — die Spiegelregeln K1/K2
+
+Anzeige ist kostenlos; als Gate (in `gate` und CI) verlangt `--check`
+beide Richtungen der Übereinstimmung — Statuszeile und Checkliste müssen
+nach denselben Regeln zusammenpassen:
+
+| ID | Regel |
+|---|---|
+| **K1** | Checkliste benutzt und vollständig abgearbeitet (nur erledigte oder delegierte Punkte, kein `TODO:`), aber der Statustext schließt nicht und nennt keinen Grund fürs Offensein (Planung, Entscheidung, On hold, Sperrung, Progress wie „in Umsetzung“) → Statuszeile (und `epics/README`) synchronisieren. |
+| **K2** | Statustext im Abschluss-Vokabular, aber die Checkliste hat noch offene Punkte ohne Delegationsvermerk. |
+
+Der Fall, der diesen Gate erzeugt hat: Epics wurden faktisch abgeschlossen
+(Checkboxen grün, Retro geschrieben), Statuszeile und README aber nicht
+nachgezogen — oder umgekehrt. Geschlossen wird ein Epic im Vokabular
+**„abgeschlossen“**; Delegationen gehen per Vermerk in die Zeile und
+Physisch nach `EPIC-000` (Menschen-Abnahme) oder ins Ziel-Epic.
 
 ### Bewusste Nicht-Signale (vermeiden False Positives)
 

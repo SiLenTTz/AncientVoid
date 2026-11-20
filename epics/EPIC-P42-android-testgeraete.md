@@ -1,6 +1,6 @@
 # EPIC-P42 — Android-Testgeräte und Emulator in der PWA
 
-**Status:** Umsetzung (Branch `feat/p42-android-testgeraete`) · **Umsetzung:** freigegeben am 2026-11-11 · **Phase:** P42
+**Status:** abgeschlossen 2026-11-12 (Alles auf `main`; AC-Belege inkl. echter AVD-Abnahme §5) · **Umsetzung:** freigegeben am 2026-11-11 · **Phase:** P42
 **Dauer:** 0,5–1 Spike + 2–4 Umsetzung Agenten-Wochen (grobe Schätzung, ohne Vorgänger-Restarbeit)
 **Abhängigkeit:** P41 mit nachweislich grünen Exit-Kriterien; wirksame Vorgänger-Abnahmen bleiben bindend.
 

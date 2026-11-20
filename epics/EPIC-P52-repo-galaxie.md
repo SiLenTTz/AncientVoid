@@ -148,7 +148,8 @@ Linien zählen.
 - [x] **T52.4** Suche mit Hinflug, Trefferliste, Leerzustand; Bereiche mit Hineinzoomen, Brotkrume, Zurück; Filter dimmen statt entfernen. **K2**.
 - [x] **T52.5** Handy-Vollbild: Ausblenden der Session-Bedienung, schwebende Bedienung, Blatt von unten, Zurück-Reihenfolge, Quer-/Hochformat; „Vollbild“-Taste und Seitenfeld auf Tablet/PC. **K2**.
 - [x] **T52.6** Erhalt P48: Legende/Filter, tote Dateien, Prüfen, Kappung, eigenes Fenster, Karten-Einstieg; Tastatur am PC; Ansichtszustand je Ziel wiederherstellen. **K7/K10**.
-- [x] **T52.7** Abnahme: `e2e/specs/repo-galaxie.spec.ts` (Handy/Tablet/PC), K2-Messlauf (Skill `messlauf`, 400/4000 Dateien, Leerlauf und Zoom), Vorher-/Nachher-Bilder unter `docs/assets/`, Geräteabnahme am Handy, Retro. **K2/K10**.
+- [x] **T52.7** Abnahme: `e2e/specs/repo-galaxie.spec.ts` (Handy/Tablet/PC), K2-Messlauf (Skill `messlauf`, 400/4000 Dateien, Leerlauf und Zoom), Vorher-/Nachher-Bilder unter `docs/assets/`, Geräteabnahme am Handy, Retro. **K2/K10**. — Spec, Messlauf und Bilder auf `main` (13.11.); Geräteabnahme am Handy nach P000 verschoben; Rest siehe T52.8.
+- [ ] **T52.8** Messlauf-Nachtrag: Bildzeit p95 bei 4000 Dateien (AC-P52-6 teilweise); PC-Kachel: gespeicherten Stand nach Reload erneut prüfen (AC-P52-8 teilweise). **K2/K10**.
 
 Reihenfolge: T52.1 → T52.2 → T52.3 → T52.4 → T52.5 → T52.6 → T52.7; je Aufgabe eigener Branch/MR.
 

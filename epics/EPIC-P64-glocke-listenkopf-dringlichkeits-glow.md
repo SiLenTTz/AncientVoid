@@ -1,6 +1,6 @@
 # EPIC-P64 — Benachrichtigungs-Glocke: fester Platz im Listenkopf, Glow nach Dringlichkeit
 
-**Status:** offen (Planungsentwurf 2026-11-17) · **Phase:** P64 · **Dauer:** ≤ 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P63); **Koordinierung mit P63** (gleiche CSS-Dateien, siehe Premortem 2)
+**Status:** abgeschlossen (Plan ung Umsetzung 2026-11-17; Belege oben im File, Retro unten) · **Phase:** P64 · **Dauer:** ≤ 1 Agenten-Woche · **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P63); **Koordinierung mit P63** (gleiche CSS-Dateien, siehe Premortem 2)
 
 Quelle: Nutzerauftrag vom 17.11.2026 — die Glocke liege am PC über diversen
 UI-Elementen; sie soll fest oben rechts in der Übersichtsliste sitzen,

@@ -24,6 +24,10 @@ const OPEN_STATUS_CONTAINS = [
 // S2 — Abschluss-Vokabular: Nur ein Statustext, der so beginnt, kann ein Epic
 // schließen („Umsetzung“ als Substantiv ≠ „umgesetzt“ als Partizip).
 const CLOSED_STATUS_PREFIXES = ["abgeschlossen", "code abgeschlossen", "umgesetzt", "exit grün", "grün", "fertiggestellt"];
+// K1 — Nicht-Abschluss-Vokabular im Statustext: ein Epic darf geschlossen
+// aussehen (Checkliste abgearbeitet), solange der Statustext einen Grund für
+// das Offensein nennt (Planung, Entscheidung, On hold, Sperrung, Progress).
+const K1_EXEMPT = /\b(offen|teilweise|bis auf|entscheidung|on hold|planungs|plan\b|gating|wartet|gesperrt|evaluations-exit|vertagt|in umsetzung|in arbeit)\b/;
 // C1 — offene Markdown-Checkbox; ein Delegationsvermerk nimmt die Zeile aus
 // (der Punkt lebt dann sichtbar in einem anderen Epic weiter).
 const OPEN_CHECKBOX = /^\s*[-*] \[ \]/;
@@ -60,7 +64,26 @@ export function classifyEpicText(text) {
   if (counts.openCheckboxes > 0) reasons.push({ rule: "C1", label: `${counts.openCheckboxes} offene Checkbox(en)` });
   if (counts.todo > 0) reasons.push({ rule: "C2", label: "TODO-Marker" });
 
-  return { open: reasons.length > 0, reasons, counts };
+  return { open: reasons.length > 0, reasons, counts, closedVocabulary: segment !== null && CLOSED_STATUS_PREFIXES.some((p) => segment.toLowerCase().startsWith(p)), segment };
+}
+
+// --check — Statuszeile und Checkliste müssen zusammenpassen (Regel K1/K2).
+// K1: Checkliste benutzt und vollständig abgearbeitet, aber der Statustext
+//     schließt nicht und nennt keinen Grund fürs Offensein.
+// K2: Statustext schließt, aber die Checkliste hat noch offene Punkte
+//     (Delegation an ein Epic mit ` · `-Segment-Zählung wie bei C1).
+export function checkFindings(entries) {
+  const findings = [];
+  for (const e of entries) {
+    if (!e.epic || e.segment === null) continue;
+    const used = e.counts.doneCheckboxes + e.counts.delegatedCheckboxes;
+    const checklistClosed = e.counts.openCheckboxes === 0 && e.counts.todo === 0;
+    if (used > 0 && checklistClosed && !e.closedVocabulary && !K1_EXEMPT.test(e.segment.toLowerCase()))
+      findings.push({ file: e.file, rule: "K1", label: "Checkliste abgeschlossen, Statustext aber nicht im Abschluss-Vokabular — Statuszeile (und epics/README) synchronisieren" });
+    if (e.closedVocabulary && (e.counts.openCheckboxes > 0 || e.counts.todo > 0))
+      findings.push({ file: e.file, rule: "K2", label: "Statustext schließt, aber offene Checkbox/TODO ohne Delegationsvermerk vorhanden" });
+  }
+  return findings;
 }
 
 export function scanEpicsDir(epicsDir) {
@@ -68,9 +91,9 @@ export function scanEpicsDir(epicsDir) {
   names.sort((a, b) => a.localeCompare(b, "de", { numeric: true }));
   return names.map((name) => {
     if (!EPIC_FILE.test(name)) return { file: name, epic: false };
-    const { open, reasons, counts } = classifyEpicText(readFileSync(join(epicsDir, name), "utf8"));
+    const { open, reasons, counts, closedVocabulary, segment } = classifyEpicText(readFileSync(join(epicsDir, name), "utf8"));
     const phase = name.match(/^EPIC-P?([\d.]+)-/)[1];
-    return { file: name, epic: true, phase: `P${phase}`, open, reasons, counts };
+    return { file: name, epic: true, phase: `P${phase}`, open, reasons, counts, closedVocabulary, segment };
   });
 }
 
@@ -105,6 +128,7 @@ export function renderTree(entries, color) {
   out.push(`    ${c(BOLD_YELLOW, "S2")} Statustext beginnt nicht mit Abschluss-Vokabular (${CLOSED_STATUS_PREFIXES.join(", ")}) — konservativ: nur ausdrücklicher Abschluss schließt`);
   out.push(`    ${c(BOLD_YELLOW, "C1")} offene Checkbox „- [ ]“ ohne Delegationsvermerk („verschoben nach …“ / „nach P<n>“) in der Zeile`);
   out.push(`    ${c(BOLD_YELLOW, "C2")} expliziter „TODO:“-Marker`);
+  out.push("  --check (Gate, exit 1 bei Drift): K1 Checkliste durchgearbeitet, Statustext aber ohne Abschluss; K2 Statustext schließt, Checkliste aber offen");
   return out.join("\n");
 }
 
@@ -129,6 +153,17 @@ function main() {
 
   const entries = scanEpicsDir(epicsDir);
   console.log(args.includes("--json") ? renderJson(entries) : renderTree(entries, color));
+
+  if (args.includes("--check")) {
+    const findings = checkFindings(entries);
+    if (findings.length > 0) {
+      console.error("check:epics: " + findings.length + " Drift(s) — Statuszeile und Checkliste passen nicht zusammen:");
+      for (const f of findings) console.error(`  ${f.file} [${f.rule}] ${f.label}`);
+      process.exitCode = 1;
+    } else {
+      console.log("check:epics: OK — Statuszeilen und Checklisten aller Epics sind konsistent");
+    }
+  }
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -80,6 +80,7 @@ Diese Momente sind fest, keine Ermessenssache:
 | Task/Aufgabe (`T<n>.<m>`) einer Epic abgeschlossen | commit (lokal, auf dem laufenden `feat/`-Branch) |
 | Bugfix abgeschlossen (`bugfix`-Skill, Finalize) | commit **+ push + PR** (`gh pr create`) |
 | Epic abgeschlossen (alle AC grün, `retro` gelaufen) | commit **+ push + PR** für den Epic-/Feature-Branch nach `main` |
+| Vor jedem Abschluss-Commit eines Epics: Statuszeile, Checkboxen und `epics/README.md` auf echten Stand bringen — `npm run check:epics` muss grün sein | Pflicht-Schritt der Kadenz, kein Ermessen |
 
 Solo-Projekt, kein zweiter Reviewer: Self-Merge des eigenen PRs ist zulässig.
 Der "Nicht self-merge"-Grundsatz aus [`pr-review`](../pr-review/SKILL.md)

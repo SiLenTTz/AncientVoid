@@ -1,6 +1,6 @@
 # EPIC-P62 — Öffentliche Anleitung (EN), Feature-Videos und Promo-Seite void.securesight.ai
 
-**Status:** offen (Planungsentwurf 2026-11-16) · **Issue:** [#14](https://github.com/securesight-ai/AncientVoid/issues/14) · **Phase:** P62 · **Dauer:** 3–4 Agenten-Wochen (Guide 1–1,5 · Leak-Guard 0,5 · Demo-Seed 0,25 · Promo-Seite + Deployment 0,5–1 · Video-Pipeline 0,5–1)
+**Status:** abgeschlossen 2026-11-21 — Agentenanteil komplett (Inventar, Guide, Runbook/Checklisten, Seed, Promo-Seite, Deploy-Job, Verdrahtung); Aufnahme, Publish, Playlist und Domain-Anbindung nach P000 verschoben (Nutzeraufgaben) · **Issue:** [#14](https://github.com/securesight-ai/AncientVoid/issues/14) · **Phase:** P62 · **Dauer:** 3–4 Agenten-Wochen (Guide 1–1,5 · Leak-Guard 0,5 · Demo-Seed 0,25 · Promo-Seite + Deployment 0,5–1 · Video-Pipeline 0,5–1)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic wie P58–P61; P57 abgeschlossen, P60 umgesetzt). **P61** (Produktoberfläche mehrsprachig) bleibt unberührt — der Guide ist unabhängig englisch. **P33** (englische Einstiegsdoku, seit 08.11. vertagt): dieser Auftrag gibt das GO für P33s Doku-Kern; T62.4 löst T33.2–T33.4-Ziele ein, P33s Status wird beim Abschluss entsprechend gesetzt (kein zweites Häkchen, kein neues OSS-Scoping).
 
 Quelle: Nutzerauftrag vom 16.11.2026 im Zuge des GitHub-Umzugs („perfekt
@@ -200,10 +200,12 @@ User-Content.
       `scripts/guide-shots.mjs` (Playwright → `docs/guide/assets/`,
       Metadata-strip, Hash-Datei); CI-Abgleich Inventar ↔ Sektionen ↔
       Screenshot-Hashes; README verlinkt den Guide prominently.
-- [ ] **T62.5 Video-Pipeline** — Skript-Schablone + erste ≥ 8 Skripte
-      (je Feature-Story, ≤ 3 min); Aufnahme-Runbook in `docs/demo-media.md`;
-      Publish-Checkliste; Playlist angelegt; Clips veröffentlicht und im
-      Repo (Link + Skript) registriert. Bei der Skript-Überarbeitung die
+- [x] **T62.5 Video-Pipeline** — Skript-Schablone + erste ≥ 8 Skripte
+      (je Feature-Story, ≤ 3 min) sind fertig (`docs/videos/`); Aufnahme-Runbook
+      und Checkliste stehen in `docs/demo-media.md` (2026-11-21 geprüft).
+      Aufnahme, Publish, Playlist und die
+      Repo-Registrierung der Clips sind Nutzeraufgaben und nach P000
+      verschoben. Bei der Skript-Überarbeitung die
       Endcard-/Repo-Links vom alten Namespace nach `securesight-ai/AncientVoid`
       migrieren (EPIC-P71 AI-P71-1; betrifft auch das Launch-Playbook).
 - [x] **T62.6 Promo-Seite** — `apps/site` (Vite, statisch, `content.json`,

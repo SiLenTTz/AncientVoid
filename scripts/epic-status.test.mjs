@@ -3,7 +3,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { classifyEpicText, scanEpicsDir, renderTree, renderJson } from "./epic-status.mjs";
+import { classifyEpicText, scanEpicsDir, renderTree, renderJson, checkFindings } from "./epic-status.mjs";
 
 // Die Erkennungsregeln selbst sind getestet: Jede Regel findet ihr gepflanztes
 // Fixture, bekannte Fallen (DoD-Prosa „kein TODO ohne …“, Negation hinter „ · “,
@@ -176,6 +176,39 @@ describe("epic-status — echte epics/ des Repos (Struktur-Invarianten)", () => 
     // Nicht-Epic-Dateien (PRD, README) bleiben ungewertet.
     expect(entries.some((e) => !e.epic)).toBe(true);
   });
+
+describe("epic-status — --check: Statuszeile und Checkliste müssen zusammenpassen", () => {
+  const entry = (text) => {
+    const r = classifyEpicText("# EPIC-Px\n\n" + text);
+    return { file: "EPIC-Px-test.md", epic: true, phase: "Px", ...r };
+  };
+
+  it("K1: durchgearbeitete Checkliste, aber Statustext ohne Abschluss — Drift", () => {
+    const f = checkFindings([entry("**Status:** gebaut · **Phase:** Px\n\n- [x] T1\n- [x] T2\n")]);
+    expect(f.map((x) => x.rule)).toEqual(["K1"]);
+  });
+
+  it("K2: Statustext schließt, aber offene Checkbox ohne Delegation — Drift", () => {
+    const f = checkFindings([entry("**Status:** abgeschlossen · **Phase:** Px\n\n- [x] T1\n- [ ] T2\n")]);
+    expect(f.map((x) => x.rule)).toEqual(["K2"]);
+  });
+
+  it("keine Drift: Abschluss mit nur delegierten Punkten; Planung/Entscheidung/On hold mit offenen Punkten", () => {
+    const ok = [
+      entry("**Status:** abgeschlossen · **Phase:** Px\n\n- [x] T1\n- [ ] T2 nach P000 verschoben\n"),
+      entry("**Status:** Planungsentwurf · **Phase:** Px\n\n- [x] T1 geplant\n- [ ] T2\n"),
+      entry("**Status:** offen, Entscheidung steht aus · **Phase:** Px\n\n- [x] T1\n"),
+      entry("**Status:** On hold (Nutzerentscheid) · **Phase:** Px\n\n- [ ] T1\n"),
+      entry("**Status:** in Umsetzung (Grundlage T1, 15.11.2026) · **Phase:** Px\n\n- [x] T1\n- [x] T2\n"),
+      entry("**Status:** abgeschlossen · **Phase:** Px\n"), // ohne Checkboxen entscheidet nichts
+    ];
+    expect(checkFindings(ok)).toEqual([]);
+  });
+
+  it("Der echte Datenbaum ist driftfrei — sonst ist die Status-Synchronisation fällig.", () => {
+    expect(checkFindings(scanEpicsDir(resolve(dirname(fileURLToPath(import.meta.url)), "..", "epics")))).toEqual([]);
+  });
+});
 
   it("Baum und JSON stimmen für die echte Struktur überein", () => {
     const entries = scanEpicsDir(repoEpics);

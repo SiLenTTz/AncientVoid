@@ -1,6 +1,6 @@
 # EPIC-P21 — Icon-Leisten, Provider-Übergabe, Laufzeit-Metriken mit Schätzung, Fragen-Dialog
 
-**Status:** Code abgeschlossen 2026-10-28 (T21.1–T21.4), Roll-out und Retro offen · **Phase:** P21 · **Abhängigkeit:** fachlich keine; baut auf P18/P20 (Kacheln, Oberfläche),
+**Status:** abgeschlossen 2026-10-28 (T21.1–T21.4, Retro 🟢 unten; Hub-Neustart-Rollout nach P000 verschoben) · **Phase:** P21 · **Abhängigkeit:** fachlich keine; baut auf P18/P20 (Kacheln, Oberfläche),
 ADR-0015 (Provider-Fehler), ADR-0023 (ehrliche Metriken) und dem Adapter-Contract (`questions`, Resume-Referenzen ADR-0036) auf.
 
 Auslöser: Wunsch von Jan vom 2026-10-27. Die Session-Abbrüche waren eine Hub-Absturzschleife (BUG-0075); danach: Desktop wirkt unfertig
@@ -74,5 +74,5 @@ Zeitraum 2026-10-27 bis 2026-10-28, vier Aufgaben (Commits `9ec36ef`, `6f4f489`,
 
 - AI-P21-1: Spec „offene Frage überlebt Reload“ — **erledigt 2026-10-28**.
 - AI-P21-2: Bug-Nummern vor dem Anlegen gegen `origin` und offene MRs prüfen — zurück als: Eintrag in `bugs/README.md` / Skill `bug-report`.
-- AI-P21-3: Roll-out auf `home-server` (`scripts/fleet-deploy.sh`) und `gpubox` — zurück als: offene DoD-Zeile dieses Epics; von Jan später gewünscht.
+- AI-P21-3: Roll-out auf `home-server` (`scripts/fleet-deploy.sh`) und `gpubox` — zurück als: offene DoD-Zeile dieses Epics, nach P000 verschoben (T000.18); von Jan später gewünscht.
 - AI-P21-4: Nach dem Merge von !218 BUG-0074 auf `done` mit Verweis auf BUG-0075 — **erledigt 2026-10-28** (!218 gemergt).

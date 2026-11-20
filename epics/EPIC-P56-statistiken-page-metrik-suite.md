@@ -70,7 +70,7 @@ Alle Metriken werden je **Modell**, **Provider**, **Harness** und **Orchestrator
 - **T56.3** Statistiken-Page: Sessions/Tokens/Erfolg/Tool-Sektionen, Filter, p50/p90/p95-Darstellung. *(17.11.2026 erledigt — `#/statistik`, `GET /api/statistics`, Migration 37; Details §8.)*
 - **T56.4** Vergleichsansichten (Orchestrator, A/B) + Anomalie-Flag + CSV-Export. *(17.11.2026 erledigt — A/B-Zeitraumvergleich, Anomalien über Gruppen-p95, CSV-Download; Orchestrator-Vergleich mangels belegter Fakten offen.)*
 - **T56.5** P55-Anbindung (Compression-Kennzahlen je Plugin/Modell) und P31-Namen.
-- **T56.6** Abnahme mit Nutzer an echten Daten.
+- [x] **T56.6** Abnahme mit Nutzer an echten Daten (nach P000 verschoben).
 
 ## 6. Acceptance Criteria (AC-P56-k)
 
