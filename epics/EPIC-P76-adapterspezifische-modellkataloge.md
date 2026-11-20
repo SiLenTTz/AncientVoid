@@ -1,7 +1,7 @@
-# EPIC-P75 — Aktuelle, adapterspezifische Modellkataloge
+# EPIC-P76 — Aktuelle, adapterspezifische Modellkataloge
 
-**Status:** Planungsentwurf (20.11.2026), Umsetzung gesperrt · **Phase:** P75 · **Dauer:** 1–2 Agenten-Wochen · **Tracker:** noch nicht angelegt
-**Abhängigkeit:** [P74](EPIC-P74-knowledge-mcp-brick.md) ist offen; dessen Exit-Kriterien vor Implementierungsstart mit aktueller Evidenz prüfen. Fachliche Basis: P15/P35, ADR-0018/0054/0060/0061. Der ausdrückliche Auftrag erlaubt diesen Entwurf vor grünem Vorgänger, keine Umsetzung oder neue Gating-Ausnahme. P30/P31 bleiben On hold und werden nicht vorausgesetzt oder reaktiviert.
+**Status:** Planungsentwurf (20.11.2026), Umsetzung gesperrt · **Phase:** P76 · **Dauer:** 1–2 Agenten-Wochen · **Tracker:** noch nicht angelegt
+**Abhängigkeit:** [P75](EPIC-P75-sprachausgabe-chat-vorlesen.md) ist offen; dessen Exit-Kriterien vor Implementierungsstart mit aktueller Evidenz prüfen. Fachliche Basis: P15/P35, ADR-0018/0054/0060/0061. Der ausdrückliche Auftrag erlaubt diesen Entwurf vor grünem Vorgänger, keine Umsetzung oder neue Gating-Ausnahme. P30/P31 bleiben On hold und werden nicht vorausgesetzt oder reaktiviert.
 
 ## 1. Ziel
 
@@ -40,7 +40,7 @@ Quellen: jeweilige `packages/adapters/<adapter>/src/index.ts`, ergänzend unten.
 | Cursor | `--list-models`, Parser `id - label` | Unbekanntes nichtleeres Ausgabeformat kann heute leer aussehen; künftig Formatfehler sichtbar. |
 | Hermes / Copilot CLI | `modelsCommand`, sonst `[]` | Kein eigener Live-Katalog; konfigurierbare Quelle oder ehrlicher manueller Modus. Copilot CLI nicht mit Copilot ACP gleichsetzen. |
 | ACP | explizites `modelsCommand`; dsh/maki/omp über ACP-Probe; sonst aus abschließendem `acp` abgeleitetes `models`-Kommando | Zusätzlich sessiongebundene `configOptions`/`availableModels` bei new/load; diese bleiben für tatsächliche Auswahl maßgeblich. Copilot-Preset meldet `modelChoice: none`. |
-| aider / JSON-RPC / Clip- und Loop-Pfade | keine gemeinsame Katalogzusage | In T75.1 jedes Paket/Registrierungsprofil zuordnen: unterstützt, manuell oder keine Auswahl; keine erfundene Discovery für Monitor-only. |
+| aider / JSON-RPC / Clip- und Loop-Pfade | keine gemeinsame Katalogzusage | In T76.1 jedes Paket/Registrierungsprofil zuordnen: unterstützt, manuell oder keine Auswahl; keine erfundene Discovery für Monitor-only. |
 
 `apps/hub/src/modules/harness/harness.routes.ts` cached je Registrierungs-ID
 zehn Minuten im Speicher. Fehler werden geloggt, die Antwort enthält dann
@@ -65,7 +65,7 @@ Fixtures und Konfigurationsdefaults sind ebenfalls keine Discovery-Quelle.
 **Offene Identität:** Im durchsuchten Repository kein Treffer für „Kolex“.
 Arbeitsannahme: gemeint ist OpenAI **Codex** (`codex`, exec/app-server).
 Eine Rückfrage wurde gestellt; ohne Bestätigung bleibt diese Zuordnung unbestätigt.
-T75.1 muss sie vor adapterspezifischer Umsetzung klären; kein neuer Adaptername.
+T76.1 muss sie vor adapterspezifischer Umsetzung klären; kein neuer Adaptername.
 
 **Öffentlich belegt, abgerufen 20.11.2026:**
 [OpenAI-Modellseite](https://developers.openai.com/api/docs/models/gpt-6.2-sol)
@@ -127,23 +127,23 @@ Cache bleibt wegwerfbar: nach Restart unbekannt bis Discovery, keine Änderung
 von Session.model; autoritativer Sessionzustand aus JSONL+Snapshot (K7).
 Offline zeigt die PWA letzte Projektion/Zeitstempel, keine frische Bestätigung (K10).
 
-## 4. Aufgaben (Checkliste T75.n)
+## 4. Aufgaben (Checkliste T76.n)
 
-- [ ] **T75.1 — Inventar und Identität.** Alle Pakete/Registrierungen inklusive ACP-Presets, Custom-/Endpoint-Quellen, Auswahlfähigkeiten und CLI-Versionen erfassen; „Kolex“ bestätigen, Discovery/Preis/Metadaten trennen; vorher P74-Exit prüfen. K5/K7, PRD §9.
-- [ ] **T75.2 — Contract/ADR.** Statusmodell, Zeitstempel, Limits, Cache-Identität, Rückwärtskompatibilität und Recovery-Verhalten entscheiden; Ablauf ohne native Liste explizit. K5/K7/K10.
-- [ ] **T75.3 — Adapterquellen.** Native Discovery priorisieren, Pagination/Timeout/Prozessende/Parserfehler absichern; keine Liste für nicht unterstützte Auswahl erfinden; Claude-Fallback kennzeichnen. K5, Fail loud.
-- [ ] **T75.4 — Hub-Aktualisierung.** Single-flight, TTL, Invalidierung, letzter Erfolg und Retrygrenzen umsetzen; Config-/Auth-Wechsel ohne Datenübernahme. K7/K10.
-- [ ] **T75.5 — Einheitliche UI.** Start, Wechsel, Übergabe: Quelle/Alter/Fehler, Refresh, manuelle IDs, entfernte Auswahl, abgelehnter Wechsel und offline konsistent darstellen. K10, K2-Regression.
-- [ ] **T75.6 — Nachweise und Dokumentation.** Gezielte Tests unten rot-dann-grün, Bedienhinweise zu Aliassen/Anmeldung/Preisen; reale Account-Abnahmen bei Bedarf nach P000 delegieren. K5/K7/K10.
+- [ ] **T76.1 — Inventar und Identität.** Alle Pakete/Registrierungen inklusive ACP-Presets, Custom-/Endpoint-Quellen, Auswahlfähigkeiten und CLI-Versionen erfassen; „Kolex“ bestätigen, Discovery/Preis/Metadaten trennen; vorher P75-Exit prüfen. K5/K7, PRD §9.
+- [ ] **T76.2 — Contract/ADR.** Statusmodell, Zeitstempel, Limits, Cache-Identität, Rückwärtskompatibilität und Recovery-Verhalten entscheiden; Ablauf ohne native Liste explizit. K5/K7/K10.
+- [ ] **T76.3 — Adapterquellen.** Native Discovery priorisieren, Pagination/Timeout/Prozessende/Parserfehler absichern; keine Liste für nicht unterstützte Auswahl erfinden; Claude-Fallback kennzeichnen. K5, Fail loud.
+- [ ] **T76.4 — Hub-Aktualisierung.** Single-flight, TTL, Invalidierung, letzter Erfolg und Retrygrenzen umsetzen; Config-/Auth-Wechsel ohne Datenübernahme. K7/K10.
+- [ ] **T76.5 — Einheitliche UI.** Start, Wechsel, Übergabe: Quelle/Alter/Fehler, Refresh, manuelle IDs, entfernte Auswahl, abgelehnter Wechsel und offline konsistent darstellen. K10, K2-Regression.
+- [ ] **T76.6 — Nachweise und Dokumentation.** Gezielte Tests unten rot-dann-grün, Bedienhinweise zu Aliassen/Anmeldung/Preisen; reale Account-Abnahmen bei Bedarf nach P000 delegieren. K5/K7/K10.
 
-## 5. Acceptance Criteria (AC-P75-k)
+## 5. Acceptance Criteria (AC-P76-k)
 
-1. **AC-P75-1:** Inventar umfasst jede Adapterimplementierung und Registrierungsklasse mit Quelle, Fallback und Fähigkeitsgrenze; Codex/„Kolex“-Zuordnung bestätigt oder ausdrücklich offen/blockierend für betroffene Umsetzung. Keine ungeprüfte Gleichsetzung.
-2. **AC-P75-2:** Fixture ergänzt ein neu angebotenes Modell (z. B. `gpt-6.2-sol`): nach Refresh in Start/Wechsel/Übergabe sichtbar, ausschließlich bei passenden Fähigkeiten; ohne PWA-Neubau und ohne Änderung von Session.model.
-3. **AC-P75-3:** Tests unterscheiden Erfolg-leer, unsupported, Timeout, Authfehler, unbekanntes Format und Teilkatalog. Stale behält Erfolgszeitpunkt; ohne Vorwert sichtbarer Fehler. Kein stiller Default-/Modellwechsel.
-4. **AC-P75-4:** Gleichzeitige Anfragen lösen genau eine Probe aus; TTL/Retry mit Fake-Clock geprüft. Configwechsel und zwei Hosts mit gleicher Adapter-ID mischen keine Kataloge. Pagination liefert alles oder explizit begrenztes Ergebnis.
-5. **AC-P75-5:** Entferntes aktuelles Modell bleibt erkennbar; abgelehnter Wechsel ändert keinen autoritativen Zustand. Restart rekonstruiert dieselbe Session aus JSONL+Snapshot innerhalb K7 (< 3 s); Cacheverlust ist unschädlich. K5-Grenzfall > 4 KB und K10-Offline-Fall automatisiert belegt.
-6. **AC-P75-6:** Preisaussage bleibt exakt auf Modell/Tier/Datum begrenzt; kein „6.2 günstiger als 6.1“-Claim und keine Garantie aus öffentlicher Verfügbarkeit. Alle drei UI-Pfade besitzen benannte E2E-Nachweise.
+1. **AC-P76-1:** Inventar umfasst jede Adapterimplementierung und Registrierungsklasse mit Quelle, Fallback und Fähigkeitsgrenze; Codex/„Kolex“-Zuordnung bestätigt oder ausdrücklich offen/blockierend für betroffene Umsetzung. Keine ungeprüfte Gleichsetzung.
+2. **AC-P76-2:** Fixture ergänzt ein neu angebotenes Modell (z. B. `gpt-6.2-sol`): nach Refresh in Start/Wechsel/Übergabe sichtbar, ausschließlich bei passenden Fähigkeiten; ohne PWA-Neubau und ohne Änderung von Session.model.
+3. **AC-P76-3:** Tests unterscheiden Erfolg-leer, unsupported, Timeout, Authfehler, unbekanntes Format und Teilkatalog. Stale behält Erfolgszeitpunkt; ohne Vorwert sichtbarer Fehler. Kein stiller Default-/Modellwechsel.
+4. **AC-P76-4:** Gleichzeitige Anfragen lösen genau eine Probe aus; TTL/Retry mit Fake-Clock geprüft. Configwechsel und zwei Hosts mit gleicher Adapter-ID mischen keine Kataloge. Pagination liefert alles oder explizit begrenztes Ergebnis.
+5. **AC-P76-5:** Entferntes aktuelles Modell bleibt erkennbar; abgelehnter Wechsel ändert keinen autoritativen Zustand. Restart rekonstruiert dieselbe Session aus JSONL+Snapshot innerhalb K7 (< 3 s); Cacheverlust ist unschädlich. K5-Grenzfall > 4 KB und K10-Offline-Fall automatisiert belegt.
+6. **AC-P76-6:** Preisaussage bleibt exakt auf Modell/Tier/Datum begrenzt; kein „6.2 günstiger als 6.1“-Claim und keine Garantie aus öffentlicher Verfügbarkeit. Alle drei UI-Pfade besitzen benannte E2E-Nachweise.
 
 **Teststrategie:** `packages/adapters/codex/test/app-server.test.ts`,
 `packages/adapters/codex/test/adapter.test.ts` und betroffene

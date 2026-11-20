@@ -1,7 +1,7 @@
-# EPIC-P76 — Separate mobile Session-Instanzen
+# EPIC-P77 — Separate mobile Session-Instanzen
 
-**Status:** Planungsentwurf (20.11.2026), Umsetzung gesperrt · **Phase:** P76 · **Dauer:** 0,5–1 Agenten-Woche Evaluation + 1–2 Umsetzung bei tragfähigem Web-Pfad · **Tracker:** noch nicht angelegt
-**Abhängigkeit:** [P75](EPIC-P75-adapterspezifische-modellkataloge.md) Exit grün vor Implementierungsstart; keine fachliche Kopplung an dessen Modellkatalog. Basis: P8/P18/P34/P43, ADR-0053/0068. Der ausdrückliche Planungsauftrag erlaubt den Entwurf vor grünen Vorgängern, keine Umsetzung. P30/P31 bleiben On hold. [P32](EPIC-P32-mobile-client-entscheidung.md) bleibt vertagt; dieses Epic erteilt kein Go für eine native Shell.
+**Status:** Planungsentwurf (20.11.2026), Umsetzung gesperrt · **Phase:** P77 · **Dauer:** 0,5–1 Agenten-Woche Evaluation + 1–2 Umsetzung bei tragfähigem Web-Pfad · **Tracker:** noch nicht angelegt
+**Abhängigkeit:** [P76](EPIC-P76-adapterspezifische-modellkataloge.md) Exit grün vor Implementierungsstart; keine fachliche Kopplung an dessen Modellkatalog. Basis: P8/P18/P34/P43, ADR-0053/0068. Der ausdrückliche Planungsauftrag erlaubt den Entwurf vor grünen Vorgängern, keine Umsetzung. P30/P31 bleiben On hold. [P32](EPIC-P32-mobile-client-entscheidung.md) bleibt vertagt; dieses Epic erteilt kein Go für eine native Shell.
 
 ## 1. Ziel
 
@@ -64,7 +64,7 @@ Offizielle Quellen, abgerufen 20.11.2026; kein eigener Gerätemesslauf:
 Web-Pfad; `window.open` allein reicht nicht. **Offen:** Welche Android-Version /
 Chrome-Version und iOS-Version als unterstützt gelten, ob die Installation neben
 der Haupt-App möglich bleibt, und welche Auth-/Speichergrenzen real auftreten.
-T76.1 erstellt eine Evidenzmatrix `supported | unsupported | not_run` mit Datum,
+T77.1 erstellt eine Evidenzmatrix `supported | unsupported | not_run` mit Datum,
 OS/Browser/Installationsart, A/B-Switcher-Karten und Restore-Beleg. Emulation beweist
 keine OS-Karten. Ohne Gerät: `not_run`, keine Freigabe des entsprechenden Claims.
 
@@ -137,23 +137,23 @@ und bei Bedarf Core-Modul gemäß ADR-0020. Adapter bleiben unberührt und sehen
 nur `AdapterContext`. K5: kleine validierte Meldungen ≤ 4 KB, große Diagnosen als
 Blob; keine Tail-/Sessionkopien über Window-Nachrichten.
 
-## 4. Aufgaben (Checkliste T76.n)
+## 4. Aufgaben (Checkliste T77.n)
 
-- [ ] **T76.1 — Vorbedingungen und Plattform-Spike.** P75-Exit prüfen; Desktopablauf und aktuelle Geräte-/Browser-Versionen erfassen; zwei Sessions plus Haupt-App auf Android/Chrome und iOS/Safari installieren/wechseln/restarten. Ergebnis/Blocker je Plattform, kein automatisches Go aus Dokumentation. K2/K7/K10.
-- [ ] **T76.2 — Entscheidung/ADR.** Pro Plattform Web-Pfad oder benannter Fallback; ID/Scope, Routen, Haupt-App-Kompatibilität, Auth, Speicher und Recovery festlegen. Ungeklärte Scope-/Installationskonflikte blockieren den App-Pfad. K5/K7/K10.
-- [ ] **T76.3 — Session-Einstieg.** Nur bei positivem Spike Session-HTML/Manifest/SW-Pfad und gebundene Ansicht umsetzen; Start/Reload ohne Hauptfenster, falsche Host-/Session-IDs und fehlende Auth sichtbar behandeln. K7/K10.
-- [ ] **T76.4 — Mobile Aktion und Navigation.** Sessionaktion, Installation/Öffnen/Tab-Fallback, Titel/Host, Zurück/Übersicht/Archivzustand zugänglich machen; Desktop-Popout erhalten. K1/K2/K10.
-- [ ] **T76.5 — Lifecycle und Regressionen.** Suspend/Resume, fehlender Kanal, Offline, Cache-Versionen, Hauptfenster zu, parallele Eingaben und Uninstall testen; kleine Nachrichten und keine zweite Session/Worker nachweisen. K2/K5/K7/K10.
-- [ ] **T76.6 — Freigabematrix und Menschen-Abnahme.** Plattformhinweise mit Evidenz, bekannte Grenzen und Testanleitungen; nur reine menschliche Restabnahmen mit Herkunft/Schritten nach P000 verschieben. Ungeklärte Agentenarbeit/Architektur bleibt hier offen. K1/K7/K10.
+- [ ] **T77.1 — Vorbedingungen und Plattform-Spike.** P76-Exit prüfen; Desktopablauf und aktuelle Geräte-/Browser-Versionen erfassen; zwei Sessions plus Haupt-App auf Android/Chrome und iOS/Safari installieren/wechseln/restarten. Ergebnis/Blocker je Plattform, kein automatisches Go aus Dokumentation. K2/K7/K10.
+- [ ] **T77.2 — Entscheidung/ADR.** Pro Plattform Web-Pfad oder benannter Fallback; ID/Scope, Routen, Haupt-App-Kompatibilität, Auth, Speicher und Recovery festlegen. Ungeklärte Scope-/Installationskonflikte blockieren den App-Pfad. K5/K7/K10.
+- [ ] **T77.3 — Session-Einstieg.** Nur bei positivem Spike Session-HTML/Manifest/SW-Pfad und gebundene Ansicht umsetzen; Start/Reload ohne Hauptfenster, falsche Host-/Session-IDs und fehlende Auth sichtbar behandeln. K7/K10.
+- [ ] **T77.4 — Mobile Aktion und Navigation.** Sessionaktion, Installation/Öffnen/Tab-Fallback, Titel/Host, Zurück/Übersicht/Archivzustand zugänglich machen; Desktop-Popout erhalten. K1/K2/K10.
+- [ ] **T77.5 — Lifecycle und Regressionen.** Suspend/Resume, fehlender Kanal, Offline, Cache-Versionen, Hauptfenster zu, parallele Eingaben und Uninstall testen; kleine Nachrichten und keine zweite Session/Worker nachweisen. K2/K5/K7/K10.
+- [ ] **T77.6 — Freigabematrix und Menschen-Abnahme.** Plattformhinweise mit Evidenz, bekannte Grenzen und Testanleitungen; nur reine menschliche Restabnahmen mit Herkunft/Schritten nach P000 verschieben. Ungeklärte Agentenarbeit/Architektur bleibt hier offen. K1/K7/K10.
 
-## 5. Acceptance Criteria (AC-P76-k)
+## 5. Acceptance Criteria (AC-P77-k)
 
-1. **AC-P76-1:** Plattformmatrix unterscheidet belegte Fähigkeit, Annahme und `not_run`. Ein positiver App-Pfad benötigt A/B als getrennte Switcher-Karten neben der Haupt-App, korrekte Session beim Wechsel und Kaltstart; OS/Browser-Version und Installationsart stehen am Beleg. Negativbefund benennt Alternative, kein Erfolgsetikett für Tabs.
-2. **AC-P76-2:** Mobile Sessionaktion erreichbar; ohne Unterstützung/Installation klarer Installations- oder Tab-Ablauf. Abbruch/fehlendes hello entfernt keine Quellansicht und erzeugt keine falsche Blockierungsdiagnose.
-3. **AC-P76-3:** A/B auf zwei Hosts mit gleicher Session-ID bleiben getrennt; Umbenennen ändert Bindung nicht. Haupt-App geschlossen, Reload und Prozessneustart führen zur gebundenen Session oder benanntem Auth/Offline/Archivfehler. Keine Tokens in Links/Manifest/Meldungen.
-4. **AC-P76-4:** Öffnen erzeugt weder zusätzliche Hub-Session noch Worker. Zwei Ansichten zeigen denselben Zustand; Wiederaufnahme nach Suspension sendet keinen Prompt und kein Approval doppelt. Fehlender BroadcastChannel beeinträchtigt keine Zuordnung.
-5. **AC-P76-5:** Cache-/Storage-Fälle zeigen ausschließlich passende Projektionen mit Zeitstempel; Offline-Erststart ohne Cache ist verständlich. Hub-Restore bleibt K7-konform (100 %, < 3 s), Meldungen K5-konform. Desktop-Popout/Recall und bestehende Haupt-App-Installation bleiben funktionsfähig.
-6. **AC-P76-6:** Automatisierte A/B-Tails bei 30 Events/s halten K2 (< 200 ms Frame-Lag); vorhandener Approval-Pfad hält K1 (p95 < 5 s) im zugehörigen Nachweis. Gerätesuspension/OS-Karten werden zusätzlich real geprüft, nicht aus Playwright abgeleitet.
+1. **AC-P77-1:** Plattformmatrix unterscheidet belegte Fähigkeit, Annahme und `not_run`. Ein positiver App-Pfad benötigt A/B als getrennte Switcher-Karten neben der Haupt-App, korrekte Session beim Wechsel und Kaltstart; OS/Browser-Version und Installationsart stehen am Beleg. Negativbefund benennt Alternative, kein Erfolgsetikett für Tabs.
+2. **AC-P77-2:** Mobile Sessionaktion erreichbar; ohne Unterstützung/Installation klarer Installations- oder Tab-Ablauf. Abbruch/fehlendes hello entfernt keine Quellansicht und erzeugt keine falsche Blockierungsdiagnose.
+3. **AC-P77-3:** A/B auf zwei Hosts mit gleicher Session-ID bleiben getrennt; Umbenennen ändert Bindung nicht. Haupt-App geschlossen, Reload und Prozessneustart führen zur gebundenen Session oder benanntem Auth/Offline/Archivfehler. Keine Tokens in Links/Manifest/Meldungen.
+4. **AC-P77-4:** Öffnen erzeugt weder zusätzliche Hub-Session noch Worker. Zwei Ansichten zeigen denselben Zustand; Wiederaufnahme nach Suspension sendet keinen Prompt und kein Approval doppelt. Fehlender BroadcastChannel beeinträchtigt keine Zuordnung.
+5. **AC-P77-5:** Cache-/Storage-Fälle zeigen ausschließlich passende Projektionen mit Zeitstempel; Offline-Erststart ohne Cache ist verständlich. Hub-Restore bleibt K7-konform (100 %, < 3 s), Meldungen K5-konform. Desktop-Popout/Recall und bestehende Haupt-App-Installation bleiben funktionsfähig.
+6. **AC-P77-6:** Automatisierte A/B-Tails bei 30 Events/s halten K2 (< 200 ms Frame-Lag); vorhandener Approval-Pfad hält K1 (p95 < 5 s) im zugehörigen Nachweis. Gerätesuspension/OS-Karten werden zusätzlich real geprüft, nicht aus Playwright abgeleitet.
 
 **Teststrategie:** bestehende `e2e/specs/windows.spec.ts` für Desktopregression;
 geplant `e2e/specs/mobile-session-instances.spec.ts` für mobile Aktion, A/B,
