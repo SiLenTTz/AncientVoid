@@ -23,8 +23,16 @@ export function operationOf(method: string, url: string, body: unknown): PolicyO
   // Verbindungs-Registry (VoidWarden-Tokens, Endpoint-Schlüssel-Hinweise):
   // ebenfalls eine Menschenfläche — Lesen wie Schreiben (Muster Vault).
   if (path.startsWith("/api/connections")) return "settings.manage";
-  // EPIC-P74 (ADR-0096): Wissensquellen tragen Geheimnisse und fremden Text — Menschenfläche.
-  if (path.startsWith("/api/knowledge")) return "settings.manage";
+  // EPIC-P74 (ADR-0096 + Nachtrag T74.7): Verwaltung der Quellen (Geheimnisse,
+  // fremder Text) bleibt Menschenfläche; Befragen (Liste/Prüfen/Suchen/Lesen/
+  // Graph) dürfen Agenten über die gateway-mcp-Meta-Tools (knowledge.read).
+  // Schreiben ist immer eine Freigabe (knowledge.add) — auch für Menschen (§3.6).
+  if (path.startsWith("/api/knowledge")) {
+    if (/^\/api\/knowledge\/sources\/[^/]+\/(probe|search|read|graph)$/.test(path)) return "knowledge.read";
+    if (/^\/api\/knowledge\/sources\/[^/]+\/add$/.test(path)) return "knowledge.add";
+    if (path === "/api/knowledge/sources" && (method === "GET" || method === "HEAD")) return "knowledge.read";
+    return "settings.manage";
+  }
   // EPIC-P40/EPIC-P60 (ADR-0064 §4, ADR-0077): Teams steuern nur Menschen;
   // Lesen ist eine eigene Operation mit dem Allow-Set des bisherigen generischen `read`.
   if (path.startsWith("/api/teams")) return method === "GET" || method === "HEAD" ? "team.read" : "team.manage";

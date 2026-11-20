@@ -4,12 +4,16 @@ import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import type { z } from "zod";
 import {
   KNOWLEDGE_CONTENT_MAX_CHARS,
+  KNOWLEDGE_GRAPH_MAX_EDGES,
   KNOWLEDGE_SNIPPET_MAX_CHARS,
   KNOWLEDGE_SUMMARY_MAX_CHARS,
   KNOWLEDGE_TIMEOUT_MS,
+  KnowledgeAddResult,
+  KnowledgeGraphResult,
   KnowledgeOverviewResult,
   KnowledgeReadResult,
   KnowledgeSearchResult,
+  type KnowledgeAddInput,
   type KnowledgeAuth,
   type KnowledgeOverview,
   type KnowledgeQuery,
@@ -146,7 +150,7 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
 
     search: (query: KnowledgeQuery) =>
       withClient(async (client, opts) => {
-        const res = await call(client, opts, cfg.tools.search, { q: query.q, topK: query.topK }, KnowledgeSearchResult);
+        const res = await call(client, opts, cfg.tools.search, { q: query.q, topK: query.topK, ...("fusion" in query ? { fusion: query.fusion } : {}), ...("minScore" in query ? { minScore: query.minScore } : {}) }, KnowledgeSearchResult);
         let truncated = res.truncated || res.hits.length > query.topK;
         const hits = res.hits.slice(0, query.topK).map((h) => {
           const snippet = cap(h.snippet, KNOWLEDGE_SNIPPET_MAX_CHARS);
@@ -161,6 +165,26 @@ export function createMcpKnowledgeSource(cfg: McpSourceConfig): KnowledgeSource 
         const res = await call(client, opts, cfg.tools.read, { ref }, KnowledgeReadResult);
         const content = cap(res.content, KNOWLEDGE_CONTENT_MAX_CHARS);
         return { ...res, content: content.text, truncated: content.cut || (res.truncated ?? false) };
+      }),
+
+    /** Nachbarn/Pfad einer Ref — optionales Tool: fehlt es, ist das ein sauberer Protokollfehler. */
+    graph: (query) =>
+      withClient(async (client, opts) => {
+        const tools = await listTools(client, opts);
+        if (!tools.includes(cfg.tools.graph)) throw new KnowledgeError("protocol", `Tool fehlt: ${cfg.tools.graph}`);
+        const res = await call(client, opts, cfg.tools.graph, { seed: query.seed, depth: query.depth, maxNodes: query.maxNodes }, KnowledgeGraphResult);
+        const nodes = res.nodes.slice(0, query.maxNodes);
+        const edges = res.edges.slice(0, KNOWLEDGE_GRAPH_MAX_EDGES);
+        const known = nodes.length < res.nodes.length || edges.length < res.edges.length;
+        return { nodes, edges, truncated: res.truncated || known };
+      }),
+
+    /** Schreiben — ruft NIE jemand direkt auf: der Service lässt eine Freigabe davor (EPIC-P74 §3.6). */
+    add: (input: KnowledgeAddInput) =>
+      withClient(async (client, opts) => {
+        const tools = await listTools(client, opts);
+        if (!tools.includes(cfg.tools.add)) throw new KnowledgeError("protocol", `Tool fehlt: ${cfg.tools.add}`);
+        return call(client, opts, cfg.tools.add, input, KnowledgeAddResult);
       }),
   };
 }

@@ -22,12 +22,16 @@ export interface FakeFacadeOptions {
   /** Header für das Token; Standard `authorization` mit `Bearer `-Präfix. */
   header?: string;
   docs?: FakeDoc[];
+  /** Outlinks je Ref — speist kb_graph (Nachbarn/Pfad). */
+  links?: Record<string, string[]>;
   /** Dieses Tool fehlt in tools/list (Protokollbruch). */
   omitTool?: string;
   /** kb_search antwortet ohne Pflichtfeld `hits`. */
   brokenSearch?: boolean;
   /** Nur Text-Block statt structuredContent (ältere Fassade). */
   textOnly?: boolean;
+  /** kb_add schlägt fachlich fehl (isError) statt zu schreiben. */
+  failAdd?: boolean;
 }
 
 export const SAMPLE_DOCS: FakeDoc[] = [
@@ -41,9 +45,11 @@ function result(data: unknown, textOnly: boolean) {
 }
 
 export function createFakeFacade(opts: FakeFacadeOptions = {}) {
-  const docs = opts.docs ?? SAMPLE_DOCS;
+  const docs = [...(opts.docs ?? SAMPLE_DOCS)];
   const textOnly = opts.textOnly ?? false;
   const seen: { auth: string | null }[] = [];
+  const seenSearches: { q: string; topK?: number; fusion?: string; minScore?: number }[] = [];
+  const added: { text: string; ref?: string }[] = [];
 
   function build(): McpServer {
     const server = new McpServer({ name: "fake-librarian-facade", version: "1.0.0" });
@@ -55,8 +61,9 @@ export function createFakeFacade(opts: FakeFacadeOptions = {}) {
     if (opts.omitTool !== "kb_search") {
       server.registerTool(
         "kb_search",
-        { description: "Suche", inputSchema: { q: z.string(), topK: z.number().int().optional() } },
-        async ({ q, topK }) => {
+        { description: "Suche", inputSchema: { q: z.string(), topK: z.number().int().optional(), fusion: z.string().optional(), minScore: z.number().optional() } },
+        async ({ q, topK, fusion, minScore }) => {
+          seenSearches.push({ q, ...(topK !== undefined ? { topK } : {}), ...(fusion !== undefined ? { fusion } : {}), ...(minScore !== undefined ? { minScore } : {}) });
           if (opts.brokenSearch) return result({ results: [] }, textOnly);
           const needle = q.toLowerCase();
           const hits = docs
@@ -72,6 +79,24 @@ export function createFakeFacade(opts: FakeFacadeOptions = {}) {
         const doc = docs.find((d) => d.ref === ref);
         if (!doc) return { content: [{ type: "text" as const, text: `unbekannte ref: ${ref}` }], isError: true };
         return result({ ref: doc.ref, title: doc.title, content: doc.content, outlinks: [] }, textOnly);
+      });
+    }
+    if (opts.omitTool !== "kb_graph") {
+      server.registerTool("kb_graph", { description: "Nachbarn", inputSchema: { seed: z.string(), depth: z.number().int().optional(), maxNodes: z.number().int().optional() } }, async ({ seed, maxNodes }) => {
+        const links = opts.links ?? {};
+        const nodes = [{ ref: seed }, ...[...(links[seed] ?? [])].map((r) => ({ ref: r }))];
+        const edges = (links[seed] ?? []).map((to) => ({ from: seed, to, kind: "wikilink" }));
+        const cap = maxNodes ?? 40;
+        return result({ nodes: nodes.slice(0, cap + 1), edges, truncated: nodes.length > cap }, textOnly);
+      });
+    }
+    if (opts.omitTool !== "kb_add") {
+      server.registerTool("kb_add", { description: "Schreiben", inputSchema: { text: z.string(), ref: z.string().optional(), source: z.string().optional() } }, async ({ text, ref, source }) => {
+        if (opts.failAdd) return { content: [{ type: "text" as const, text: "Brain voll" }], isError: true };
+        const target = ref ?? `notes/added-${added.length + 1}.md`;
+        added.push({ text, ...(ref !== undefined ? { ref } : {}) });
+        docs.push({ ref: target, title: target, content: text, ...(source !== undefined ? { source } : {}) });
+        return result({ ref: target }, textOnly);
       });
     }
     return server;
@@ -93,5 +118,5 @@ export function createFakeFacade(opts: FakeFacadeOptions = {}) {
   /** Als `fetch` für den Client: jede Anfrage landet in-process bei `handle`. */
   const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => handle(new Request(input, init))) as typeof fetch;
 
-  return { handle, fetch: fetchImpl, seen };
+  return { handle, fetch: fetchImpl, seen, seenSearches, added };
 }

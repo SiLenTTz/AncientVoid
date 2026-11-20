@@ -5,7 +5,7 @@ import { DesktopPage } from "../desktop/DesktopPage.tsx";
 import { MediaPage } from "../media/MediaPage.tsx";
 import { SettingsPage } from "../settings/SettingsPage.tsx";
 import { StatusPage } from "../status/StatusPage.tsx";
-import { VaultPane } from "../vault/VaultPane.tsx";
+import { VaultTabs } from "../vault/VaultTabs.tsx";
 import { TeamsPane } from "../team/TeamsPane.tsx";
 import { AutomationsPane } from "../automations/AutomationsPane.tsx";
 import { AiMetricsPage } from "../aimetrics/AiMetricsPage.tsx";
@@ -36,6 +36,7 @@ export function ToolPane({
   onClose,
   onSwitchToken,
   vaultFile = null,
+  vaultTab = "notizen",
   onPopout,
   closeLabel = "Schließen",
   escCloses = true,
@@ -45,6 +46,8 @@ export function ToolPane({
   onSwitchToken: () => void;
   /** EPIC-P49: Datei-Deep-Link für die Vault-Seite. */
   vaultFile?: string | null;
+  /** EPIC-P74 T74.6: Reiter im Notizen-Bereich (#/notizen/wissen). */
+  vaultTab?: "notizen" | "wissen";
   onPopout?: () => void;
   closeLabel?: string;
   /** Im eigenen Fenster schließt Esc nichts: das Fenster gibt man mit dem Knopf zurück. */
@@ -90,7 +93,7 @@ export function ToolPane({
         {page === "media" && <MediaPage sessions={hub.sessions} />}
         {page === "pc" && <DesktopPage />}
         {page === "status" && <StatusPage adapters={hub.adapters} usage={hub.usage} />}
-        {page === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
+        {page === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} initialTab={vaultTab} />}
         {page === "teams" && <TeamsPane />}
         {page === "automationen" && <AutomationsPane />}
         {page === "aimetrics" && <AiMetricsPage />}

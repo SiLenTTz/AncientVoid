@@ -546,18 +546,3 @@
   text-align: right;
 }
 
-.knowledge-hit {
-  width: 100%;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-
-.knowledge-doc-content {
-  max-height: 50vh;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: var(--text-sm);
-}

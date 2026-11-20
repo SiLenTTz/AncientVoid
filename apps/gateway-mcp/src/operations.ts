@@ -58,6 +58,8 @@ const CreateArgs = z.object({
   prompt: z.string().min(1).max(20_000).optional(),
   model: z.string().min(1).max(200).optional(),
 });
+/** EPIC-P74 (T74.7): Wissens-Quelle — uuid wie Sessions; Suchtext/Fusion aus ADR-0096 (Nachtrag). */
+const SourceIdArgs = z.object({ sourceId: z.string().uuid() });
 
 export const OPERATIONS: Operation[] = [
   {
@@ -99,6 +101,54 @@ export const OPERATIONS: Operation[] = [
     request: (args) => {
       const status = z.object({ status: z.enum(["pending", "approved", "rejected", "timed_out"]).optional() }).parse(args).status;
       return { method: "GET", path: `/api/approvals${status ? `?status=${status}` : ""}` };
+    },
+  },
+  {
+    id: "knowledge.list",
+    class: "read",
+    description: "List the hub's knowledge sources with health status (label, id, state).",
+    argsSchema: z.object({}),
+    request: () => ({ method: "GET", path: "/api/knowledge/sources" }),
+  },
+  {
+    id: "knowledge.search",
+    class: "read",
+    description: "Search one knowledge source. Args: sourceId, q; optional topK (1-20), fusion (sequential|rrf), minScore (0-1).",
+    argsSchema: SourceIdArgs.extend({
+      q: z.string().min(1).max(500),
+      topK: z.number().int().min(1).max(20).optional(),
+      fusion: z.enum(["sequential", "rrf"]).optional(),
+      minScore: z.number().min(0).max(1).optional(),
+    }),
+    request: (args) => {
+      const a = SourceIdArgs.extend({
+        q: z.string().min(1).max(500),
+        topK: z.number().int().min(1).max(20).optional(),
+        fusion: z.enum(["sequential", "rrf"]).optional(),
+        minScore: z.number().min(0).max(1).optional(),
+      }).parse(args);
+      const body = { q: a.q, ...(a.topK !== undefined ? { topK: a.topK } : {}), ...(a.fusion !== undefined ? { fusion: a.fusion } : {}), ...(a.minScore !== undefined ? { minScore: a.minScore } : {}) };
+      return { method: "POST", path: `/api/knowledge/sources/${encodeURIComponent(a.sourceId)}/search`, body };
+    },
+  },
+  {
+    id: "knowledge.read",
+    class: "read",
+    description: "Read one document from a knowledge source by its ref (from knowledge.search).",
+    argsSchema: SourceIdArgs.extend({ ref: z.string().min(1).max(1000) }),
+    request: (args) => {
+      const a = SourceIdArgs.extend({ ref: z.string().min(1).max(1000) }).parse(args);
+      return { method: "POST", path: `/api/knowledge/sources/${encodeURIComponent(a.sourceId)}/read`, body: { ref: a.ref } };
+    },
+  },
+  {
+    id: "knowledge.add",
+    class: "write",
+    description: "Add a note to a knowledge source. Waits for a human's approval ('pending approval <id>') — never writes directly.",
+    argsSchema: SourceIdArgs.extend({ text: z.string().min(1).max(32_000), ref: z.string().min(1).max(1000).optional() }),
+    request: (args) => {
+      const a = SourceIdArgs.extend({ text: z.string().min(1).max(32_000), ref: z.string().min(1).max(1000).optional() }).parse(args);
+      return { method: "POST", path: `/api/knowledge/sources/${encodeURIComponent(a.sourceId)}/add`, body: { text: a.text, ...(a.ref !== undefined ? { ref: a.ref } : {}) } };
     },
   },
   {

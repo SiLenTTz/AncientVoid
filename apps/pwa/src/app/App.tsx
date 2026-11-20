@@ -12,7 +12,7 @@ import { SettingsPage } from "../features/settings/SettingsPage.tsx";
 import { CreateSession } from "../features/new-session/CreateSession.tsx";
 import { MediaPage } from "../features/media/MediaPage.tsx";
 import { DesktopPage } from "../features/desktop/DesktopPage.tsx";
-import { VaultPane } from "../features/vault/VaultPane.tsx";
+import { VaultTabs } from "../features/vault/VaultTabs.tsx";
 import { TeamsPane } from "../features/team/TeamsPane.tsx";
 import { AutomationsPane } from "../features/automations/AutomationsPane.tsx";
 import { AiMetricsPage } from "../features/aimetrics/AiMetricsPage.tsx";
@@ -30,6 +30,7 @@ export function App({
   ready,
   page,
   vaultFile = null,
+  vaultTab = "notizen",
   wide = false,
   dock = true,
   bell = false,
@@ -41,6 +42,8 @@ export function App({
   page: Page;
   /** EPIC-P49: Vault-Datei aus dem Hash (#/notizen/datei/<path>). */
   vaultFile?: string | null;
+  /** EPIC-P74 T74.6: Reiter im Notizen-Bereich aus dem Hash (#/notizen/wissen). */
+  vaultTab?: "notizen" | "wissen";
   /** EPIC-P34 T34.2: on a wide screen the tool pages live in the detail column (ToolPane); the list stays the list. */
   wide?: boolean;
   /** EPIC-P43 T43.7: die Warteschlange als eigenes Fenster hat kein Dock (ADR-0053 Punkt 2). */
@@ -197,7 +200,7 @@ export function App({
 
       {shown === "pc" && <DesktopPage />}
 
-      {shown === "vault" && <VaultPane {...(vaultFile ? { initialFile: vaultFile } : {})} />}
+      {shown === "vault" && <VaultTabs {...(vaultFile ? { initialFile: vaultFile } : {})} initialTab={vaultTab} />}
       {shown === "teams" && <TeamsPane />}
       {shown === "automationen" && <AutomationsPane />}
       {shown === "aimetrics" && <AiMetricsPage />}

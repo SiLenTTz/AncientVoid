@@ -41,7 +41,26 @@ describe("gateway-mcp K4 static token budget", () => {
       await server.close();
     }
   });
-
+  it("T74.7 (EPIC-P74): ein hub_describe-Lookup bleibt unter 300 Tokens — auch die knowledge-Ops", async () => {
+    const server = buildGatewayServer({ baseUrl: "http://127.0.0.1:1", token: "x" });
+    const client = new Client({ name: "k4-test-client", version: "0.0.1" });
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+    try {
+      for (const op of ["knowledge.list", "knowledge.search", "knowledge.read", "knowledge.add", "sessions.list"]) {
+        const res = (await client.callTool({ name: "hub_describe", arguments: { op } })) as { content?: { type?: string; text?: string }[] };
+        const text = res.content?.find((c) => c.type === "text")?.text ?? "";
+        for (const [name, enc] of Object.entries(TOKENIZERS)) {
+          const tokens = enc.encode(text).length;
+          expect(tokens, `${op}/${name}`).toBeGreaterThan(0);
+          expect(tokens, `${op}/${name}`).toBeLessThan(300);
+        }
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
   it("the real tools/list manifest stays under 1000 tokens — Premortem 1's anti-bloat gate", async () => {
     const server = buildGatewayServer({ baseUrl: "http://127.0.0.1:1", token: "x" });
     const client = new Client({ name: "k4-test-client", version: "0.0.1" });

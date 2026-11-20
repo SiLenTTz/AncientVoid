@@ -1,8 +1,8 @@
 import type { HubTeam } from "./modules/team/index.ts";
 import { resolve, sep } from "node:path";
 import type { FastifyRequest } from "fastify";
-import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore, KnowledgeService, MainSyncSettingsService } from "@ancientvoid/core";
-import { nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
+import type { ClaudeLive, PlannerModelConfig, SettingsStore, AttachmentStore, SessionManager, TokenService, AdapterRegistry, ApprovalService, WebAuthnStore, HealthStore, ProbeRunner, ReviewStore, ProjectTrustStore, BrowserService, DeviceService, AutomationService, AiMetricsSampler, FleetStore, MainSyncSettingsService } from "@ancientvoid/core";
+import { KnowledgeService, nativeOpenCommand, scanProjectSkills, ensureBaseSkills, LoopRegistry } from "@ancientvoid/core";
 import type { ForgeService } from "./modules/forge/forge-service.ts";
 import type { StatisticsService } from "./modules/statistics/statistics.service.ts";
 import type { ExternalJobsService } from "./modules/automations/external-jobs.ts";
@@ -166,8 +166,11 @@ export function createRouteContext(deps: RouteDeps) {
   const startedAt = deps.startedAt ?? Date.now();
   const hostId = deps.hostId ?? DEFAULT_HOST_ID;
   const loops = deps.loops ?? new LoopRegistry();
+  // T74.6: einmalig aufgelöst — die Freigaben-Route und die Knowledge-Routen
+  // teilen dieselbe Instanz (Freigabe-Antrag und Ausführung nach Entscheidung).
+  const knowledge = deps.knowledge ?? (deps.settings ? new KnowledgeService(deps.settings, { operations: deps.sessions.operations(), ...(deps.approvals ? { approvals: deps.approvals } : {}) }) : null);
 
-  return { deps, loops, projectRoots, hostId, hostLabel: deps.hostLabel, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight };
+  return { deps, loops, projectRoots, hostId, hostLabel: deps.hostLabel, startedAt, catalogRootFor, skillsFor, callerLabel, withAttachCmd, webauthnRoutes, indexingInFlight, knowledge };
 }
 
 export type RouteContext = ReturnType<typeof createRouteContext>;

@@ -16,11 +16,20 @@ export const KNOWLEDGE_TOP_K_MAX = 20;
 export const KNOWLEDGE_SNIPPET_MAX_CHARS = 600;
 export const KNOWLEDGE_SUMMARY_MAX_CHARS = 2_000;
 export const KNOWLEDGE_CONTENT_MAX_CHARS = 32_000;
+/** ADR-0096 Nachtrag (T74.6): Retrieval-Parameter sind sichtbar, nie hardcoded (EPIC-134). */
+export const KNOWLEDGE_FUSION_MODES = ["sequential", "rrf"] as const;
+export type KnowledgeFusionMode = (typeof KNOWLEDGE_FUSION_MODES)[number];
+/** Graph-Umfang: Nachbarn/Pfad einer Ref, gekappt mit `truncated` (K5-Geist). */
+export const KNOWLEDGE_GRAPH_MAX_NODES = 100;
+export const KNOWLEDGE_GRAPH_MAX_EDGES = 300;
+export const KNOWLEDGE_GRAPH_DEPTH_MAX = 3;
+/** Schreiben in eine Quelle (T74.6): Text-Limit einer Notiz, läuft immer durchs Freigaben-Gate. */
+export const KNOWLEDGE_ADD_MAX_CHARS = 32_000;
 
 export const KNOWLEDGE_AUTH_KINDS = ["none", "bearer", "header"] as const;
 export type KnowledgeAuthKind = (typeof KNOWLEDGE_AUTH_KINDS)[number];
 
-export const KNOWLEDGE_DEFAULT_TOOLS = { overview: "kb_overview", search: "kb_search", read: "kb_read" } as const;
+export const KNOWLEDGE_DEFAULT_TOOLS = { overview: "kb_overview", search: "kb_search", read: "kb_read", graph: "kb_graph", add: "kb_add" } as const;
 
 /** Header, die der MCP-Transport selbst setzt — als eigener Auth-Header würden sie das Protokoll brechen. */
 const RESERVED_HEADERS = new Set(["accept", "content-type", "content-length", "host", "mcp-session-id", "mcp-protocol-version", "last-event-id"]);
@@ -51,9 +60,15 @@ export const KnowledgeSourceInput = z.object({
   /** Write-only: undefined = unverändert, null = entfernen, String = ersetzen. */
   secret: z.string().trim().min(8).max(1000).nullable().optional(),
   tools: z
-    .object({ overview: ToolName.optional(), search: ToolName.optional(), read: ToolName.optional() })
+    .object({ overview: ToolName.optional(), search: ToolName.optional(), read: ToolName.optional(), graph: ToolName.optional(), add: ToolName.optional() })
     .default({})
-    .transform((t) => ({ overview: t.overview ?? KNOWLEDGE_DEFAULT_TOOLS.overview, search: t.search ?? KNOWLEDGE_DEFAULT_TOOLS.search, read: t.read ?? KNOWLEDGE_DEFAULT_TOOLS.read })),
+    .transform((t) => ({
+      overview: t.overview ?? KNOWLEDGE_DEFAULT_TOOLS.overview,
+      search: t.search ?? KNOWLEDGE_DEFAULT_TOOLS.search,
+      read: t.read ?? KNOWLEDGE_DEFAULT_TOOLS.read,
+      graph: t.graph ?? KNOWLEDGE_DEFAULT_TOOLS.graph,
+      add: t.add ?? KNOWLEDGE_DEFAULT_TOOLS.add,
+    })),
 });
 export type KnowledgeSourceInput = z.infer<typeof KnowledgeSourceInput>;
 /** Was ein Aufrufer schicken darf (vor dem Füllen der Standard-Tool-Namen). */
@@ -91,6 +106,8 @@ export interface KnowledgeSourceView {
 export const KnowledgeQuery = z.object({
   q: z.string().trim().min(1).max(500),
   topK: z.number().int().min(1).max(KNOWLEDGE_TOP_K_MAX).default(KNOWLEDGE_TOP_K_DEFAULT),
+  fusion: z.enum(KNOWLEDGE_FUSION_MODES).optional(),
+  minScore: z.number().min(0).max(1).optional(),
 });
 export type KnowledgeQuery = z.infer<typeof KnowledgeQuery>;
 
@@ -127,6 +144,38 @@ export const KnowledgeReadResult = z.object({
 });
 export type KnowledgeReadResult = z.infer<typeof KnowledgeReadResult>;
 
+/* ADR-0096 Nachtrag (T74.6/T74.7): Graph und Schreiben — gleiche tolerante Form wie v1. */
+
+export const KnowledgeGraphQuery = z.object({
+  seed: z.string().trim().min(1).max(1000),
+  depth: z.number().int().min(1).max(KNOWLEDGE_GRAPH_DEPTH_MAX).default(1),
+  maxNodes: z.number().int().min(1).max(KNOWLEDGE_GRAPH_MAX_NODES).default(40),
+});
+export type KnowledgeGraphQuery = z.infer<typeof KnowledgeGraphQuery>;
+
+export const KnowledgeGraphNode = z.object({ ref: z.string().min(1), title: z.string().optional() });
+export type KnowledgeGraphNode = z.infer<typeof KnowledgeGraphNode>;
+
+export const KnowledgeGraphEdge = z.object({ from: z.string().min(1), to: z.string().min(1), kind: z.string().optional() });
+export type KnowledgeGraphEdge = z.infer<typeof KnowledgeGraphEdge>;
+
+export const KnowledgeGraphResult = z.object({
+  nodes: z.array(KnowledgeGraphNode),
+  edges: z.array(KnowledgeGraphEdge),
+  truncated: z.boolean(),
+});
+export type KnowledgeGraphResult = z.infer<typeof KnowledgeGraphResult>;
+
+export const KnowledgeAddInput = z.object({
+  text: z.string().trim().min(1).max(KNOWLEDGE_ADD_MAX_CHARS),
+  ref: z.string().trim().min(1).max(1000).optional(),
+  source: z.string().trim().min(1).max(200).optional(),
+});
+export type KnowledgeAddInput = z.input<typeof KnowledgeAddInput>;
+
+export const KnowledgeAddResult = z.object({ ref: z.string().min(1) });
+export type KnowledgeAddResult = z.infer<typeof KnowledgeAddResult>;
+
 /** Hub-Antwort der Übersicht: Fassaden-Text plus die beim Prüfen gefundenen Tool-Namen. */
 export interface KnowledgeOverview extends KnowledgeOverviewResult {
   tools: string[];
@@ -134,11 +183,16 @@ export interface KnowledgeOverview extends KnowledgeOverviewResult {
 }
 
 /**
- * Eine angebundene Wissensquelle, wie Hub-Kern und Routen sie sehen (ADR-0096).
- * `graph` und `add` (Freigaben-Queue) kommen als Nachtrag zum ADR.
+ * Eine angebundene Wissensquelle, wie Hub-Kern und Routen sie sehen (ADR-0096
+ * + Nachtrag). `graph`/`add` rufen die optionalen Fassaden-Tools; fehlt das
+ * Tool, ist das ein sauberer Protokollfehler — die Oberfläche zeigt Graph/
+ * Schreiben nur an, wenn `overview().tools` das Tool hergibt.
  */
 export interface KnowledgeSource {
   overview(): Promise<KnowledgeOverview>;
   search(query: KnowledgeQuery): Promise<KnowledgeSearchResult>;
   read(ref: string): Promise<KnowledgeReadResult & { truncated: boolean }>;
+  graph(query: KnowledgeGraphQuery): Promise<KnowledgeGraphResult>;
+  /** Läuft IMMER über die Freigaben-Queue (EPIC-P74 §3.6) — der Hub ruft dies nur nach einer Entscheidung. */
+  add(input: KnowledgeAddInput): Promise<KnowledgeAddResult>;
 }

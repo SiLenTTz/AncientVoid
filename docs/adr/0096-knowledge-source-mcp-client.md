@@ -59,3 +59,40 @@ Spracheingabe-Quelle vergeben; dieser Vertrag ist ADR-0096.
   zu diesem ADR, nicht still.
 - Tests laufen ohne Port: Der Client nimmt ein `fetch`, das in-process auf
   `WebStandardStreamableHTTPServerTransport` zeigt.
+
+## Nachtrag T74.6/T74.7 (20.11.2026, mit den zugehörigen Commits)
+
+Der versprochene Nachtrag für Graph, Schreiben und Agenten-Zugang:
+
+8. **Graph und Schreiben als optionale Tools.** `kb_graph` (`{ seed, depth ≤ 3,
+   maxNodes ≤ 100 }` → `{ nodes[], edges[], truncated }`, Kanten ≤ 300) und
+   `kb_add` (`{ text ≤ 32 000, ref?, source? }` → `{ ref }`) sind keine Pflicht:
+   Fehlt das Tool in `tools/list`, ist das ein sauberer `protocol`-Fehler; die
+   Oberfläche zeigt Graph/Schreiben nur, wenn `overview().tools` es hergibt.
+   Antwortformen tolerant wie v1 (Zusatzfelder fallen weg, Pflichtfelder nicht).
+9. **Retrieval-Parameter sind Vertragsbestandteil:** `KnowledgeQuery` trägt
+   `fusion ("sequential"|"rrf")` und `minScore (0..1)` optional — der Client
+   reicht sie durch, die Oberfläche stellt sie sichtbar ein (EPIC-134: Fusion
+   funktioniert nicht geglaubt; die bewährten Defaults liefert T74.8 mit Zahlen).
+10. **Schreiben läuft IMMER durch die Freigaben-Queue** (EPIC-P74 §3.6), auch
+    vom Menschen angefragt: `POST /api/knowledge/sources/:id/add` legt eine
+    `write`-Freigabe (`action: knowledge.add`) plus persistierte Operation an
+    (ADR-0019: einmalige Ausführung, `payload_hash`, Zustand `done/failed`
+    sichtbar) und antwortet 202 `pending approval <id>`. Die anfragende Session
+    kann sie nie selbst entscheiden (AC-P74-4). Pseudo-Session `"wissen"` in
+    der Freigaben-Tabelle, Muster `„neu"` bei `session.create`.
+11. **Policy-Split statt reiner Menschenfläche:** `probe/search/read/graph` und
+    `GET /api/knowledge/sources` sind `knowledge.read` (Agenten allow — der
+    gateway-mcp-Ruf trägt ein `agent:`-Token); `add` ist `knowledge.add`
+    (Agent: approve); Quellen-Verwaltung (CRUD, Geheimnisse) bleibt
+    `settings.manage`. Operations-Katalog des Gateways: `knowledge.list`,
+    `knowledge.search`, `knowledge.read`, `knowledge.add` — nur über die
+    bestehenden Meta-Tools, kein vierter MCP-Tab (K4 bleibt < 1 000 Tokens
+    statisch; ein `hub_describe`-Lookup < 300 Tokens, testbar in
+    `apps/gateway-mcp/test/k4-token-budget.test.ts`).
+12. **Offline-Kopie (K10):** letzte Übersicht/Suche im localStorage
+    (`ancientvoid.knowledge.v1`, Muster Automations-Cache), Zeitstempel sichtbar,
+    Aktionen offline gesperrt — ein Cache beweist keinen Erfolg.
+
+Status bleibt **Vorgeschlagen**: T74.1 (Nutzer-Review) ist das Gate; dieser
+Nachtrag ist Teil desselben Reviews.

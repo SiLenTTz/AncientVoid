@@ -64,13 +64,37 @@ describe("gateway-mcp operations registry (T4.6)", () => {
   });
 
   it("argsSchema rejects missing required arguments for every operation that has any", () => {
-    // sessions.list/approvals.list take no required args (z.object({})) —
-    // real, not an oversight: they need nothing to run. Everything else
-    // requires at least sessionId.
-    const requireSomething = OPERATIONS.filter((o) => o.id !== "sessions.list" && o.id !== "approvals.list");
+    // sessions.list/approvals.list/knowledge.list take no required args
+    // (z.object({})) — real, not an oversight: they need nothing to run.
+    const NO_ARGS: Record<string, true> = { "sessions.list": true, "approvals.list": true, "knowledge.list": true };
+    const requireSomething = OPERATIONS.filter((o) => !NO_ARGS[o.id]);
     expect(requireSomething.length).toBeGreaterThan(0);
     for (const op of requireSomething) {
       expect(op.argsSchema.safeParse({}).success).toBe(false);
     }
+  });
+
+  it("T74.7: knowledge ops bauen echte Requests; add ist write und läuft über die Freigabe", () => {
+    const KID = "9c8b7a6b-5c4d-4e3f-9a2b-1c3d5e7f9a1b";
+    const search = findOperation("knowledge.search")!;
+    expect(search.request({ sourceId: KID, q: "adapter", fusion: "rrf", minScore: 0.2 })).toEqual({
+      method: "POST",
+      path: `/api/knowledge/sources/${KID}/search`,
+      body: { q: "adapter", fusion: "rrf", minScore: 0.2 },
+    });
+    expect(search.request({ sourceId: KID, q: "x" })).toMatchObject({ body: { q: "x" } });
+    expect(findOperation("knowledge.read")!.request({ sourceId: KID, ref: "notes/a.md" })).toEqual({
+      method: "POST",
+      path: `/api/knowledge/sources/${KID}/read`,
+      body: { ref: "notes/a.md" },
+    });
+    const add = findOperation("knowledge.add")!;
+    expect(add.class).toBe("write");
+    expect(add.request({ sourceId: KID, text: "notiz" })).toEqual({
+      method: "POST",
+      path: `/api/knowledge/sources/${KID}/add`,
+      body: { text: "notiz" },
+    });
+    expect(searchOperations("knowledge").map((r) => r.id)).toEqual(["knowledge.list", "knowledge.search", "knowledge.read", "knowledge.add"]);
   });
 });

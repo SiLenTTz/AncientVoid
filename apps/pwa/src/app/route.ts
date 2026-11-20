@@ -39,6 +39,11 @@ export function vaultFileHash(path: string): string {
   return `#/notizen/datei/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/** EPIC-P74 T74.6: der Wissen-Tab im Notizen-Bereich — `#/notizen/wissen`. */
+export function vaultKnowledgeHash(): string {
+  return "#/notizen/wissen";
+}
+
 export interface CodeTarget {
   path: string;
   line: number | null;
@@ -79,7 +84,7 @@ export function redirectLegacyRunHash(hash: string): string | null {
 }
 
 export type AppRoute =
-  | { view: "list"; page: ListPage; vaultFile?: string }
+  | { view: "list"; page: ListPage; vaultFile?: string; vaultTab?: "wissen" }
   | { view: "tail"; sessionId: string; hostId?: string; code?: CodeTarget; tab?: TailTab; file?: string; browser?: true }
   | { view: "devices" }
   | { view: "filetree" };
@@ -102,6 +107,8 @@ export function parseAppHash(hash: string): AppRoute {
   if (/^#\/geraete\/?$/.test(hash)) return { view: "devices" };
   // BUG-0128: Fenster-Route der Datei-Seitenleiste — vor dem Slug-Match prüfen.
   if (/^#\/dateibaum\/?$/.test(hash)) return { view: "filetree" };
+  // EPIC-P74 T74.6: Wissen-Tab vor den Datei- und Slug-Matches prüfen.
+  if (/^#\/notizen\/wissen\/?$/.test(hash)) return { view: "list", page: "vault", vaultTab: "wissen" };
   // EPIC-P49: Vault-Datei-Deep-Link vor dem Slug-Match prüfen (Pfad-Segmente!).
   const vaultFile = /^#\/notizen\/datei\/(.+)$/.exec(hash);
   if (vaultFile?.[1]) return { view: "list", page: "vault", vaultFile: vaultFile[1].split("/").map(decodeURIComponent).join("/") };
