@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import { z } from "zod";
-import { KNOWLEDGE_MAX_SOURCES, KnowledgeQuery, KnowledgeSourceInput } from "@ancientvoid/contracts";
+import { KNOWLEDGE_MAX_SOURCES, KnowledgeGraphQuery, KnowledgeQuery, KnowledgeSourceInput } from "@ancientvoid/contracts";
 import { KnowledgeService, type KnowledgeCall } from "@ancientvoid/core";
 import type { RouteContext } from "../../route-context.ts";
 
@@ -12,7 +12,7 @@ import type { RouteContext } from "../../route-context.ts";
  */
 export function registerKnowledgeRoutes(app: FastifyInstance, ctx: RouteContext): void {
   const { deps } = ctx;
-  const service = deps.knowledge ?? (deps.settings ? new KnowledgeService(deps.settings) : null);
+  const service = ctx.knowledge ?? (deps.settings ? new KnowledgeService(deps.settings) : null);
   if (!service) {
     app.all("/api/knowledge/*", async (_req, reply) => reply.code(501).send({ error: "Wissensquellen nicht konfiguriert (keine Persistenz am Hub)" }));
     return;
@@ -77,5 +77,24 @@ export function registerKnowledgeRoutes(app: FastifyInstance, ctx: RouteContext)
     const body = z.object({ ref: z.string().min(1).max(1000) }).safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: firstIssue(body.error, "ref") });
     return answer(reply, await service.read(id.data, body.data.ref));
+  });
+
+  app.post("/api/knowledge/sources/:id/graph", async (req, reply) => {
+    const id = sourceId(req.params);
+    if (!id.success) return reply.code(400).send({ error: "ungültige Id" });
+    const query = KnowledgeGraphQuery.safeParse(req.body);
+    if (!query.success) return reply.code(400).send({ error: firstIssue(query.error, "Graph") });
+    return answer(reply, await service.graph(id.data, query.data));
+  });
+
+  /** T74.6: Schreiben ist immer eine Freigabe (EPIC-P74 §3.6) — Mensch wie
+   * Agent erhalten 202 mit der Approval-Id; entschieden wird in der Queue. */
+  app.post("/api/knowledge/sources/:id/add", async (req, reply) => {
+    const id = sourceId(req.params);
+    if (!id.success) return reply.code(400).send({ error: "ungültige Id" });
+    const res = service.requestAdd(id.data, req.body, req.policy?.actor ?? null);
+    if (!res) return reply.code(404).send({ error: "unbekannte Quelle" });
+    if ("error" in res) return reply.code(422).send({ error: res.error });
+    return reply.code(202).send({ ok: false, detail: `pending approval ${res.approvalId}`, approvalId: res.approvalId, summary: res.summary });
   });
 }

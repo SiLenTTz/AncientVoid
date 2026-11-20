@@ -2258,6 +2258,12 @@ export class SessionManager {
     return this.flow.operation(id);
   }
 
+  /** T74.6 (EPIC-P74): der OperationStore für Freigaben außerhalb von Sessions
+   * (z. B. Knowledge-Notizen) — derselbe Store, dieselbe Einmal-Garantie (ADR-0019). */
+  operations(): OperationStore {
+    return this.operationStore;
+  }
+
   /**
    * T7.2 / ADR-0018 §3: native tool permissions. The server wires the
    * approval service (always, independent of `requireStepApprovals`) and

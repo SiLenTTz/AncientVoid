@@ -121,6 +121,14 @@ export function registerApprovalsRoutes(app: FastifyInstance, ctx: RouteContext)
       await deps.sessions.applyApprovedBudgetTopUp(result.request!.id, identity.label).catch((err) => {
         req.log.error({ err }, "applyApprovedBudgetTopUp failed after a real approval");
       });
+    } else if (result.request!.status === "approved" && result.request!.action === "knowledge.add") {
+      // T74.6 (EPIC-P74): die freigegebene Wissens-Notiz — einmalig, über dieselbe
+      // Service-Instanz, die den Antrag angelegt hat (RouteContext.knowledge).
+      const ack = await ctx.knowledge?.applyApprovedAdd(result.request!.id).catch((err) => {
+        req.log.error({ err }, "applyApprovedAdd failed after a real approval");
+        return { ok: false, detail: "Ausführung gescheitert (siehe Status der Quelle)" };
+      });
+      if (ack && !ack.ok) req.log.warn({ detail: ack.detail }, "approved knowledge.add did not run");
     }
     return result.request;
   });
