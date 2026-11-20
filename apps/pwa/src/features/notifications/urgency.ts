@@ -1,7 +1,8 @@
 /**
  * EPIC-P64 T64.1: Dringlichkeit der Benachrichtigungs-Glocke als reine
- * Funktion — Grundlage für den Glow (rot Fehler, gelb offene Frage,
- * grün Lauf beendet). Absichtlich ohne Komponenten-Importe: testbar und
+ * Funktion — Grundlage für den Glow (rot Fehler, blau Rückfrage,
+ * grün Lauf beendet; Nutzerwunsch 2026-11-20 — gelb ist Warnungen
+ * vorbehalten). Absichtlich ohne Komponenten-Importe: testbar und
  * vom Renderbaum entkoppelt.
  *
  * Ungelesen = Eintrag oberhalb des Read-Marks seines Hosts (Panel-Öffnen

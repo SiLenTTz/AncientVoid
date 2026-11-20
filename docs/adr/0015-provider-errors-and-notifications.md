@@ -79,3 +79,32 @@ Rückfragen gingen unter. Drei Regeln:
    Auto-Resume) stumm; der nächste Prompt beginnt einen neuen Lauf. Die
    frühere 30-s-Unterdrückung (`recentProviderError`) ist damit entfallen —
    die Zurückhaltung gilt laufweit, nicht zeitfensterweit.
+
+## Nachtrag 2026-11-20 — Vier Sektionen mit fester Farbbedeutung
+
+Nutzerwunsch: „Fertig“-Meldungen und Main-Sync-Rückfragen gingen in der
+Sammlung „Übrige Meldungen“ unter — sichtbar waren oft nur zwei Abschnitte.
+Das Panel teilt jetzt in vier Abschnitte mit fester Farbe:
+
+1. **Fehler** (rot, `--err`): level error.
+2. **Rückfrage** (blau, `--info`): live offene Freigaben (`APPROVAL_KINDS`
+   gegen die Pending-Warteschlange, wie bisher) **plus** die
+   Entscheidungs-Kinds des Main-Syncs (`mainsync.behind_ask`,
+   `mainsync.conflict` — gleiche Taxonomie wie der action-Glow, urgency.ts).
+   Beantwortete Freigaben rutschen weiter in Sonstiges.
+3. **Fertig** (grün, `--ok`): level success (`session.turn_end`,
+   `session.applied`, `mainsync.applied`).
+4. **Sonstiges** (gelb, `--warn`): Warnungen und Info.
+
+Die Einteilung bleibt rein (`sections.ts`, `sectionOf`), das Einklapp-Verhalten
+(Nutzerwunsch 2026-11-18) gilt unverändert je Abschnitt.
+
+**Farbvertrag 2026-11-20 (zweite Nutzerentscheidung, gleichen Tag):** Blau
+(`--info`) ist überall die Farbe für Rückfragen/Entscheidungs-Pflicht —
+Glocken-Glow (`urgency-action`), Rückfrage-Sektion nebst ihrer Einträge,
+Rückfrage-Toasts (`.toast.question`, Kinds wie Sektion und Glow) und das
+Freigabe-Banner der Übersicht. Gelb (`--warn`) bleibt echten Warnungen
+vorbehalten (Sonstiges-Sektion, Warn-Level-Toasts, Risk- und
+Gatekeeper-Badges). Das löst die EPIC-P64-Farbwahl „gelb für offene
+Fragen" ab; ein E2E-Farbvertragstest (notifications-glow.spec) pinnt die
+Token-Zuordnung.

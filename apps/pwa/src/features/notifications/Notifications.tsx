@@ -4,7 +4,7 @@ import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
 import { Button } from "../../shared/ui/index.ts";
-import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS } from "./urgency.ts";
+import { hasApprovalCandidates, urgencyOf, MAIN_SYNC_ACTION_KINDS, APPROVAL_KINDS } from "./urgency.ts";
 import { SECTION_KEYS, defaultExpanded, sectionOf, type SectionKey } from "./sections.ts";
 import { soundPlayer, loadSoundSettings, saveSoundSettings } from "../../shared/audio.ts";
 import { applyNotificationPage, type FleetNotification } from "./merge.ts";
@@ -24,10 +24,19 @@ const TOAST_MS: Record<HubNotification["level"], number> = { error: 30_000, warn
 interface Toast {
   key: string;
   level: HubNotification["level"];
+  /** Kind der Meldung (null bei lokalen Status-Toasts) — steuert die
+   * Rückfrage-Färbung blau statt Level-gelb (Nutzerwunsch 2026-11-20). */
+  kind: string | null;
   title: string;
   detail: string | null;
   sessionId: string | null;
   hostId: string | null;
+}
+
+/** Nutzerwunsch 2026-11-20: Rückfragen toasten blau — gleiche Kinds wie
+ * questions-Sektion und action-Glow (Single Source urgency.ts). */
+function isQuestionKind(kind: string | null): boolean {
+  return kind !== null && (APPROVAL_KINDS.has(kind) || MAIN_SYNC_ACTION_KINDS.has(kind));
 }
 
 function readMarks(): Record<string, number> {
@@ -68,7 +77,6 @@ function visibleToasts<T extends { level: string }>(toasts: T[]): T[] {
  * with the recent list. Polls the hub; the first load only fills the list,
  * so opening the app never replays old toasts.
  */
-const APPROVAL_KINDS = new Set(["tool.permission_requested", "session.steer_pending_approval"]);
 
 /** `corner`: the list column is folded away, so bell and gear sit in the window corner.
  * EPIC-P64 T64.4: `flow` — am PC mit sichtbarer Liste sitzt die Glocke als
@@ -167,7 +175,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       // EPIC-P65: der Sound dazu läuft trotzdem — pro neu ankommende Meldung
       // (nie beim Laden), Kategorie-Mapping im getesteten Modul, Rate-Limit im Modul.
       for (const n of [...added].reverse()) {
-        const show = () => toast({ key: n.key, level: n.level, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
+        const show = () => toast({ key: n.key, level: n.level, kind: n.kind, title: n.title, detail: n.detail, sessionId: n.sessionId, hostId });
         // Premortem P8-2: an approval decided meanwhile (e.g. a peer's
         // notification that arrived late) is no toast any more.
         if (APPROVAL_KINDS.has(n.kind))
@@ -231,14 +239,14 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
         try {
           const page = await hubApi.notifications(lastIds.current[""] ?? 0);
           if (!alive) return;
-          if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
+          if (failures.current >= HUB_DOWN_AFTER) toast({ key: `hub-${Date.now()}`, level: "success", kind: null, title: "Verbindung zum Hub wieder da", detail: null, sessionId: null, hostId: null });
           failures.current = 0;
           take(null, page);
         } catch {
           if (!alive) return;
           failures.current += 1;
           if (failures.current === HUB_DOWN_AFTER) {
-            toast({ key: `hub-${Date.now()}`, level: "warning", title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
+            toast({ key: `hub-${Date.now()}`, level: "warning", kind: null, title: "Hub nicht erreichbar", detail: "Neue Meldungen kommen, sobald er wieder antwortet.", sessionId: null, hostId: null });
           }
         }
         // EPIC-P6 T6.6: other hosts' notifications through this hub. A host
@@ -371,7 +379,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       </button>
       <div class="toast-stack" role="status" aria-live="polite">
         {visibleToasts(toasts).map((t) => (
-          <div key={t.key} class={`toast ${t.level}`}>
+          <div key={t.key} class={`toast ${t.level}${isQuestionKind(t.kind) ? " question" : ""}`}>
             <button class="toast-body" type="button" onClick={() => goTo(t.sessionId, t.hostId)}>
               <strong>{t.title}</strong>
               {t.detail && <span>{t.detail}</span>}

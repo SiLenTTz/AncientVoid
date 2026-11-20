@@ -28,8 +28,10 @@
 }
 
 /* EPIC-P64 T64.2: pulsierender Glow nach höchster offener Dringlichkeit
- * (urgencyOf, T64.1): rot Fehler (--err), gelb offene Frage (--warn),
- * grün Lauf beendet (--ok). Nur Semantik-Tokens + color-mix — keine
+ * (urgencyOf, T64.1): rot Fehler (--err), blau Rückfrage (--info),
+ * grün Lauf beendet (--ok). Nutzerwunsch 2026-11-20: blau ist überall die
+ * Farbe für Rückfragen/Entscheidungs-Pflicht, gelb bleibt Warnungen vorbehalten.
+ * Nur Semantik-Tokens + color-mix — keine
  * Hex-Werte, kein z-index (P63-kompatibel). Puls wirkt allein auf der
  * Glocke (box-shadow), kein Repaint der Liste (K2). */
 .notif-bell.urgency-error,
@@ -38,7 +40,7 @@
   --notif-urgency: var(--err);
 }
 .notif-bell.urgency-action {
-  --notif-urgency: var(--warn);
+  --notif-urgency: var(--info);
 }
 .notif-bell.urgency-done {
   --notif-urgency: var(--ok);
@@ -113,6 +115,9 @@
 .toast.error { border-left-color: var(--err); }
 .toast.warning { border-left-color: var(--warn); }
 .toast.success { border-left-color: var(--ok); }
+/* Nutzerwunsch 2026-11-20: Rückfragen (offene Freigaben, Main-Sync-Ask/-Konflikt)
+ * glühen/rahmen blau — gelb bleibt echten Warnungen vorbehalten. */
+.toast.question { border-left-color: var(--info); }
 .toast-body {
   flex: 1;
   display: grid;

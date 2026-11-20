@@ -2,9 +2,10 @@ import { test, expect } from "../support/fixtures.ts";
 import type { Page } from "@playwright/test";
 
 /** EPIC-P64 T64.6: Der Glow der Glocke zeigt die höchste offene
- * Dringlichkeit — rot Fehler, gelb offene Frage, grün Lauf beendet —
- * und verschwindet, wenn das Panel gelesen wurde. Reduzierte Bewegung
- * (System) ersetzt den Puls durch einen statischen Ring. */
+ * Dringlichkeit — rot Fehler, blau Rückfrage, grün Lauf beendet
+ * (Nutzerwunsch 2026-11-20: blau überall für Rückfragen, gelb nur für
+ * Warnungen) — und verschwindet, wenn das Panel gelesen wurde. Reduzierte
+ * Bewegung (System) ersetzt den Puls durch einen statischen Ring. */
 test.describe("Glocken-Glow nach Dringlichkeit (EPIC-P64)", () => {
   async function bellClass(app: Page): Promise<string> {
     return (await app.locator(".notif-bell").getAttribute("class")) ?? "";
@@ -23,9 +24,33 @@ test.describe("Glocken-Glow nach Dringlichkeit (EPIC-P64)", () => {
     await expect(app.locator(".toast")).toHaveCount(0);
   });
 
-  test("offene Frage glüht gelb (urgency-action)", async ({ app, hub }) => {
+  test("offene Frage glüht blau (urgency-action, Nutzerwunsch 2026-11-20)", async ({ app, hub }) => {
     await hub.createSession({ adapter: "claude", prompt: "Bitte FRAGE" });
     await expect(app.locator(".notif-bell")).toHaveClass(/urgency-action/, { timeout: 30_000 });
+  });
+
+  /** Nutzerwunsch 2026-11-20 — Farbvertrag der Benachrichtigungen: blau ist
+   * überall die Farbe für Rückfragen/Entscheidungs-Pflicht (Glocken-Glow,
+   * Rückfrage-Sektion, Rückfrage-Toast, Freigabe-Banner), gelb bleibt
+   * Warnungen/Sonstiges vorbehalten. Prüft die Token-Zuordnung im gebauten
+   * Stylesheet — ein Return zu --warn fiele hier rot auf. */
+  test("Farbvertrag: Rückfragen blau (--info), gelb nur Warnungen", async ({ app }) => {
+    const css = await app.evaluate(() => {
+      let text = "";
+      for (const sheet of document.styleSheets) {
+        try {
+          for (const rule of sheet.cssRules) text += `${rule.cssText}\n`;
+        } catch {
+          // fremde Origin (nicht relevant, PWA dient alles gleich-originale aus)
+        }
+      }
+      return text;
+    });
+    expect(css).toMatch(/\.notif-bell\.urgency-action\s*{[^}]*--notif-urgency:\s*var\(--info\)/);
+    expect(css).toMatch(/\.notif-section\.questions\s*{[^}]*--notif-section:\s*var\(--info\)/);
+    expect(css).toMatch(/\.notif-section\.rest\s*{[^}]*--notif-section:\s*var\(--warn\)/);
+    expect(css).toMatch(/\.toast\.question\s*{[^}]*border-left-color:\s*var\(--info\)/);
+    expect(css).toMatch(/\.approval-banner\s*{[^}]*border:\s*1px solid var\(--info\)/);
   });
 
   test("Fehler schlägt Frage und Lauf (Priorität der Klassen)", async ({ app, hub }) => {
