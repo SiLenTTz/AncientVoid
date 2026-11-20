@@ -303,7 +303,9 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       await hostApi(n.hostId).runNotificationAction(n.action.path);
       goTo(n.sessionId, n.hostId);
     } catch {
-      // laut genug: Toast-Text bleibt, der Knopf wird wieder frei
+      // Fail loud (AGENTS.md): ein gescheiterter Aktionsruf darf nicht nur den
+      // Knopf freigeben — der Nutzer sieht sonst nicht, dass nichts passierte.
+      toast({ key: `action-${n.key}-${Date.now()}`, level: "error", kind: null, title: "Aktion fehlgeschlagen", detail: n.title, sessionId: n.sessionId, hostId: n.hostId });
     } finally {
       const done = itemsRef.current.find((i) => i.key === n.key);
       if (done) done.actionBusy = false;
