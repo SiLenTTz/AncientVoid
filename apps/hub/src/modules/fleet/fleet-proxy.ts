@@ -44,13 +44,17 @@ function forward(url: string, method: string, token: string, body: unknown): Pro
           if (size > MAX_FORWARD_BYTES) req.destroy(new Error("response too large"));
           else chunks.push(chunk);
         });
-        res.on("end", () =>
-          resolve({ status: res.statusCode ?? 502, contentType: String(res.headers["content-type"] ?? "application/json"), body: Buffer.concat(chunks) }),
-        );
+        res.on("end", () => {
+          clearTimeout(deadline);
+          resolve({ status: res.statusCode ?? 502, contentType: String(res.headers["content-type"] ?? "application/json"), body: Buffer.concat(chunks) });
+        });
       },
     );
     const timeoutMs = SLOW_PATHS.test(new URL(url).pathname) ? FORWARD_TIMEOUT_SLOW_MS : FORWARD_TIMEOUT_MS;
-    req.setTimeout(timeoutMs, () => req.destroy(new Error(`no answer within ${timeoutMs / 1000} s`)));
+    // 2026-11-20: hard wall-clock deadline — req.setTimeout never fires during
+    // TCP connect, an unreachable peer hung proxies for the kernel SYN budget.
+    const deadline = setTimeout(() => req.destroy(new Error(`no answer within ${timeoutMs / 1000} s`)), timeoutMs);
+    req.on("error", (err) => { clearTimeout(deadline); reject(err); });
     req.on("error", reject);
     if (payload !== undefined) req.write(payload);
     req.end();
