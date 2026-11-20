@@ -5,7 +5,7 @@ import { ctxMotionOn } from "../../app/ui-scale.ts";
 import { GalaxyPanel } from "./GalaxyPanel.tsx";
 import { galaxyLayout, systemLabel } from "./galaxy-layout.ts";
 import { loadGalaxyView, neighborInDirection, neighborsOf, saveGalaxyView, searchFiles, type Compass } from "./galaxy-query.ts";
-import { FLIGHT_MS, baseName, detailLevel, fitCircle, flightAt, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
+import { FLIGHT_MS, backingScale, baseName, detailLevel, fitCircle, flightAt, pinchStep, placeLabels, zoomAt, type Camera, type LabelCandidate, type PlacedLabel } from "./galaxy-view.ts";
 import { Button } from "../../shared/ui/index.ts";
 
 /** EPIC-P48 (ADR-0062 §3.4) + EPIC-P52: Repo-Graph als Galaxie auf einem Canvas.
@@ -39,6 +39,12 @@ function hashOf(path: string): number {
 function cssVar(name: string, fallback: string): string {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   return v || fallback;
+}
+
+/** BUG-0231: aktueller UI-Zoom (root.style.zoom, gespiegelt in --ui-zoom). */
+function uiZoom(): number {
+  const v = parseFloat(cssVar("--ui-zoom", "1"));
+  return Number.isFinite(v) && v > 0 ? v : 1;
 }
 
 /** Schätzung statt measureText — pro Bild hunderte Namen, und die Schrift ist schmal genug. */
@@ -126,6 +132,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     };
     window.addEventListener("ancientvoid:appearance", bump);
     window.addEventListener("ancientvoid:theme", bump);
+    // BUG-0231: UI-Zoom ändert die Canvas-Auflösung — Backing-Store neu vermessen.
+    window.addEventListener("ancientvoid:scale", bump);
     window.addEventListener("storage", onStorage);
     // ctxMotion wird ohne Event gesetzt — der Dataset-Attributwechsel ist das Signal.
     const mo = new MutationObserver(() => setMotionOn(!matchMedia("(prefers-reduced-motion: reduce)").matches && ctxMotionOn()));
@@ -136,6 +144,7 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     return () => {
       window.removeEventListener("ancientvoid:appearance", bump);
       window.removeEventListener("ancientvoid:theme", bump);
+      window.removeEventListener("ancientvoid:scale", bump);
       window.removeEventListener("storage", onStorage);
       mo.disconnect();
       mq.removeEventListener("change", onMq);
@@ -234,7 +243,9 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     const { xs, ys, radii, core, sysOf, sysGroup, edgeIdx } = geo;
     const w = size.w;
     const h = size.h;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    // BUG-0231: Backing-Store in Gerätepixeln × UI-Zoom — sonst zeichnet die Karte
+    // bei erhöhtem UI-Zoom hochskaliert und wirkt unscharf.
+    const dpr = backingScale(window.devicePixelRatio || 1, uiZoom());
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
 
@@ -642,9 +653,22 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   };
 
   const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  // BUG-0231: aktive Zeiger für Pinch (zwei Finger = Zoom + Schwenk um den Mittelpunkt).
+  const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const pinchRef = useRef<{ dist: number; mx: number; my: number } | null>(null);
+  const pinchGeom = () => {
+    const [a, b] = [...pointersRef.current.values()];
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+  };
   // Nach einem Pan darf der browser-eigene Klick auf dem Stern-Knopf nicht mehr als Auswahl zählen.
   const suppressClickRef = useRef(false);
   const onPointerDown = (e: PointerEvent) => {
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2) {
+      pinchRef.current = pinchGeom();
+      if (dragRef.current) dragRef.current.moved = true;
+      return;
+    }
     // BUG-0229: Capture nur außerhalb der Treffer-Knöpfe — sonst schluckt sie der Wrap-Klick.
     if (!(e.target as Element).closest?.("button")) (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     cancelAnimationFrame(flightRef.current);
@@ -655,6 +679,18 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
   const onPointerMove = (e: PointerEvent) => {
     const canvas = canvasRef.current;
     if (!canvas || !report) return;
+    if (pointersRef.current.has(e.pointerId)) pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // BUG-0231: zwei Zeiger = Pinch — Zoom um den Mittelpunkt, Schwenk um dessen Bewegung.
+    if (pointersRef.current.size >= 2) {
+      const geom = pinchGeom();
+      if (pinchRef.current) {
+        viewRef.current = pinchStep(viewRef.current, pinchRef.current, geom);
+        drawRef.current?.();
+      }
+      pinchRef.current = geom;
+      if (dragRef.current) dragRef.current.moved = true;
+      return;
+    }
     const rect = canvas.getBoundingClientRect();
     const drag = dragRef.current;
     if (drag) {
@@ -681,6 +717,14 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
     }
   };
   const onPointerUp = (e: PointerEvent) => {
+    pointersRef.current.delete(e.pointerId);
+    pinchRef.current = null;
+    if (pointersRef.current.size === 1) {
+      // Pinch wird Ein-Finger-Pan: Anker auf den verbleibenden Finger, ohne Klick.
+      const [p] = [...pointersRef.current.values()];
+      dragRef.current = { x: p.x, y: p.y, moved: true };
+      return;
+    }
     const drag = dragRef.current;
     dragRef.current = null;
     setDragging(false);
@@ -728,7 +772,8 @@ export function GraphPane({ target, hostId = null, onOpenFile, onFullscreen }: {
       .sort((a, b) => b.deg - a.deg)
       .slice(0, 400)
       .map(({ n, i }) => {
-        const side = Math.max(10, (geo.radii[i] + 4) * scale);
+        // BUG-0231: Deckel — bei tiefem Zoom würden die Knöpfe sonst halbe Karte überlappen.
+        const side = Math.min(120, Math.max(10, (geo.radii[i] + 4) * scale));
         return {
           path: n.path,
           dead: n.in === 0 && !n.entry,

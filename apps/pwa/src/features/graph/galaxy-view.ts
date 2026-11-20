@@ -10,7 +10,8 @@ export interface Camera {
 }
 
 export const SCALE_MIN = 0.02;
-export const SCALE_MAX = 8;
+/** BUG-0231: tief genug, um bis auf Datei-Niveau hineinzuzoomen (vorher 8). */
+export const SCALE_MAX = 32;
 export const FLIGHT_MS = 500;
 
 const clampScale = (scale: number) => Math.min(SCALE_MAX, Math.max(SCALE_MIN, scale));
@@ -35,6 +36,24 @@ export function detailLevel(scale: number): Detail {
 export function zoomAt(cam: Camera, sx: number, sy: number, nextScale: number): Camera {
   const scale = clampScale(nextScale);
   return { scale, tx: sx - ((sx - cam.tx) * scale) / cam.scale, ty: sy - ((sy - cam.ty) * scale) / cam.scale };
+}
+
+/** BUG-0231: ein Pinch-Schritt — Zoom um den Fingermittelpunkt plus Schwenk um dessen Bewegung. */
+export function pinchStep(
+  cam: Camera,
+  prev: { dist: number; mx: number; my: number },
+  next: { dist: number; mx: number; my: number },
+): Camera {
+  const z = zoomAt(cam, next.mx, next.my, cam.scale * (next.dist / Math.max(prev.dist, 1e-6)));
+  return { scale: z.scale, tx: z.tx + (next.mx - prev.mx), ty: z.ty + (next.my - prev.my) };
+}
+
+/** BUG-0231: Backing-Store-Faktor — Gerätepixel × UI-Zoom (root.style.zoom vergrößert
+ * die gezeichnete Fläche), gedeckelt gegen Riesen-Canvas bei hohem Zoom. */
+export function backingScale(dpr: number, uiZoom: number): number {
+  const d = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  const u = Number.isFinite(uiZoom) && uiZoom > 0 ? uiZoom : 1;
+  return Math.min(6, Math.max(1, d * u));
 }
 
 const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);

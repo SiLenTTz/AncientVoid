@@ -1,7 +1,7 @@
 ---
 id: BUG-0231
 slug: graph-handy-unscharf-zoom-flach
-status: open
+status: fixed
 severity: S2
 area: pwa
 instance: dev
@@ -64,6 +64,18 @@ Keine — reiner Client-Defekt.
 `root.style.zoom`, `ui-scale.ts:36`); kein Re-Render bei
 `ancientvoid:scale`. `galaxy-view.ts:13` — `SCALE_MAX = 8` zu flach für
 „bis zur Datei zoomen“. Pinch-Handling existiert nicht (nur `onWheel`).
+
+## Befund
+
+Drei Ursachen: (1) Backing-Store nur nach `devicePixelRatio` bemessen — der
+UI-Zoom (`root.style.zoom`) vergrößert die gezeichnete Fläche, ohne dass der
+Canvas mitwächst; kein Re-Render bei `ancientvoid:scale`. (2) `SCALE_MAX = 8`
+zu flach für „bis zur Datei zoomen“. (3) Pinch-Geste gar nicht implementiert
+(nur Mausrad). Fix: `backingScale(dpr, uiZoom)` (gedeckelt bei 6) +
+Scale-Listener, `SCALE_MAX = 32`, `pinchStep()` über die Pointer-Map am Wrap
+(zwei Finger: Zoom um den Mittelpunkt plus Schwenk); Hit-Flächen auf 120 px
+gedeckelt, damit tiefer Zoom keine Riesen-Knöpfe überlagert. Unit-Tests rot
+ohne Fix (Import + `SCALE_MAX >= 24`).
 
 ## Handoff
 
