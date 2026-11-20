@@ -6,7 +6,7 @@ severity: S2
 area: pwa
 instance: dev
 commit: "40a5f239"
-forge: ""
+forge: "https://github.com/securesight-ai/AncientVoid/issues/221"
 epic: ""
 created: 2026-11-20
 reporter: "Nutzer (Maki-Session)"
@@ -77,5 +77,5 @@ am Desktop; repo-galaxie Auswahl-Setup auf Suche umgestellt).
 ## Handoff
 
 - [ ] Datei im Index [`README.md`](README.md)
-- [ ] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
+- [x] GitHub-Issue angelegt (`gh issue create`, URL in `forge:`)
 - [ ] `bugfix` oder offen lassen
