@@ -88,6 +88,8 @@ Artefakt: epics/EPIC-Pn-*.md ## Retro
 - [ ] Jedes AC hat eine bewertete Zeile mit Beleg.
 - [ ] Jedes Action Item hat ein Ziel-Artefakt.
 - [ ] Retro-Abschnitt hängt an der Epic-Datei, kein neues Dokument.
+- [ ] Statuszeile und Checkboxen der Epic-Datei spiegeln den echten Stand
+      (Delegationen mit Vermerk nach P000); `npm run check:epics` grün.
 - [ ] Lebende Dokumente des Epic-Bereichs (Frischhalte-Map in
       `scripts/check-context.mjs`) geprüft; `npm run check:context` grün.
 
