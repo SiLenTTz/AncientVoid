@@ -36,6 +36,14 @@ describe("classifyProviderError (ADR-0015)", () => {
     expect(info.detail).toContain("wieder frei ab 2026-09-09 11:57:58");
   });
 
+  it("BUG-0241: reads the localized quota window and reset reported by z.ai", () => {
+    expect(classifyProviderError("429 已达到 5 小时的使用上限。您的限额将在 2026-11-21 06:34:19 重置。 (type=1308)")).toMatchObject({
+      category: "quota",
+      window: "5 h",
+      resetAt: "2026-11-21 06:34:19",
+    });
+  });
+
   it("names rate limits, auth, network and server errors", () => {
     expect(classifyProviderError("API Error: 429 Too Many Requests").category).toBe("rate_limit");
     expect(classifyProviderError("rate_limit_error: slow down").category).toBe("rate_limit");

@@ -19,9 +19,11 @@ export interface ProviderErrorInfo {
 
 const RESET_RE = /reset at ([0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9:]{5,8})/i;
 const CYCLE_RE = /ends on ([0-9]{1,2}\/[0-9]{1,2}\/[0-9]{4})/i;
+const LOCAL_QUOTA_RE = /已达到\s*(\d+)\s*小时的使用上限/;
+const LOCAL_RESET_RE = /限额将在\s*([0-9]{4}-[0-9]{2}-[0-9]{2}[ T][0-9:]{5,8})\s*重置/;
 
 function quotaInfo(text: string, refNote: string, window?: string): ProviderErrorInfo {
-  const resetAt = RESET_RE.exec(text)?.[1] ?? CYCLE_RE.exec(text)?.[1];
+  const resetAt = RESET_RE.exec(text)?.[1] ?? CYCLE_RE.exec(text)?.[1] ?? LOCAL_RESET_RE.exec(text)?.[1];
   const named = /usage limit for ([A-Za-z0-9._-]+)/i.exec(text)?.[1]?.replace(/[._-]+$/, "");
   const label = window ?? named;
   return {
@@ -36,6 +38,8 @@ function quotaInfo(text: string, refNote: string, window?: string): ProviderErro
 export function classifyProviderError(raw: string, ref?: string): ProviderErrorInfo {
   const text = raw.trim();
   const refNote = ref ? ` Referenz: ${ref}.` : "";
+  const localizedQuota = LOCAL_QUOTA_RE.exec(text);
+  if (localizedQuota) return quotaInfo(text, refNote, `${localizedQuota[1]} h`);
   const usage = /usage limit reached(?: for (\d+) (hour|day|week|month))?/i.exec(text);
   if (usage) {
     const window = usage[1] ? `${usage[1]} ${usage[2]!.charAt(0).toLowerCase()}` : undefined;
