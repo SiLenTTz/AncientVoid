@@ -22,7 +22,7 @@ export function Sidebar({ active, onNavigate }: { active: ListPage | null; onNav
     e.preventDefault();
     buttons[(at + (e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : buttons.length - 1)) % buttons.length]?.focus();
   }}>
-    <button type="button" class="dock-item sidebar-toggle" aria-label={prefs.minimized ? "Sidebar ausklappen" : "Sidebar minimieren"} aria-expanded={!prefs.minimized} onClick={() => saveSidebar({ ...prefs, minimized: !prefs.minimized })}>☰</button>
+    <button type="button" class="dock-item" aria-label={prefs.minimized ? "Sidebar ausklappen" : "Sidebar minimieren"} aria-expanded={!prefs.minimized} onClick={() => saveSidebar({ ...prefs, minimized: !prefs.minimized })}>☰</button>
     <div class="sidebar-entries" hidden={prefs.minimized}>
       {prefs.order.filter((id) => !prefs.hidden.includes(id)).map((id) => {
         const entry = SIDEBAR_ENTRIES.find((e) => e.id === id)!;

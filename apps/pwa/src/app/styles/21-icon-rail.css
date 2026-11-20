@@ -209,19 +209,19 @@
   .split.list-collapsed .split-list > .app-page > :not(.dock-stack) { display: none; }
   .split.list-collapsed .split-detail { grid-column: 1; }
   .tile .tool-pane { position: relative; height: 100%; box-sizing: border-box; }
-  .tile .browser-panel, .tile .device-panel { position: relative; inset: auto; width: 100%; height: 100%; max-height: none; box-sizing: border-box; z-index: auto; }
+  .tile .browser-panel, .tile .device-panel { position: relative; inset: auto; width: 100%; height: 100%; max-height: none; box-sizing: border-box; z-index: var(--z-base); }
   .file-card { height: 100%; overflow: auto; }
   .tile-grid.layout-overflow { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(420px, 50vh); overflow-y: auto; }
   .tile-grid.layout-overflow > .tile { grid-column: auto; grid-row: auto; }
 }
-@media (min-width: 700px) and (max-width: 1279px) {
+@media not all and (min-width: 1280px) {
   html:has(.split), body:has(.split) { overflow: hidden; }
   #app:has(.split) { height: calc(100dvh / var(--ui-zoom)); padding-top: 0; padding-bottom: 0; }
   .split { grid-template-columns: minmax(200px, 28%) minmax(0, 1fr); gap: 10px; }
   .split-list .app-page { height: 100%; padding-bottom: 0; }
   .tile-grid.layout-overflow { grid-template-columns: minmax(0, 1fr); }
 }
-@media (min-width: 700px) and (max-width: 1279px) {
+@media not all and (min-width: 1280px) {
   .split-list .topbar { flex-wrap: wrap; }
   .split-list .topbar h1 { flex: 0 0 auto; }
 }

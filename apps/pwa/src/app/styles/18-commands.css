@@ -182,5 +182,5 @@
   border: 0;
   box-shadow: none;
   align-content: start;
-  z-index: auto;
+  z-index: var(--z-base);
 }
