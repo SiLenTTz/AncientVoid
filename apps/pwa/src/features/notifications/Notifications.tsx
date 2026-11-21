@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { hubApi, hostApi, type HubNotification } from "../../shared/api.ts";
+import { resolveNotificationTitle } from "../../shared/i18n/index.ts";
 import { sessionHash } from "../../app/route.ts";
 import { registerShortcut } from "../../shared/shortcuts/registry.ts";
 import { useOverlayFocus } from "../../shared/overlay-focus.ts";
@@ -162,7 +163,7 @@ export function NotificationCenter({ corner = false, flow = false }: { corner?: 
       ...n,
       hostId,
       key: `${key}#${n.id}`,
-      title: hostId ? `${hostId} · ${n.title}` : n.title,
+      title: hostId ? `${hostId} · ${resolveNotificationTitle(n)}` : resolveNotificationTitle(n),
     }));
     // BUG-0222: eine Seite, die ein überlappender Poll nochmal liefert, spielt
     // nichts nach — bereits Gesehenes (id <= known) wird gefiltert, der
