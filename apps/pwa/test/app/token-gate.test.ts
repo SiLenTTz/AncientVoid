@@ -37,7 +37,7 @@ describe("Token-Gate: Ursache je Fall (AC-P57-8)", () => {
 
   it("unerreichbar nennt die letzte Verbindung als Zeitstempel (K10), sofern bekannt", () => {
     const at = "2026-11-13T08:30:00.000Z";
-    expect(gateMessage("unreachable", "", at)).toMatch(/13\.11\.2026[\s,]*09:30/);
+    expect(gateMessage("unreachable", "", at)).toMatch(new Date(at).toLocaleString("de-DE"));
     expect(gateMessage("unreachable", "", null)).not.toMatch(/Letzte Verbindung/);
     expect(gateMessage("unreachable", "", "kein-datum")).not.toMatch(/Letzte Verbindung/);
   });
