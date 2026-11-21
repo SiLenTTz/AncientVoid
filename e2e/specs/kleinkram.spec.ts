@@ -201,7 +201,7 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
         if (el.scrollWidth - el.clientWidth > 2) bad.push(`${el.tagName}.${el.className}`.slice(0, 90));
       }
       // Regel 8 umgesetzte Stellen: die Umbruch-Container dürfen nicht auf Scroll zurückfallen.
-      for (const s of [".filter-bar", ".reply-templates", ".attach-cmd-row", ".run-meta", ".desktop-cmd"]) {
+      for (const s of [".filter-bar", ".attach-cmd-row", ".run-meta", ".desktop-cmd"]) {
         for (const el of document.querySelectorAll<HTMLElement>(s)) {
           if (el.getBoundingClientRect().width === 0) continue;
           const ox = getComputedStyle(el).overflowX;
@@ -218,12 +218,8 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     await app.goto(`${hub.origin}/#/sessions/${id}`);
     await expect(app.getByText(new RegExp(lang.slice(0, 20))).first()).toBeVisible();
     await app.getByPlaceholder("Antworten…").fill(lang);
-    // Die Vorlagenzeile muss langes Wort umbrechen, statt horizontal zu scrollen.
-    await app.getByRole("button", { name: "+ als Vorlage merken" }).click();
-    await app.getByPlaceholder("Antworten…").fill("");
-    await expect(app.locator(".reply-templates").getByRole("button", { name: lang, exact: true })).toBeVisible();
     expect(await scan()).toEqual([]);
-    // Befehle: Vorlagen- und Befehlszeilen.
+    // Befehle: Befehlszeilen.
     await sessionTab(app, "Befehle");
     expect(await scan()).toEqual([]);
     // Einstellungen: von der Übersicht aus (dockGo- Weg wie in Regel 5).

@@ -49,3 +49,12 @@ Chunks als Blob. Genau dort wird angesetzt.
 
 Die App ist ein Browser-Fenster: Was der Browser nicht hatte (Browser-Erkennung, andere
 App), kann sie nicht neu erkennen. Und nach drei neuen Diktaten ist die älteste Aufnahme weg.
+
+## Nachtrag 2026-11-21 — zurückgebaut
+
+Nutzerentscheidung: die Zeile „Aufnahme gemerkt (Ns) — neu erkennen / weg“ über den
+Composer-Knöpfen nahm Platz weg und lenkte ab; sie ist entfernt. Damit entfiel die einzige
+Oberfläche der Neu-Erkennung — und mit ihr die ganze Vorhaltung: Der Stash
+(IndexedDB), das Speichern nach dem Diktat und die Neu-Erkennung sind aus der PWA
+entfernt, Aufnahmen werden wieder verworfen. Die Entscheidungen oben gelten damit als
+überholt; ein Wiederaufbau braucht ein neues ADR.

@@ -14,10 +14,8 @@ let server: Server;
 let streamServer: WebSocketServer;
 const received: { rate: number; channels: number; bytes: number; prompt: boolean; language: string }[] = [];
 
-// ADR-0092: dieselbe Aufnahme kann mehrfach erkannt werden. Der Ersatz-Fluesterer
-// antwortet deshalb unterschiedlich – und kann auf Ausfall gestellt werden.
-let antwort = "Starte die Tests im Worktree";
-let kaputt = false;
+// Der Ersatz-Fluesterer antwortet mit einem festen Text.
+const antwort = "Starte die Tests im Worktree";
 
 test.beforeAll(async () => {
   server = createServer((req, res) => {
@@ -30,11 +28,6 @@ test.beforeAll(async () => {
       const text = body.toString("latin1");
       const info = { rate: wav.length > 28 ? wav.readUInt32LE(24) : 0, channels: wav.length > 24 ? wav.readUInt16LE(22) : 0, bytes: wav.length, prompt: text.includes('name="prompt"') && text.includes("Worktree"), language: /name="language"\r\n\r\n(\w+)/.exec(text)?.[1] ?? "" };
       received.push(info);
-      if (kaputt) {
-        res.writeHead(502, { "content-type": "application/json" });
-        res.end(JSON.stringify({ error: "Spracherkennung nicht erreichbar (fake)" }));
-        return;
-      }
       const ok = info.rate === 16_000 && info.channels === 1 && info.bytes > 3000;
       res.writeHead(ok ? 200 : 400, { "content-type": "application/json" });
       res.end(JSON.stringify(ok ? { text: antwort } : { error: "not 16k mono wav" }));
@@ -183,70 +176,5 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await expect(app.getByText(/Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar/)).toBeVisible();
     await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
     expect(received.length).toBe(before);
-  });
-
-  test.describe("Neu-Erkennung der gemerkten Aufnahme (ADR-0092)", () => {
-    test.beforeEach(() => {
-      kaputt = false;
-      antwort = "Starte die Tests im Worktree";
-    });
-
-    test("die gemerkte Aufnahme wird neu erkannt und ersetzt den unveraenderten Text", async ({ app, hub }) => {
-      const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
-      await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByPlaceholder("Antworten…").click();
-      const fab = app.locator('[data-testid=nyx-fab]');
-      await fab.click();
-      await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
-      await app.waitForTimeout(1200);
-      await fab.click();
-      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests im Worktree");
-      const zeile = app.getByTestId("stt-replay");
-      await expect(zeile).toBeVisible();
-      await expect(zeile).toContainText("Aufnahme gemerkt");
-      // Die Zeile gehoert zum Eingabefeld — sie darf nicht irgendwo ueber dem Chat schweben.
-      const lage = await app.evaluate(() => {
-        const zeile = document.querySelector('[data-testid="stt-replay"]')!.getBoundingClientRect();
-        const feld = document.querySelector('textarea[placeholder="Antworten…"]')!.getBoundingClientRect();
-        return {
-          unterDemFeld: zeile.top >= feld.bottom - 1,
-          links: Math.round(zeile.left),
-          rechts: Math.round(window.innerWidth - zeile.right),
-          hoehe: Math.round(zeile.height),
-        };
-      });
-      expect(lage.unterDemFeld).toBe(true);
-      expect(lage.links).toBeGreaterThanOrEqual(8);
-      expect(lage.rechts).toBeGreaterThanOrEqual(8);
-      expect(lage.hoehe).toBeLessThan(60);
-      const vor = received.length;
-      antwort = "Starte die Tests — jetzt mit Protokoll";
-      await app.getByTestId("stt-replay-run").click();
-      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests — jetzt mit Protokoll");
-      expect(received.length).toBe(vor + 1);
-      // Die wartende Aufnahme ist verbraucht; was bleibt, ist der ehrliche Hinweis.
-      await expect(app.getByTestId("stt-replay")).toHaveCount(0);
-      await expect(app.getByTestId("stt-replay-note")).toContainText("ersetzt");
-    });
-
-    test("ein fehlgeschlagener Durchlauf wirft die Aufnahme nicht weg — spaeter laeuft sie doch", async ({ app, hub }) => {
-      kaputt = true;
-      const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
-      await app.goto(`${hub.origin}/#/sessions/${id}`);
-      await app.getByPlaceholder("Antworten…").click();
-      const fab = app.locator('[data-testid=nyx-fab]');
-      await fab.click();
-      await app.waitForTimeout(1200);
-      await fab.click();
-      await expect(app.locator('[data-testid=nyx-fab-toast] .err')).toBeVisible();
-      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
-      await expect(app.getByTestId("stt-replay")).toBeVisible();
-      kaputt = false;
-      antwort = "Doch, jetzt klar";
-      const vor = received.length;
-      await app.getByTestId("stt-replay-run").click();
-      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Doch, jetzt klar");
-      expect(received.length).toBe(vor + 1);
-    });
   });
 });
