@@ -1,0 +1,8 @@
+[
+  { "sessionId": "sc-4a", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "node tools/run.sh", "error": "blocked", "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } },
+  { "sessionId": "sc-4b", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "node tools/deploy.sh", "error": "blocked", "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }
+]

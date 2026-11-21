@@ -3,7 +3,11 @@
     "minRuns": 2,
     "maxLessons": 2,
     "descriptionBudgetTotal": 3963,
-    "npmRunExemptBySkill": { "factory": ["e2e"] }
+    "npmRunExemptBySkill": {
+      "factory": [
+        "e2e"
+      ]
+    }
   },
   "git-workflow": [
     {
@@ -18,7 +22,7 @@
       "kind": "forbid",
       "scope": "project",
       "match": "\\s--no-verify\\b",
-      "anchor": "Kein `--no-verify`"
+      "anchor": "`--no-verify`-Äquivalent"
     }
   ],
   "gates": [

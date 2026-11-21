@@ -1,0 +1,5 @@
+[
+  { "sessionId": "sc-1a", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "npm run lint -- --fix packages/core", "error": "error", "exit": null }, { "seq": 2, "cmd": "npm run lint -- --fix packages/core", "error": "error", "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }
+]

@@ -9,8 +9,9 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
 
-const REPO_ROOT = fileURLToPath(new URL("..", import.meta.url));
+const REPO_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 // Shell-Namen-Tabelle (Spec T72.6): diese Namen (in jeder Gross-/Kleinschreibung)
 // gelten als Shell-Tools; Shell-Formate ausserhalb der Tabelle -> unknownShape.

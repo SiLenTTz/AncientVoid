@@ -312,20 +312,20 @@ Kandidaten nach heutigem Stand: `gates` (gezielte Tests aus `git diff` bestimmen
 - [x] **T72.5 — Normalizer-Lücken als Bugs anlegen** (Skill `bug-report`): maki
   `bash` ohne `command` (nur `title`), opencode `shell`/`bash` ohne `command` (nur `cwd`)
   — jeweils mit Zählung aus §0 und Fixture-Hinweis. Messlatte: Regel 6.
-- [ ] **T72.6 — Run-Extraktor** `scripts/skill-runs.mjs extract` + Test: Shell-Tabelle,
+- [x] **T72.6 — Run-Extraktor** `scripts/skill-runs.mjs extract` + Test: Shell-Tabelle,
   Exit-Formate, Fehlerklassen, Zuordnung (`session.skill_chain`, `Skill`-`tool_use`),
   `turn_metrics`-Join (read-only `node:sqlite`), `stream_event` übersprungen,
   `unparsed`-Zähler. Fixtures aus echten Sessions je Adapter (claude, codex, pi, maki,
   opencode), anonymisiert. Messlatte: K5 (`blobRef` respektiert), K7.
-- [ ] **T72.7 — Regelkatalog + `evaluate`**: `.claude/skills/_shared/skill-checks.json`
+- [x] **T72.7 — Regelkatalog + `evaluate`**: `.claude/skills/_shared/skill-checks.json`
   (≤ 8 Startregeln für `git-workflow`, `gates`, `bugfix`, `*`), Positiv- und
   Negativ-Fixture je Regel.
-- [ ] **T72.8 — Sequenz-Mining** `scripts/skill-runs.mjs mine` + Tabellentests für
+- [x] **T72.8 — Sequenz-Mining** `scripts/skill-runs.mjs mine` + Tabellentests für
   Signatur-Normalisierung (≥ 15 Paare gleich/ungleich aus echten Befehlen).
-- [ ] **T72.9 — Regressionssuite** `scripts/skill-regression/cases/` (je Startregel +
+- [x] **T72.9 — Regressionssuite** `scripts/skill-regression/cases/` (je Startregel +
   `NO_CHANGE`, `REJECTED`, `probabilistic`, Injection-Fall) und
   `scripts/skill-curate.test.mjs` (Tier A, keine Ports, keine Wanduhr).
-- [ ] **T72.10 — Kurator** `scripts/skill-curate.mjs`: Aggregation, Klassifikationstabelle,
+- [x] **T72.10 — Kurator** `scripts/skill-curate.mjs`: Aggregation, Klassifikationstabelle,
   Max-2, `--apply` mit Validierung und Revert, Markdown- und JSON-Ausgabe, Commit-Nachricht
   geprüft, neuer Regressionsfall mit `check:secrets`.
 - [ ] **T72.11 — Erstlauf am Bestand** (232 Sessions): Report
@@ -333,7 +333,7 @@ Kandidaten nach heutigem Stand: `gates` (gezielte Tests aus `git diff` bestimmen
   `turn_metrics`, Regeltreffern, Top-10 Befehlsfolgen, `unparsed`-Quote je Adapter und
   ehrlicher Falsch-Positiv-Quote. Daraus die ≤ 2 Piloten festlegen und umsetzen
   (Skript + Hülle nach T72.4, Kosten vor/nach aus dem nächsten Lauf).
-- [ ] **T72.12 — Auslöser + Erreichbarkeit:** `skills:curate` und `check:skills` in
+- [x] **T72.12 — Auslöser + Erreichbarkeit:** `skills:curate` und `check:skills` in
   `package.json`, `AGENTS.md` (Kommandos), `.claude/skills/README.md`, Script-Inventar
   (`check:context`); Automationsrezept in `docs/skill-curation.md`; Cursor idempotent.
 

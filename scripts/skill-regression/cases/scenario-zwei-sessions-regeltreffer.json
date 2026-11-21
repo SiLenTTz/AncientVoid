@@ -1,0 +1,50 @@
+[
+  {
+    "sessionId": "sc-2a",
+    "adapter": "pi",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [],
+      "invoked": []
+    },
+    "commands": [
+      {
+        "seq": 1,
+        "cmd": "git commit -m test --no-verify",
+        "error": null,
+        "exit": null
+      }
+    ],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 0,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  },
+  {
+    "sessionId": "sc-2b",
+    "adapter": "pi",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [],
+      "invoked": []
+    },
+    "commands": [
+      {
+        "seq": 1,
+        "cmd": "git commit -m anderer --no-verify",
+        "error": null,
+        "exit": null
+      }
+    ],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 0,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  }
+]
