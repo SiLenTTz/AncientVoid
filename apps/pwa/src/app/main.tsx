@@ -36,7 +36,7 @@ import { RestoreBar } from "../features/windows/RestoreBar.tsx";
 import { PopoutShell } from "../features/windows/PopoutShell.tsx";
 import type { DropPoint } from "../features/windows/drag.ts";
 import { focusWindowFor, isPopoutWindow, onWindowMessage, openPopout, startWindowHub } from "../features/windows/windows.ts";
-import { detachTile, forgetDetached, openInNewTile, openInTile, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
+import { detachTile, focusOpenSession, forgetDetached, openInNewTile, openInTile, parseWorkspace, reattach, serializeWorkspace, visibleTiles, type TileRef, type Workspace } from "../features/workspace/tiles.ts";
 import { targetKey } from "../features/windows/protocol.ts";
 import { NyxFab } from "../features/stt/NyxFab.tsx";
 import type { Page } from "./Dock.tsx";
@@ -379,7 +379,9 @@ function Main() {
     setRoute({ view: "tail", session });
     // Kein Fenster mehr da (geschlossen, abgestürzt): die Session gehört wieder in eine Kachel.
     const base = forgetDetached(ws, ref);
-    changeWorkspace(openInNewTile(base, ref));
+    // Schon offen in einer Kachel → nur hinspringen, keine zweite Karte.
+    const focused = focusOpenSession(base, ref);
+    changeWorkspace(focused ?? openInNewTile(base, ref));
   };
   // Every route has its own remembered target. Existing cards never consume new route props.
   useEffect(() => {
@@ -387,7 +389,16 @@ function Main() {
     const current = latest.current.ws;
     let ref: TileRef;
     if (route.view === "tail") {
-      ref = { ...tileRefOf(route.session), ...(route.tab || route.code ? { content: { kind: "session" as const, tab: route.code ? "code" as const : route.tab!, ...(route.file ? { file: route.file } : {}), ...(route.code ? { code: route.code } : {}) } } : {}) };
+      const deep = !!(route.tab || route.code);
+      ref = { ...tileRefOf(route.session), ...(deep ? { content: { kind: "session" as const, tab: route.code ? "code" as const : route.tab!, ...(route.file ? { file: route.file } : {}), ...(route.code ? { code: route.code } : {}) } } : {}) };
+      // Listen-/Session-Wechsel: schon offene Karte fokussieren, statt Tab-Default als neue Kachel.
+      if (!deep) {
+        const focused = focusOpenSession(current, ref);
+        if (focused) {
+          latest.current.changeWorkspace(focused);
+          return;
+        }
+      }
     } else {
       if (route.page === "dashboard") return;
       ref = { sessionId: "", content: { kind: "page", page: route.page, ...(route.vaultFile ? { vaultFile: route.vaultFile } : {}), ...(route.vaultTab ? { vaultTab: route.vaultTab } : {}), hash: location.hash } };

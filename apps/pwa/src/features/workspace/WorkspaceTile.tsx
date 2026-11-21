@@ -85,7 +85,7 @@ export function WorkspaceTile({
           ⧉
         </button>
       )}
-      <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} leeren`} title="Kachel leeren (Alt+W)" onClick={onClose}>
+      <button type="button" class="tile-close" aria-label={`Kachel ${index + 1} schließen`} title="Kachel schließen (Alt+W)" onClick={(e) => { e.stopPropagation(); onClose(); }}>
         ×
       </button>
     </>
@@ -116,7 +116,7 @@ export function WorkspaceTile({
         <div class="ui-empty tile-empty" data-testid="tile-missing">
           Diese Session gibt es nicht mehr oder sie ist nicht erreichbar.
           <Button onClick={onClose}>
-            Kachel leeren
+            Kachel schließen
           </Button>
         </div>
       ) : session ? (

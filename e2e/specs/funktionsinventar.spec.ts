@@ -208,13 +208,13 @@ const SESSION: Entry[] = [
 ];
 
 const DESKTOP: Entry[] = [
-  { id: "P01", name: "Layoutwahl (sechs Layouts)", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator(".tile-layout-btn")).toHaveCount(6); await c.tap(c.page.getByRole("button", { name: "Zwei nebeneinander" })); await expect(c.page.locator(".tile")).toHaveCount(2); } },
-  { id: "P02", name: "Kachel-Aktionen: Fokus, Tauschen, Layout, Leeren", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("group", { name: "Kachel-Aktionen" }); for (const name of ["‹ Fokus", "Fokus ›", "⇄ Tauschen", "⟳ Layout", "✕ Leeren"]) await expect(bar.getByRole("button", { name })).toBeVisible(); } },
+  { id: "P01", name: "Layoutwahl (sechs Layouts)", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator(".tile-layout-btn")).toHaveCount(7); await c.tap(c.page.getByRole("button", { name: "Zwei nebeneinander" })); await expect(c.page.locator(".tile")).toHaveCount(2); } },
+  { id: "P02", name: "Kachel-Aktionen: Fokus, Tauschen, Layout, Schließen", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("group", { name: "Kachel-Aktionen" }); for (const name of ["‹ Fokus", "Fokus ›", "⇄ Tauschen", "⟳ Layout", "✕ Schließen"]) await expect(bar.getByRole("button", { name })).toBeVisible(); } },
   { id: "P03", name: "Liste einklappen", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.locator(".tile-list-toggle")); await expect(c.page.locator(".split.list-collapsed")).toBeVisible(); } },
   { id: "P04", name: "Tastaturhinweise", forms: PC, from: "session", reach: async (c) => { await c.page.keyboard.press("Shift+Slash"); await expect(c.page.locator(".cheatsheet")).toBeVisible(); await expect(c.page.locator(".cheatsheet-key").filter({ hasText: /^Alt\+1$/ })).toBeVisible(); await c.page.keyboard.press("Escape"); } },
   { id: "P05", name: "Kachel in eigenes Fenster (Taste)", forms: PC, from: "session", reach: async (c) => { await expect(c.page.getByRole("button", { name: "Kachel 1 in eigenem Fenster öffnen" })).toBeVisible(); } },
   { id: "P06", name: "Kachel am Griff herausziehen", forms: PC, from: "session", reach: async (c) => { await expect(c.page.locator('[data-tile="1"] .tile-grip')).toBeVisible(); } },
-  { id: "P07", name: "Kachel leeren", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Kachel 1 leeren" })); await expect(c.page.locator(".tile-empty")).toContainText("Session links wählen"); } },
+  { id: "P07", name: "Kachel schließen", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Kachel 1 schließen" })); await expect(c.page.locator(".tile-empty")).toContainText("Session links wählen"); } },
   { id: "P08", name: "Statusleiste", forms: PC, from: "session", reach: async (c) => { const bar = c.page.getByRole("status", { name: "Statusleiste" }); await expect(bar).toContainText("verbunden"); await expect(bar.locator(".status-focus")).toContainText("Inventar-Aufgabe"); } },
   { id: "P09", name: "Werkzeugseite in der Detailspalte: eigenes Fenster und Schließen", forms: PC, from: "#/einstellungen", reach: async (c) => { const pane = c.page.locator(".tool-pane"); await expect(pane.getByRole("button", { name: "In eigenem Fenster öffnen" })).toBeVisible(); await c.tap(pane.locator(".tool-pane-close")); await expect(pane).toHaveCount(0); } },
   { id: "P10", name: "Ansichten im Kachelkopf", forms: PC, from: "session", reach: async (c) => {
@@ -224,7 +224,7 @@ const DESKTOP: Entry[] = [
       await expect(rail.locator('[aria-haspopup="menu"]')).toBeVisible();
     },
   },
-  { id: "P11", name: "Strg-Klick öffnet eine weitere Kachel", forms: PC, from: "session", reach: async (c) => { await c.page.locator(".split-list .session-card").filter({ hasText: "Füllsession 3" }).locator(".session-open").click({ modifiers: ["Control"] }); await expect(c.page.locator(".tile")).toHaveCount(2); } },
+  { id: "P11", name: "Strg-Klick öffnet eine weitere Kachel", forms: PC, from: "session", reach: async (c) => { await c.tap(c.page.getByRole("button", { name: "Zwei nebeneinander" })); await c.page.locator(".split-list .session-card").filter({ hasText: "Füllsession 3" }).locator(".session-open").click({ modifiers: ["Control"] }); await expect(c.page.locator(".tile")).toHaveCount(2); } },
 ];
 
 const GROUPS: { title: string; entries: Entry[] }[] = [
