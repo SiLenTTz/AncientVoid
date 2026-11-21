@@ -211,7 +211,7 @@ hart verdrahtet. Für „praktisch alle Sprachen" gilt:
   Unit-Tests für `t()`, Plural, Fallback. (K10)
 - [x] **T61.3** `check-i18n` mit Baseline ins Gate; Test mit positivem und
   negativem Fixture; `docs/check-context.md`-Eintrag „script-ref" erfüllt.
-- [ ] **T61.4** Migration Shell/Übersicht/Status/Benachrichtigungen
+- [x] **T61.4** Migration Shell/Übersicht/Status/Benachrichtigungen
   (häufigste Erstkontakt-Flächen) inkl. `fmt*`-Ersatz der `"de-DE"`-Literale.
 - [ ] **T61.5** Migration Session/Composer/Approvals/Neue Session/Setup-
   und Onboarding-Pfade.
