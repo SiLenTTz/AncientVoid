@@ -1,0 +1,13 @@
+{
+  "$config": {
+    "minRuns": 2,
+    "maxLessons": 2,
+    "descriptionBudgetTotal": 3963,
+    "npmRunExemptBySkill": {
+      "factory": ["e2e"]
+    },
+    "$comment": "minRuns/maxLessons = Kur-Regeln ab T72.6/T72.9. descriptionBudgetTotal = Ratchet (Summe aller description-Längen, darf nur kleiner werden; überlange desc zählen mit dem Cap 300). factory-e2e = Ausblick auf harness-eigene package.json, nicht diese."
+  },
+  "git-workflow": [],
+  "gates": []
+}

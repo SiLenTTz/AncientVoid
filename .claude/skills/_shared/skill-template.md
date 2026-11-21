@@ -1,6 +1,6 @@
 ---
 name: skill-name
-description: Ein Satz Zweck plus Trigger-Keywords. Maximal 1024 Zeichen. Aktiv, wenn … (konkrete Nutzersignale).
+description: Ein Satz Zweck plus Trigger-Keywords. Maximal 300 Zeichen (check:skills). Aktiv, wenn … (konkrete Nutzersignale).
 ---
 
 # Skill: skill-name
@@ -36,6 +36,26 @@ Konkrete Schritte, Kommandos, Artefakte.
 ## Output-Format
 
 Deterministische Form, die ein Mensch oder ein nachfolgender Skill lesen kann.
+
+## Skript-Skill-Muster (wenn Logik wiederholbar ist)
+
+Wenn der Skill bei jedem Lauf dieselben Schritte durchführt, ist der Skill eine
+kurze Markdown-Hülse und die Logik steckt in `scripts/<skill>.mjs` — die LLM
+ruft das Skript auf und interpretiert nur das Ergebnis.
+
+- **Aufrufbar, `--json`, Exit-Code-konform:** Exit 0 = ok, 1 = Befund/Fehlerfall,
+  2 = Skriptfehler. `--json` liefert die Befunde als Maschinebnbares Array
+  (für künftige CI-Nutzung); ohne Flag Menschenformat, eine Zeile je Befund.
+- **Ausgabe ≤ 40 Zeilen** (oder `--json`) — der Skill-Raum soll nicht mit
+  Log zugetextet werden (`docs/skill-curation.md`).
+- Die Markdown-Hülse beschreibt nur: wann aufrufen, was die Exit-Codes
+  bedeuten, was bei Befunden zu tun ist. Sie verlinkt das Skript (Pfad muss
+  existieren — `check:skills`).
+- Das Skript hat einen Test unter `scripts/<skill>.test.mjs` (vitest) mit
+  gepflanztem Fixture; ein Check ohne negativen Fall gilt nicht als geprüft.
+- `scripts/` bleibt der einzige Ort für Skill-Skripte; der Name ist zugleich
+  die Regelquelle — nach `git mv` muss der Skill-Text nachgezogen werden
+  (`check:skills` meldet sonst die Lücke).
 
 ## Protected Invariants (AncientVoid)
 

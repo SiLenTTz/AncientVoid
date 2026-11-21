@@ -1,6 +1,6 @@
 ---
 name: gates
-description: Faehrt die Qualitaets-Gates dieses Repos (gezielte Tests der geaenderten Verhaltensweise + lint/typecheck; breite Läufe wie npm test/test:slow/test:e2e/gate nur auf ausdrücklichen Auftrag) in der richtigen Reihenfolge und im richtigen Umfang, bevor committet oder eine Aenderung als fertig gemeldet wird. Aktiv, wenn Code geaendert wurde und "ist das gruen?" beantwortet werden muss, oder wenn CI rot ist.
+description: Faehrt die Qualitaets-Gates dieses Repos (gezielte Tests der geaenderten Verhaltensweise + lint/typecheck; breite Läufe nur auf ausdrücklichen Auftrag) in richtiger Reihenfolge vor Commit und Fertigmeldung. Aktiv bei "ist das gruen?", vor Commit, bei roter CI.
 ---
 
 # Skill: gates

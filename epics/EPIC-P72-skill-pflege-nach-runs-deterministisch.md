@@ -292,24 +292,24 @@ Kandidaten nach heutigem Stand: `gates` (gezielte Tests aus `git diff` bestimmen
 
 ## 4. Aufgaben (Checkliste T72.m)
 
-- [ ] **T72.1 — ADR + Doku.** `docs/adr/0094-skill-pflege-deterministisch.md`
+- [x] **T72.1 — ADR + Doku.** `docs/adr/0094-skill-pflege-deterministisch.md`
   (`nativeSkills`-Fähigkeit, einmaliges Laden, Regeln statt Prompt-Text,
   Schwelle, kein LLM, kein Auto-Commit, Injection-Grenze); `docs/skill-curation.md`
   (Bestandsaufnahme §0 als Ausgangsmessung). Messlatte: Regel 1 (Contract-Erweiterung
   braucht ADR), PRD §8.5.
-- [ ] **T72.2 — Token-Diät beim Laden.** `nativeSkills` in den Adapter-Capabilities
+- [x] **T72.2 — Token-Diät beim Laden.** `nativeSkills` in den Adapter-Capabilities
   (Contract, optional), claude setzt es; `session-manager.promptWithSkill` überspringt
   die Kette bei `nativeSkills` und injiziert bei `nativeResume` nur einmal. Tests in
   `packages/core/test/modules/sessions/` (rot-dann-grün: heute 2 Kopien je Prompt, danach
   1 bzw. 0). Messlatte: K5-Geist (kleinere Prompts), K7 (Neustart ohne Resume injiziert
   wieder).
-- [ ] **T72.3 — `check:skills`** `scripts/check-skills.mjs` + `.test.mjs`, alle Prüfungen
+- [x] **T72.3 — `check:skills`** `scripts/check-skills.mjs` + `.test.mjs`, alle Prüfungen
   der Tabelle, `--fix`; in `package.json`, `gate` und den `verify`-Job. Altlasten im selben
   PR: `factory` bekommt Frontmatter und einen README-Eintrag, `git-workflow` kommt unter
   das Body-Budget (Details in `docs/`/Skript, Verweis statt Kopie).
-- [ ] **T72.4 — Skript-Skill-Muster** in `_shared/skill-template.md` (Hülle + Ausgabe-
+- [x] **T72.4 — Skript-Skill-Muster** in `_shared/skill-template.md` (Hülle + Ausgabe-
   Konvention ≤ 40 Zeilen/`--json`/Exit 0/1/2), Abschnitt in `.claude/skills/README.md`.
-- [ ] **T72.5 — Normalizer-Lücken als Bugs anlegen** (Skill `bug-report`): maki
+- [x] **T72.5 — Normalizer-Lücken als Bugs anlegen** (Skill `bug-report`): maki
   `bash` ohne `command` (nur `title`), opencode `shell`/`bash` ohne `command` (nur `cwd`)
   — jeweils mit Zählung aus §0 und Fixture-Hinweis. Messlatte: Regel 6.
 - [ ] **T72.6 — Run-Extraktor** `scripts/skill-runs.mjs extract` + Test: Shell-Tabelle,
