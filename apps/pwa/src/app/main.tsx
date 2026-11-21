@@ -18,7 +18,7 @@ import { installShortcutHints } from "../shared/shortcut-hint.ts";
 import { installSoundUnlock } from "../shared/audio.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
-import { applyLanguage } from "../shared/i18n/index.ts";
+import { t, applyLanguage } from "../shared/i18n/index.ts";
 import { initAppearance } from "./appearance.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
@@ -103,20 +103,19 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
   return (
     <div class="card form-grid" style="margin-top: 20vh">
       <img class="login-artwork" src="/assets/artwork-tempel.webp" alt="" width="1280" height="720" />
-      <h2 style="margin: 0">Anmeldung bei AncientVoid</h2>
+      <h2 style="margin: 0">{t("app.sign_in")}</h2>
       <p class="dim" style="margin: 0">
-        Device-Token eingeben. Es kommt vom Setup-Wizard oder wird mit <code>hubctl token issue &lt;label&gt;</code> auf dem Rechner mit dem Hub
-        ausgestellt — nie in eine Adresse kopieren.
+        {t("app.token_intro_1")} <code>hubctl token issue &lt;label&gt;</code> {t("app.token_intro_2")}
       </p>
       <label>
-        Device-Token
+        {t("common.device_token")}
         <div style="display: flex; gap: 8px">
           <input
             // Preact 11 typisiert <input> je type-Variante; ein Literal-Union passt zu keiner.
             {...(reveal ? { type: "text" as const } : { type: "password" as const })}
             value={token}
             onInput={(e) => setVal((e.target as HTMLInputElement).value)}
-            placeholder="z. B. 00bYRN3zmTJJIsfneN4iZmOQKsJl5q-s"
+            placeholder={t("app.token_placeholder")}
             autocapitalize="off"
             autocorrect="off"
             autocomplete="off"
@@ -125,7 +124,7 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
           />
           <Button
             onClick={() => setReveal((v) => !v)}
-            title={reveal ? "Token verbergen" : "Token anzeigen"}
+            title={reveal ? t("common.hide_token") : t("common.show_token")}
           >
             {reveal ? "🙈" : "👁"}
           </Button>
@@ -137,7 +136,7 @@ function TokenGate({ onReady, rejected }: { onReady: () => void; rejected: strin
         </div>
       )}
       <Button  aria-busy={checking} onClick={submit} disabled={checking} variant="primary" class={checking ? "busy" : undefined}>
-        {checking ? "lädt…" : "Verbinden"}
+        {checking ? t("common.loading_dots") : t("common.connect")}
       </Button>
     </div>
   );
@@ -215,7 +214,7 @@ function Main() {
         else {
           setReady(false);
           // BUG-0054: a rejected stored token used to leave the gate silent.
-          if (getToken()) setGateError(gateMessage(classifyGateError(err), err instanceof Error ? err.message : "Anmeldung abgelehnt", lastHubContact()));
+          if (getToken()) setGateError(gateMessage(classifyGateError(err), err instanceof Error ? err.message : t("app.login_rejected"), lastHubContact()));
         }
       });
   }, []);
@@ -356,7 +355,7 @@ function Main() {
       pendingForget.clear();
     };
   }, []);
-  const blockedNotice = "Das Fenster wurde nicht geöffnet. Der Browser blockiert Pop-ups für diese Seite — bitte erlauben und noch einmal versuchen.";
+  const blockedNotice = t("app.popup_blocked");
   const popoutTile = async (index: number, drop?: DropPoint) => {
     const ref = latest.current.ws.slots[index];
     if (!ref) return;
@@ -459,7 +458,7 @@ function Main() {
         <div class="topbar">
           {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
           <button type="button" class="badge-stale" data-testid="badge-refresh" onClick={() => location.reload()}>
-            Daten vom {staleAt.toLocaleString("de-DE")} (offline) — tippen für Neu laden
+            {t("app.data_from")} {staleAt.toLocaleString("de-DE")} {t("app.offline_tap")}
           </button>
         </div>
       )}
@@ -488,11 +487,11 @@ function Main() {
                 retryPopout();
               }}
             >
-              Fenster öffnen
+              {t("common.open_window")}
             </Button>
           )}{" "}
           <button type="button" class="link-btn" onClick={() => setPopoutNotice("")}>
-            Schließen
+            {t("common.close")}
           </button>
         </div>
       )}
