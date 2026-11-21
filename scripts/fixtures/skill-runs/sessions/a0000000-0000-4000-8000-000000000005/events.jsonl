@@ -1,0 +1,4 @@
+{"seq":1,"ts":"2026-11-18T00:00:00.000Z","sessionId":"a0000000-0000-4000-8000-000000000005","type":"system","summary":"session.created","payload":{"kind":"session.created","adapter":"pi","project":"/anon/av","args":null},"blobRef":null}
+{"seq":2,"ts":"2026-11-18T00:00:01.000Z","sessionId":"a0000000-0000-4000-8000-000000000005","type":"system","summary":"skill chain","payload":{"kind":"session.skill_chain","names":["bug-report"]},"blobRef":null}
+{"seq":3,"ts":"2026-11-18T00:00:02.000Z","sessionId":"a0000000-0000-4000-8000-000000000005","type":"tool_use","summary":"bash","payload":{"id":"p1","name":"bash","input":{"command":"npm run gate"}},"blobRef":null}
+{"seq":4,"ts":"2026-11-18T00:00:03.000Z","sessionId":"a0000000-0000-4000-8000-000000000005","type":"tool_result","summary":"Permission denied by user","payload":{"toolUseId":"p1","isError":true,"content":"Permission denied by user\nstack"},"blobRef":null}

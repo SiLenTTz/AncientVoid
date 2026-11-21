@@ -1,0 +1,4 @@
+{"seq":1,"ts":"2026-11-18T00:00:00.000Z","sessionId":"a0000000-0000-4000-8000-000000000002","type":"system","summary":"session.created","payload":{"kind":"session.created","adapter":"codex","project":"/anon/av","args":null},"blobRef":null}
+{"seq":2,"ts":"2026-11-18T00:00:01.000Z","sessionId":"a0000000-0000-4000-8000-000000000002","type":"tool_use","summary":"Shell(...)","payload":{"id":"x1","name":"Shell","input":{"command":"git merge feature main","cwd":"/anon/av"}},"blobRef":null}
+{"seq":3,"ts":"2026-11-18T00:00:02.000Z","sessionId":"a0000000-0000-4000-8000-000000000002","type":"tool_result","summary":"Process exited with code 1","payload":{"toolUseId":"x1","isError":true,"content":"Process exited with code 1\nstderr"},"blobRef":null}
+{"seq":4,"ts":"2026-11-18T00:00:03.000Z","sessionId":"a0000000-0000-4000-8000-000000000002","type":"tool_use","summary":"exec_command","payload":{"id":"x2","name":"exec_command","input":{"cmd":"echo hi"}},"blobRef":null}
