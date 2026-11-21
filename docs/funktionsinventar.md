@@ -2,7 +2,7 @@
 
 **Art:** referenz
 
-**Stand:** 2026-11-21 (P43-Basis, P43.5-Abschluss integriert; S27/S29/S79 nach Nutzerentscheidung vom 21.11.2026 entfallen — „nehmen zu viel Platz weg und lenken ab“) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
+**Stand:** 2026-11-21 (P43-Basis, P43.5-Abschluss integriert; S27/S29 nach Nutzerentscheidung vom 21.11.2026 entfallen — „nehmen zu viel Platz weg und lenken ab“) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
 geht keine Funktion verloren. · **Gate:** [`e2e/specs/funktionsinventar.spec.ts`](../e2e/specs/funktionsinventar.spec.ts)
 
 Jede Zeile ist eine Funktion, die ein Mensch in der PWA erreichen kann. Die letzte Spalte
@@ -91,7 +91,7 @@ Werkzeugseiten füllen die Detailspalte.
 | G56 | Oberflächengröße (Strg +/−/0, Strg+Rad) | Tastatur bzw. Einstellungen | — | spec:oberflaeche.spec.ts |
 | G57 | Querformat am Handy: Drehen baut um (Liste links, Laufleiste aus, Chat bleibt Leshöhe) | Gerät drehen | BUG-0053, BUG-0181 | spec:querformat.spec.ts |
 | G58 | Neue Session: Skill oder Agent wählen | Neue Session → „+ Skill/Agent“ | — | inventar |
-| G59 | Provider-Status über „Mehr“ (Handy, Tablet) | Dock „Mehr“ → „Provider-Status“ | — | inventar |
+| G59 | Provider-Status über „Mehr“ (Handy; Tablet direkt im Dock) | Dock „Mehr“ → „Provider-Status“; ab 700 px direkter Dock-Eintrag | — | inventar |
 | G60 | Suchen im Dock (öffnet das Befehlsfeld) | Dock „Suchen“ | T43.6 | inventar |
 | G61 | Freigabe auf der Karte entscheiden (Erlauben/Ablehnen) | Start → Karte unter „Du bist dran“ | — | spec:start-warteschlange.spec.ts |
 | G62 | „Ruhig“ auf- und zuklappen | Start → Gruppenkopf „Ruhig“ | — | spec:start-warteschlange.spec.ts |
@@ -126,12 +126,12 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S03 | Bericht | „Mehr“ → „Bericht“; auch unter dem Diff in „Änderungen“ | T43.5 | inventar |
 | S04 | Diff | Reiter „Änderungen“ (mit Zahl der Dateien); ohne Änderungen „Mehr“ → „Änderungen“ mit Satz und „Zum Chat“ | T43.5 | inventar |
 | S05 | Repo-Graph | „Mehr“ → „Graph“ | T43.4 | inventar |
-| S06 | Datei | „Mehr“ → „Datei“; ohne geöffnete Datei Satz und „Dateibaum öffnen“ | T43.5 | inventar |
+| S06 | Datei | „Mehr“ → „Datei“ — Code-Fläche der Session als eigene Karte; der Dateibaum hängt am Reiter „Befehle“ | T43.5 | inventar |
 | S07 | GitLab | „Mehr“ → „GitLab“ | T43.4 | inventar |
 | S08 | Suche | „Mehr“ → „Suche“ | T43.4 | inventar |
 | S09 | Code | Reiter „Dateien“ | T43.5 | inventar |
 | S10 | Umgebung | „Mehr“ → „Umgebung“ | T43.4 | inventar |
-| S11 | Zurück zur Übersicht (Handy/Tablet) | „←“ im Kopf | — | inventar |
+| S11 | Zurück zur Übersicht (Handy/Tablet) | „←“ im Kopf; ab 700 px Dock „Start“ | — | inventar |
 | S12 | Stop | Taste im Kopf | T43.4 | inventar |
 | S13 | Umbenennen | „⋯“ → „Umbenennen“ | — | inventar |
 | S14 | Anheften/Lösen | „⋯“ → „Anheften“ | — | inventar |

@@ -48,7 +48,7 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     const bar = app.locator(".subtabs-wrap").first();
     await expect(bar.getByRole("button", { name: /^Änderungen/ })).toHaveCount(0);
     await sessionTab(app, "Änderungen");
-    const empty = app.locator(".empty-state").first();
+    const empty = app.locator(".ui-empty").first();
     await expect(empty).toContainText("noch nichts geändert");
     await empty.getByRole("button", { name: "Zum Chat" }).click();
     await expect(bar.getByRole("button", { name: /^Chat/ })).toHaveAttribute("aria-current", "page");
@@ -88,8 +88,8 @@ test.describe("Kleinkram-Regeln (EPIC-P43 T43.5)", () => {
     const head = app.locator(".changes-head").first();
     await expect(head).toContainText("1 Datei");
     // Die Ansicht selbst — das Antwortfeld darunter mit „Senden“ gehört nicht zu ihr.
-    await expect(app.locator(".tail-scroll").first().locator(".btn.primary")).toHaveCount(1);
-    const primary = head.locator(".btn.primary");
+    await expect(app.locator(".tail-scroll").first().locator(".ui-button--primary")).toHaveCount(1);
+    const primary = head.locator(".ui-button--primary");
     await expect(primary).toHaveText("Ins Projekt übernehmen");
     const [btn, box] = await Promise.all([primary.boundingBox(), head.boundingBox()]);
     expect(btn!.x + btn!.width).toBeGreaterThan(box!.x + box!.width - 4);
