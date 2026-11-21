@@ -1,7 +1,7 @@
 // Tier A. EPIC-P61 T61.2: t(), Plural, Fallback, Browsersprach-Match.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t, resolveLanguage, matchBrowserLanguage, getLanguageSetting, setLanguageSetting, catalogKeys, resolveNotificationTitle, errorText } from "../../src/shared/i18n/index.ts";
-import { fmtDate, fmtNumber, fmtTime } from "../../src/shared/i18n/format.ts";
+import { fmtDate, fmtDateTime, fmtNumber, fmtTime } from "../../src/shared/i18n/format.ts";
 import { en } from "../../src/shared/i18n/en.ts";
 
 function fakeStorage() {
@@ -82,6 +82,18 @@ describe("i18n (EPIC-P61)", () => {
     expect(fmtNumber(1234.5)).toBe("1.234,5");
     setLanguageSetting("en");
     expect(fmtNumber(1234.5)).toBe("1,234.5");
+  });
+
+  it("fmtDateTime: Datum+Zeit folgt der Sprache (EPIC-P61 T61.4)", () => {
+    fakeStorage();
+    const when = "2026-11-21T14:05:00.000Z";
+    setLanguageSetting("de");
+    const de = fmtDateTime(when);
+    expect(de).toContain("21.11.2026");
+    setLanguageSetting("en");
+    const en = fmtDateTime(when);
+    expect(en).not.toBe(de);
+    expect(en).toContain("11/21/2026");
   });
 });
 

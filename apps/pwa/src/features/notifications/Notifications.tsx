@@ -62,7 +62,7 @@ function timeAgo(iso: string, now = Date.now()): string {
   if (seconds < 60) return t("time.now");
   if (seconds < 3600) return t("time.minutes_ago", { "n": Math.floor(seconds / 60) });
   if (seconds < 86_400) return t("time.hours_ago", { "n": Math.floor(seconds / 3600) });
-  return new Date(iso).toLocaleDateString("de-DE");
+  return fmtDate(iso);
 }
 
 /** T8.1: at most two toasts over the content — errors first; the rest

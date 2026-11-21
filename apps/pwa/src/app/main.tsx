@@ -1,3 +1,4 @@
+import { fmtDateTime } from "../shared/i18n/format.ts";
 import { loadFilter } from "../features/session/event-filter.ts";
 import { contentHash } from "../features/workspace/content.ts";
 import { onWorkspaceOpen } from "../features/workspace/open-content.ts";
@@ -458,7 +459,7 @@ function Main() {
         <div class="topbar">
           {/* K10: tippen lädt neu — der Service Worker holt dann wieder Netz-zuerst. */}
           <button type="button" class="badge-stale" data-testid="badge-refresh" onClick={() => location.reload()}>
-            {t("app.data_from")} {staleAt.toLocaleString("de-DE")} {t("app.offline_tap")}
+            {t("app.data_from")} {fmtDateTime(staleAt)} {t("app.offline_tap")}
           </button>
         </div>
       )}

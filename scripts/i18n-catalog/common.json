@@ -958,6 +958,103 @@
       "key": "startguide.guide_file",
       "de": "docs/tutorial-erste-schritte.md",
       "en": "docs/tutorial-erste-schritte.md"
+    },
+    {
+      "match": "lokal",
+      "key": "shell.local_only",
+      "de": "lokal",
+      "en": "local"
+    },
+    {
+      "match": "`${remote.length + 1} Hosts`",
+      "key": "shell.hosts_n",
+      "de": "{n} Hosts",
+      "en": "{n} hosts",
+      "params": {
+        "remote.length + 1": "n"
+      }
+    },
+    {
+      "match": "`${bad.length} von ${remote.length} Hosts gestört`",
+      "key": "shell.hosts_disturbed",
+      "de": "{bad} von {total} Hosts gestört",
+      "en": "{bad} of {total} hosts disturbed",
+      "params": {
+        "bad.length": "bad",
+        "remote.length": "total"
+      }
+    },
+    {
+      "match": "nie",
+      "key": "common.never",
+      "de": "nie",
+      "en": "never"
+    },
+    {
+      "match": " · Stand {time}",
+      "key": "common.stand_time",
+      "de": " · Stand {time}",
+      "en": " · as of {time}"
+    },
+    {
+      "match": "Das Token ist falsch, unvollständig oder widerrufen. Das Auge zeigt, was im Feld steht. Auf dem Rechner mit dem Hub: ",
+      "key": "tokengate.wrong_part1",
+      "de": "Das Token ist falsch, unvollständig oder widerrufen. Das Auge zeigt, was im Feld steht. Auf dem Rechner mit dem Hub: ",
+      "en": "The token is wrong, incomplete or revoked. The eye shows what is in the field. On the machine with the hub: "
+    },
+    {
+      "match": "hubctl token list zeigt die ausgestellten Geräte, hubctl token issue <label> stellt ein neues aus.",
+      "key": "tokengate.wrong_part2",
+      "de": "hubctl token list zeigt die ausgestellten Geräte, hubctl token issue <label> stellt ein neues aus.",
+      "en": "hubctl token list shows the issued devices, hubctl token issue <label> issues a new one."
+    },
+    {
+      "match": "Bitte ein Device-Token eingeben. Es kommt vom Setup-Wizard (setup.sh) oder wird auf dem Rechner mit dem Hub mit hubctl token issue <label> ausgestellt.",
+      "key": "tokengate.enter_token",
+      "de": "Bitte ein Device-Token eingeben. Es kommt vom Setup-Wizard (setup.sh) oder wird auf dem Rechner mit dem Hub mit hubctl token issue <label> ausgestellt.",
+      "en": "Please enter a device token. It comes from the setup wizard (setup.sh) or is issued on the machine with the hub via hubctl token issue <label>."
+    },
+    {
+      "match": "`Der Hub hat das Token abgelehnt. ${NEXT_STEP_REJECTED}`",
+      "key": "tokengate.rejected",
+      "de": "Der Hub hat das Token abgelehnt. {next}",
+      "en": "The hub rejected the token. {next}",
+      "params": {
+        "NEXT_STEP_REJECTED": "next"
+      }
+    },
+    {
+      "match": "Der Hub ist nicht erreichbar. Läuft er (scripts/hub.sh status)? Am Handy: ist Tailscale verbunden und die https-Adresse aus ",
+      "key": "tokengate.unreachable_part1",
+      "de": "Der Hub ist nicht erreichbar. Läuft er (scripts/hub.sh status)? Am Handy: ist Tailscale verbunden und die https-Adresse aus ",
+      "en": "The hub is not reachable. Is it running (scripts/hub.sh status)? On the phone: is Tailscale connected and the https address from "
+    },
+    {
+      "match": "`scripts/setup-tailscale-serve.sh geöffnet?${seen}`",
+      "key": "tokengate.unreachable_part2",
+      "de": "scripts/setup-tailscale-serve.sh geöffnet?{seen}",
+      "en": "scripts/setup-tailscale-serve.sh open?{seen}",
+      "params": {
+        "seen": "seen"
+      }
+    },
+    {
+      "match": "`Anmeldung fehlgeschlagen: ${detail}`",
+      "key": "tokengate.failed",
+      "de": "Anmeldung fehlgeschlagen: {detail}",
+      "en": "Login failed: {detail}",
+      "params": {
+        "detail": "detail"
+      }
+    },
+    {
+      "match": "` Letzte Verbindung zu diesem Hub: ${new Date(lastContact).toLocaleString(\"de-DE\")}.`",
+      "key": "tokengate.last_contact",
+      "de": " Letzte Verbindung zu diesem Hub: {time}.",
+      "en": " Last contact with this hub: {time}.",
+      "params": {
+        "new Date(lastContact).toLocaleString(\"de-DE\")": "time"
+      }
     }
   ]
 }

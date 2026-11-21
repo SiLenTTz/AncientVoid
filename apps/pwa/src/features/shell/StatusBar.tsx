@@ -1,3 +1,4 @@
+import { fmtTime } from "../../shared/i18n/format.ts";
 import { t } from "../../shared/i18n/index.ts";
 import { useEffect, useState } from "preact/hooks";
 import { remoteHost } from "../../shared/api.ts";
@@ -59,7 +60,7 @@ export function StatusBar({ focused, onOpenApprovals }: { focused: TileRef | nul
           {session.model ? ` · ${session.model}` : ""} · <StatusDot status={session.status} question={hub.questionSessions.includes(session.id)} />
         </span>
       )}
-      <span class="status-item dim">{new Date(now).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</span>
+      <span class="status-item dim">{fmtTime(now)}</span>
     </div>
   );
 }

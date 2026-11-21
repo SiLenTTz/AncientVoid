@@ -1,3 +1,4 @@
+import { fmtTime } from "../../shared/i18n/format.ts";
 import { t } from "../../shared/i18n/index.ts";
 import { Sheet, Button, Chip, EmptyState, Card } from "../../shared/ui/index.ts";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
@@ -44,7 +45,7 @@ const WINDOW_LABELS: Record<string, string> = {
 export function formatWindow(w: { id: string; utilization: number; resetsAt: string }): string {
   const label = WINDOW_LABELS[w.id] ?? w.id;
   const pct = Math.round(w.utilization * 100);
-  const reset = new Date(w.resetsAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  const reset = fmtTime(w.resetsAt);
   return `${label} ${pct}% · reset ${reset}`;
 }
 
@@ -524,7 +525,7 @@ function HostsView({ hosts, sessions, onPick }: { hosts: FleetHost[]; sessions: 
               </div>
               <div class="session-where dim">
                 {h.detail ?? h.hostId}
-                {h.state !== "reachable" && h.lastSyncAt ? ` · Stand ${new Date(h.lastSyncAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}` : ""}
+                {h.state !== "reachable" && h.lastSyncAt ? t("common.stand_time", { time: fmtTime(h.lastSyncAt) }) : ""}
               </div>
               <div class="session-activity">
                 <span class="session-activity-text dim">{n > 0 ? `${n} Session${n === 1 ? "" : "s"} zeigen` : t("common.no_sessions")}</span>
