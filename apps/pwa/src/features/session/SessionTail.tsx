@@ -314,10 +314,15 @@ export function SessionTail({
   const [copyFlash, setCopyFlash] = useState(false);
   useEffect(() => {
     let flashTimer: number | undefined;
-    const onUp = () => {
+    const onUp = (ev: PointerEvent) => {
       const el = tailRef.current;
       const sel = window.getSelection();
       const text = sel?.toString() ?? "";
+      // Nur die Geste ueber dem Verlauf selbst zaehlt: ein spaeterer Tipp anderswo
+      // (z. B. im Ablage-Blatt) darf eine stehende Auswahl nicht erneut einlagern —
+      // sonst kommt eine soeben entfernte Stufe zurueck (copyIntoShelf schiebt
+      // asynchron nach dem Clipboard-Versuch).
+      if (!(ev.target instanceof Node) || !el?.contains(ev.target)) return;
       if (!el || !sel || !text.trim() || !el.contains(sel.anchorNode)) return;
       // BUG-0107: transient abgelehntes writeText wurde still geschluckt — der Flash ist
       // der Beleg fürs Kopieren, ein Einzel-Retry gehört dazu. ADR-0090: ohne Clipboard-API
