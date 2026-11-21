@@ -785,11 +785,15 @@ export class SessionManager {
       session.skillName = skillName;
       const chain = await resolveSkillChain(parsed.project, skillName);
       if (chain) {
+        // ADR-0100: nativeSkills-Adapter expandieren die Kette selbst — der
+        // Hub liefert sie in diesem Lauf nie selbst nach.
+        const hubInjects = registered.capabilities.nativeSkills !== true;
         startSpec = {
           ...parsed,
-          ...(parsed.prompt !== undefined ? { prompt: withSkillChain(parsed.prompt, chain.block) } : {}),
+          ...(parsed.prompt !== undefined && hubInjects ? { prompt: withSkillChain(parsed.prompt, chain.block) } : {}),
           args: { ...parsed.args, skillChain: chain.names },
         };
+        if (parsed.prompt !== undefined && hubInjects) session.skillChainInjected = true;
         await this.emitEvents(session, [
           {
             type: "system",
@@ -1476,8 +1480,14 @@ export class SessionManager {
     return session;
   }
 
-  private async promptWithSkill(session: LiveSession, text: string): Promise<string> {
+  private async promptWithSkill(session: LiveSession, text: string, opts: { resumed?: boolean } = {}): Promise<string> {
     if (!session.skillName) return text;
+    // ADR-0100 (EPIC-P72): nativeSkills-Adapter expandieren selbst — nie
+    // injizieren. Bei fortbestehendem Kontext wird der Block nur einmal
+    // geliefert; ein Neustart ohne Resume (resumed === false) ist neu.
+    const caps = this.registry.get(session.record.adapter)?.capabilities;
+    if (caps?.nativeSkills === true) return text;
+    if (caps?.nativeResume !== "none" && session.skillChainInjected && opts.resumed !== false) return text;
     const chain = await resolveSkillChain(session.record.project, session.skillName);
     if (!chain) {
       await this.emitSystem(session, "session.skill_chain_missing", { skill: session.skillName });
@@ -1597,7 +1607,7 @@ export class SessionManager {
       const reprepared = await this.reprepareWorkspace(session, actor);
       if (!reprepared.ok) return reprepared;
     }
-    const converted = this.withAttachments(session, { text: await this.promptWithSkill(session, input.text), attachments: input.attachments });
+    const converted = this.withAttachments(session, { text: await this.promptWithSkill(session, input.text, { resumed: Boolean(session.record.nativeSessionId) }), attachments: input.attachments });
     const text = converted.text;
     await this.setStatus(session, "working");
     const native = session.record.nativeSessionId;

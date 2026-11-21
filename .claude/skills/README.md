@@ -32,15 +32,31 @@
 | [`layout-beweis`](layout-beweis/SKILL.md) | Uberlappung, Flaechenhaushalt und Mitrollen am Handy messen (elementFromPoint, Geometriezahlen) | „fuehlt sich ueberdeckt/gedrungen an“, FAB/Dock/Composer, Scrollverhalten | Wegwerf-Spec `_scratch-*.spec.ts` vor Commit loeschen |
 | [`retro`](retro/SKILL.md) | Evidence-basierte Retro gegen Epic-AC | „Retro", Phasen-Abschluss | bewertet Vergangenheit; planen → `epic-creation` |
 | [`setup-wizard`](setup-wizard/SKILL.md) | Setup-Hilfe für `./setup.sh` (Provider zuerst, Exit-Code-Diagnose) | „Installation", „Setup", „läuft nicht", Provider anbinden | Wizard-Fehlersuche; Defekte → `bugfix` |
+| [`factory`](factory/SKILL.md) | Factory-Orchestrator: Story-Zerlegung, Bahnen A/B, verify-Gates, Abnahme | factory-Aufträge, Spiel-/UI-Projekt mit PRD und `.factory/` | Harness-Template-Skill, projectlokal |
 | [`context-audit`](context-audit/SKILL.md) | Monatlicher semantischer Kontext-Audit (Veraltung/Widersprüche), nur Diff-Vorschläge | „Kontext-Audit", „docs aufräumen", „AGENTS.md prüfen" | Struktur-Gate bleibt `npm run check:context`; nie auto-mergen |
+| [`head-n`](head-n/SKILL.md) | Zeilenanfang deterministisch (Pilot EPIC-P72) | nur erste Zeilen einer Datei | Logik in `scripts/head-n.mjs` |
+| [`sort`](sort/SKILL.md) | Sortieren/Histogramm deterministisch (Pilot EPIC-P72) | Sortier-/Haeufigkeits-Idiom | Logik in `scripts/sort.mjs` |
+| (`_shared/skill-checks.json`) | Regelkatalog + `$config` für die Skill-Kur (Mindestläufe pro Lernfall) | — | maschinenlesbar; Lint-Check: `check:skills` |
 
-Vorlage für neue Skills: [`skill-template.md`](_shared/skill-template.md). AncientVoid-Verträge,
+Vorlage für neue Skills: [`skill-template.md`](_shared/skill-template.md).
+
+## Skript-Skill-Muster
+
+Wenn ein Skill bei jedem Lauf dieselben Schritte durchführt, ist die `SKILL.md` eine
+kurze Hülle und die Logik liegt in `scripts/<skill>.mjs`: aufrufbar, `--json`,
+Exit 0/1/2 = ok/Befund/Fehler, Ausgabe ≤ 40 Zeilen. Regeln, die kein Skript prüfen
+kann, stehen in `_shared/skill-checks.json` (Regelkatalog, maschinenlesbar; Anker
+muss wörtlich in der Quelle stehen, jede Regel braucht ≥ 1 Regressionsfall). Der
+Lint dazu ist `npm run check:skills` (im Gate; `--fix` nur bei eindeutigen Renames).
+Beschreibungs-Ratchet: `check:skills` meldet die Summe aller `description`-Längen —
+sie darf nur sinken.
+
+AncientVoid-Verträge, die `ponytail-review` nicht wegoptimieren darf:
+[`_shared/ancientvoid-protected-invariants.md`](_shared/ancientvoid-protected-invariants.md).
+
 **Ein neuer Skill muss sich eintragen:** `packages/core/test/modules/skills/skills.test.ts`
 zählt das echte Inventar exakt (Ratchet). Neuer Ordner unter `.claude/skills/` ohne
 Aktualisierung dieser Liste macht das PR-Gate rot.
-
-die `ponytail-review` nicht wegoptimieren darf:
-[`_shared/ancientvoid-protected-invariants.md`](_shared/ancientvoid-protected-invariants.md).
 
 ## Bewusst nicht übernommen
 

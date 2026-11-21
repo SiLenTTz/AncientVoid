@@ -1,6 +1,6 @@
 ---
 name: setup-wizard
-description: Hilft Nutzern und Agenten beim One-Command-Setup (./setup.sh bzw. npm run setup) — Installation, ersten Provider anbinden, Token, erster Hub-Start; diagnoset Setup-Fehler anhand der Wizard-Exit-Codes. Aktiv bei „Installation", „Setup", „bekomme es nicht zum Laufen", „Provider anbinden", Wizard-Abbruch.
+description: Hilft beim One-Command-Setup (./setup.sh bzw. npm run setup) — Installation, ersten Provider anbinden, Token, erster Hub-Start; diagnoset Setup-Fehler anhand der Wizard-Exit-Codes. Aktiv bei „Installation", „Setup", „läuft nicht", „Provider anbinden".
 ---
 
 # Skill: setup-wizard

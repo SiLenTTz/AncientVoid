@@ -146,6 +146,10 @@ export interface AdapterCapabilities {
   nativeDiscovery: NativeDiscovery;
   /** `native` only if steer/start reuses a provider session id. */
   nativeResume: NativeResume;
+  /** ADR-0100 (EPIC-P72): the CLI reads `.claude/skills` itself and expands
+   * `/<skill>` on its own — the hub never injects the chain block for such
+   * an adapter (single load, K5). Absent/false = the hub injects as before. */
+  nativeSkills?: boolean;
   /** ADR-0036: declared ONLY with a verified live hand-run against the
    * installed CLI (R9.7: no invented flags). Absent = no known external
    * continuation path — an honest state, not an error. */

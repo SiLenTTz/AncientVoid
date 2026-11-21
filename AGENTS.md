@@ -67,6 +67,7 @@ npm run test:e2e         # Playwright-E2E-Gate gegen einen echten Hub (docs/test
 npm run lint             # eslint
 npm run typecheck        # tsc --noEmit
 npm run gate             # check:* + typecheck + lint + volle Suite + test:e2e
+npm run skills:curate    # Skill-Kur: Run-Auswertung, Regeln, Mining (kein LLM; docs/skill-curation.md)
 npm run loadtest         # K8: 20 Sessions × 30 ev/s
 npm -w @ancientvoid/pwa run build
 ```

@@ -1,0 +1,122 @@
+[
+  {
+    "sessionId": "a0000000-0000-4000-8000-000000000001",
+    "adapter": "claude",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [
+        "git-workflow"
+      ],
+      "invoked": [
+        "git-workflow"
+      ]
+    },
+    "commands": [
+      {
+        "seq": 2,
+        "cmd": "npm run lint",
+        "error": "exit-nonzero",
+        "exit": 2
+      },
+      {
+        "seq": 4,
+        "cmd": "npm run test:fast",
+        "error": null,
+        "exit": null
+      }
+    ],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 0,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  },
+  {
+    "sessionId": "a0000000-0000-4000-8000-000000000002",
+    "adapter": "codex",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [],
+      "invoked": []
+    },
+    "commands": [
+      {
+        "seq": 2,
+        "cmd": "git merge feature main",
+        "error": "exit-nonzero",
+        "exit": 1
+      }
+    ],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 0,
+      "blobMissing": 0,
+      "unknownShape": 1
+    }
+  },
+  {
+    "sessionId": "a0000000-0000-4000-8000-000000000003",
+    "adapter": "maki",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [],
+      "invoked": []
+    },
+    "commands": [],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 2,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  },
+  {
+    "sessionId": "a0000000-0000-4000-8000-000000000004",
+    "adapter": "opencode",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [],
+      "invoked": []
+    },
+    "commands": [],
+    "prompts": [],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 2,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  },
+  {
+    "sessionId": "a0000000-0000-4000-8000-000000000005",
+    "adapter": "pi",
+    "project": "/anon/av",
+    "skills": {
+      "chain": [
+        "bug-report"
+      ],
+      "invoked": []
+    },
+    "commands": [
+      {
+        "seq": 3,
+        "cmd": "npm run gate",
+        "error": "permission-denied",
+        "exit": null
+      }
+    ],
+    "prompts": [
+      "mach das hier bitte komplett"
+    ],
+    "cost": null,
+    "unparsed": {
+      "shellWithoutCommand": 0,
+      "blobMissing": 0,
+      "unknownShape": 0
+    }
+  }
+]

@@ -388,6 +388,7 @@ export function createAdapter(config?: Readonly<Record<string, unknown>>): Adapt
         // ADR-0018. Hub prompts: every tool that needs a decision is asked
         // on the phone (native). Off: `claude -p` denies every tool that
         // would ask — a fixed list (settings/--allowedTools), nobody asked.
+        nativeSkills: true,
         features: {
           followUp: true,
           interrupt: true,

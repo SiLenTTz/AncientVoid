@@ -1,0 +1,64 @@
+{
+  "$config": {
+    "minRuns": 2,
+    "maxLessons": 2,
+    "descriptionBudgetTotal": 4316,
+    "npmRunExemptBySkill": {
+      "factory": [
+        "e2e"
+      ]
+    }
+  },
+  "git-workflow": [
+    {
+      "id": "gw-no-local-merge-main",
+      "kind": "forbid",
+      "scope": "project",
+      "match": "^git merge\\b.*\\bmain\\b",
+      "anchor": "nie über ein lokales `git merge` von einem Feature-Branch nach `main`"
+    },
+    {
+      "id": "gw-no-verify",
+      "kind": "forbid",
+      "scope": "project",
+      "match": "\\s--no-verify\\b",
+      "anchor": "`--no-verify`-Äquivalent"
+    }
+  ],
+  "gates": [
+    {
+      "id": "gates-no-broad-default",
+      "kind": "forbid",
+      "scope": "project",
+      "match": "^npm (test|run test:slow|run test:e2e|run gate)$",
+      "unless": "literal-in-user-prompt",
+      "anchor": "Kein breit laufender Test als Standard"
+    }
+  ],
+  "bugfix": [
+    {
+      "id": "bugfix-red-then-green",
+      "kind": "order",
+      "scope": "invoked",
+      "before": "^npm (run )?(test|test:fast|vitest)\\b",
+      "after": "^git commit\\b",
+      "anchor": "Reproduce → Fix → Re-verify → Finalize"
+    }
+  ],
+  "*": [
+    {
+      "id": "star-no-force-push",
+      "kind": "forbid",
+      "scope": "project",
+      "match": "\\bgit push\\b.*\\s(-f|--force)(\\s|$)",
+      "anchor": "Kein Force-Push"
+    },
+    {
+      "id": "star-no-direct-push-main",
+      "kind": "forbid",
+      "scope": "project",
+      "match": "^git push\\b.*\\bmain\\b",
+      "anchor": "kein Push/Commit auf `main` außerhalb der dokumentierten Bootstrap-Ausnahme"
+    }
+  ]
+}

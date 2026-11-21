@@ -167,6 +167,12 @@ Entscheidungstore bleiben offen), Doku-Pflege.
   Hintergrund-Sessions (`claude --bg`/`attach`) für echten Live-Sync, ersetzt
   `claude -p` pro Zug. Der Entwurf ist synchron; ohne Entscheid bleibt P15
   auf dieser Entscheidung sitzen (Herkunft: T15.4).
+- [ ] **T000.28 — Skill-Kur: Automation live und Pilot-Nachlauf.** (Herkunft:
+  EPIC-P72 DoD) Am laufenden Hub die tägliche Automation
+  `npm run skills:curate` einrichten und einen Lauf `succeeded` im Report
+  nachweisen; beim nächsten Kur-Lauf die Pilotkosten head-n/sort vor/nach
+  über `turn_metrics` messen. Der Erstlauf-Report
+  (`docs/2026-11-21_skill-curation-erstlauf.md`) ist die Ausgangsmessung.
 
 ## 5. Acceptance Criteria
 

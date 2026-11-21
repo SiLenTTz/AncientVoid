@@ -1,0 +1,8 @@
+{
+  "gw-no-local-merge-main": { "positive": "hit", "negative": "nohit" },
+  "gw-no-verify": { "positive": "hit", "negative": "nohit" },
+  "gates-no-broad-default": { "positive": "hit", "negative": "nohit-guarded" },
+  "bugfix-red-then-green": { "positive": "hit", "negative": "nohit" },
+  "star-no-force-push": { "positive": "hit", "negative": "nohit" },
+  "star-no-direct-push-main": { "positive": "hit", "negative": "nohit" }
+}

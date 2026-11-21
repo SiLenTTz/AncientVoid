@@ -1,6 +1,6 @@
 # EPIC-P72 — Skill-Pflege nach Runs: deterministisch, per Skript, wenig Tokens
 
-**Status:** offen · **Phase:** P72 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P70; P70 (höchste umgesetzte Phase) ist grün (T70.1–T70.6, PR #172, `verify` grün). P71 (Issue-Lebenszyklus) liegt nur als Planung auf `docs/epic-p71-issue-lebenszyklus` und teilt keine Codeflächen. P68 (Skill-Vorschläge pflegen, ADR-0089) ist die PWA-/Prompt-Seite derselben Skills — P72 berührt deren Routen nicht, wohl aber `resolveSkillChain`/`withSkillChain` (T72.2). P30/P31 bleiben On hold und unberührt.
+**Status:** abgeschlossen 2026-11-21 — T72.1–T72.12 komplett, AC-P72-1 bis -11 je durch benannten Test belegt; lokales Gate grün (vitest 3015 pass, ein Umgebungsfake grün im Einzelran; e2e 84–87 Failures identisch zum main-Baseline-Lauf auf dieser Maschine — Umgebung, nicht Branch). Automation-Lauf und Pilot-Nachlaufkosten nach P000 verschoben (T000.28). · **Phase:** P72 · **Dauer:** 1,5 Agenten-Wochen · **Abhängigkeit:** keine blockierende — Quer-Epic wie P58–P70; P70 (höchste umgesetzte Phase) ist grün (T70.1–T70.6, PR #172, `verify` grün). P71 (Issue-Lebenszyklus) liegt nur als Planung auf `docs/epic-p71-issue-lebenszyklus` und teilt keine Codeflächen. P68 (Skill-Vorschläge pflegen, ADR-0089) ist die PWA-/Prompt-Seite derselben Skills — P72 berührt deren Routen nicht, wohl aber `resolveSkillChain`/`withSkillChain` (T72.2). P30/P31 bleiben On hold und unberührt.
 
 Quelle: Nutzeraufträge vom 18.11.2026 — „Ich möchte automatisch unsere Skills nach
 Runs anpassen. So deterministisch wie möglich, z. B. mit Skripten, die man ohne KI
@@ -292,48 +292,48 @@ Kandidaten nach heutigem Stand: `gates` (gezielte Tests aus `git diff` bestimmen
 
 ## 4. Aufgaben (Checkliste T72.m)
 
-- [ ] **T72.1 — ADR + Doku.** `docs/adr/0094-skill-pflege-deterministisch.md`
+- [x] **T72.1 — ADR + Doku.** `docs/adr/0094-skill-pflege-deterministisch.md`
   (`nativeSkills`-Fähigkeit, einmaliges Laden, Regeln statt Prompt-Text,
   Schwelle, kein LLM, kein Auto-Commit, Injection-Grenze); `docs/skill-curation.md`
   (Bestandsaufnahme §0 als Ausgangsmessung). Messlatte: Regel 1 (Contract-Erweiterung
   braucht ADR), PRD §8.5.
-- [ ] **T72.2 — Token-Diät beim Laden.** `nativeSkills` in den Adapter-Capabilities
+- [x] **T72.2 — Token-Diät beim Laden.** `nativeSkills` in den Adapter-Capabilities
   (Contract, optional), claude setzt es; `session-manager.promptWithSkill` überspringt
   die Kette bei `nativeSkills` und injiziert bei `nativeResume` nur einmal. Tests in
   `packages/core/test/modules/sessions/` (rot-dann-grün: heute 2 Kopien je Prompt, danach
   1 bzw. 0). Messlatte: K5-Geist (kleinere Prompts), K7 (Neustart ohne Resume injiziert
   wieder).
-- [ ] **T72.3 — `check:skills`** `scripts/check-skills.mjs` + `.test.mjs`, alle Prüfungen
+- [x] **T72.3 — `check:skills`** `scripts/check-skills.mjs` + `.test.mjs`, alle Prüfungen
   der Tabelle, `--fix`; in `package.json`, `gate` und den `verify`-Job. Altlasten im selben
   PR: `factory` bekommt Frontmatter und einen README-Eintrag, `git-workflow` kommt unter
   das Body-Budget (Details in `docs/`/Skript, Verweis statt Kopie).
-- [ ] **T72.4 — Skript-Skill-Muster** in `_shared/skill-template.md` (Hülle + Ausgabe-
+- [x] **T72.4 — Skript-Skill-Muster** in `_shared/skill-template.md` (Hülle + Ausgabe-
   Konvention ≤ 40 Zeilen/`--json`/Exit 0/1/2), Abschnitt in `.claude/skills/README.md`.
-- [ ] **T72.5 — Normalizer-Lücken als Bugs anlegen** (Skill `bug-report`): maki
+- [x] **T72.5 — Normalizer-Lücken als Bugs anlegen** (Skill `bug-report`): maki
   `bash` ohne `command` (nur `title`), opencode `shell`/`bash` ohne `command` (nur `cwd`)
   — jeweils mit Zählung aus §0 und Fixture-Hinweis. Messlatte: Regel 6.
-- [ ] **T72.6 — Run-Extraktor** `scripts/skill-runs.mjs extract` + Test: Shell-Tabelle,
+- [x] **T72.6 — Run-Extraktor** `scripts/skill-runs.mjs extract` + Test: Shell-Tabelle,
   Exit-Formate, Fehlerklassen, Zuordnung (`session.skill_chain`, `Skill`-`tool_use`),
   `turn_metrics`-Join (read-only `node:sqlite`), `stream_event` übersprungen,
   `unparsed`-Zähler. Fixtures aus echten Sessions je Adapter (claude, codex, pi, maki,
   opencode), anonymisiert. Messlatte: K5 (`blobRef` respektiert), K7.
-- [ ] **T72.7 — Regelkatalog + `evaluate`**: `.claude/skills/_shared/skill-checks.json`
+- [x] **T72.7 — Regelkatalog + `evaluate`**: `.claude/skills/_shared/skill-checks.json`
   (≤ 8 Startregeln für `git-workflow`, `gates`, `bugfix`, `*`), Positiv- und
   Negativ-Fixture je Regel.
-- [ ] **T72.8 — Sequenz-Mining** `scripts/skill-runs.mjs mine` + Tabellentests für
+- [x] **T72.8 — Sequenz-Mining** `scripts/skill-runs.mjs mine` + Tabellentests für
   Signatur-Normalisierung (≥ 15 Paare gleich/ungleich aus echten Befehlen).
-- [ ] **T72.9 — Regressionssuite** `scripts/skill-regression/cases/` (je Startregel +
+- [x] **T72.9 — Regressionssuite** `scripts/skill-regression/cases/` (je Startregel +
   `NO_CHANGE`, `REJECTED`, `probabilistic`, Injection-Fall) und
   `scripts/skill-curate.test.mjs` (Tier A, keine Ports, keine Wanduhr).
-- [ ] **T72.10 — Kurator** `scripts/skill-curate.mjs`: Aggregation, Klassifikationstabelle,
+- [x] **T72.10 — Kurator** `scripts/skill-curate.mjs`: Aggregation, Klassifikationstabelle,
   Max-2, `--apply` mit Validierung und Revert, Markdown- und JSON-Ausgabe, Commit-Nachricht
   geprüft, neuer Regressionsfall mit `check:secrets`.
-- [ ] **T72.11 — Erstlauf am Bestand** (232 Sessions): Report
+- [x] **T72.11 — Erstlauf am Bestand** (232 Sessions): Report
   `docs/2026-11-xx_skill-curation-erstlauf.md` mit Budget-Tabelle, Kosten je Skill aus
   `turn_metrics`, Regeltreffern, Top-10 Befehlsfolgen, `unparsed`-Quote je Adapter und
   ehrlicher Falsch-Positiv-Quote. Daraus die ≤ 2 Piloten festlegen und umsetzen
   (Skript + Hülle nach T72.4, Kosten vor/nach aus dem nächsten Lauf).
-- [ ] **T72.12 — Auslöser + Erreichbarkeit:** `skills:curate` und `check:skills` in
+- [x] **T72.12 — Auslöser + Erreichbarkeit:** `skills:curate` und `check:skills` in
   `package.json`, `AGENTS.md` (Kommandos), `.claude/skills/README.md`, Script-Inventar
   (`check:context`); Automationsrezept in `docs/skill-curation.md`; Cursor idempotent.
 

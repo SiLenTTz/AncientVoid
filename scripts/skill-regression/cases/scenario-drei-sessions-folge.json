@@ -1,0 +1,11 @@
+[
+  { "sessionId": "sc-3a", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "npm run typecheck", "error": null, "exit": null }, { "seq": 2, "cmd": "npm run check:names", "error": null, "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } },
+  { "sessionId": "sc-3b", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "npm run typecheck", "error": null, "exit": null }, { "seq": 2, "cmd": "npm run check:names", "error": null, "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } },
+  { "sessionId": "sc-3c", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "npm run typecheck", "error": null, "exit": null }, { "seq": 2, "cmd": "npm run check:names", "error": null, "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }
+]

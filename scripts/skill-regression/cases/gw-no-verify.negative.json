@@ -1,0 +1,3 @@
+{ "sessionId": "case-gw2-neg", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+  "commands": [ { "seq": 4, "cmd": "git commit -m x", "error": null, "exit": null } ], "prompts": [], "cost": null,
+  "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }

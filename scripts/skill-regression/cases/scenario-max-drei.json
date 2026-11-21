@@ -1,0 +1,8 @@
+[
+  { "sessionId": "sc-6a", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "git commit -m x --no-verify", "error": null, "exit": null }, { "seq": 2, "cmd": "git push origin main", "error": null, "exit": null }, { "seq": 3, "cmd": "git merge feature main", "error": null, "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } },
+  { "sessionId": "sc-6b", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+    "commands": [ { "seq": 1, "cmd": "git commit -m y --no-verify", "error": null, "exit": null }, { "seq": 2, "cmd": "git push origin main", "error": null, "exit": null }, { "seq": 3, "cmd": "git merge feature dev main", "error": null, "exit": null } ],
+    "prompts": [], "cost": null, "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }
+]

@@ -41,6 +41,9 @@ export interface SteerMeta {
 
 export interface LiveSession {
   mainTurnIdle?: boolean;
+  /** ADR-0100 (EPIC-P72): wurde der Ketten-Block in dieser Laufzeit schon
+   * geliefert — bei Adaptern mit fortbestehendem Kontext nicht noch einmal. */
+  skillChainInjected?: boolean;
   lifecycle?: Promise<void>;
   turnFailed?: boolean;
   /** ADR-0015 Nachtrag 2026-11-15: Provider-Fehler dieses Laufs, zurückgehalten

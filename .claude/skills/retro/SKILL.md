@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Evidence-basierte Retro einer abgeschlossenen EPIC-Pn-Phase gegen ihre Acceptance Criteria. Liest die EPIC-Pn-*.md-Datei, git log und Premortem, bewertet jedes AC mit Beleg und haengt Erkenntnisse + Action Items als Abschnitt an die Epic-Datei an. Aktiv bei "Retro", "Retrospektive", Phasen-Abschluss.
+description: Evidence-basierte Retro einer EPIC-Pn-Phase gegen ihre ACs. Liest Epic-Datei, git log und Premortem, bewertet jedes AC mit Beleg und haengt Action Items als Abschnitt an die Epic-Datei an. Aktiv bei "Retro", Phasen-Abschluss.
 ---
 
 # Skill: retro

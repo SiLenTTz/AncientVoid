@@ -1,6 +1,6 @@
 ---
 name: layout-beweis
-description: Sichtbare UI-Defekte auf dem Handy messbar machen (Überlappung, Höhen, Mitrollen) statt sie zu beäugen — mit einer Wegwerf-Playwright-Spec, Geometriezahlen und elementFromPoint. Nutzen bei „fühlt sich gedrungen/überdeckt an“, FAB-/Dock-/Composer-Flächen, Scrollverhalten, oder wenn ein Screenshot allein nichts beweist.
+description: Sichtbare UI-Defekte auf dem Handy messbar machen (Überlappung, Höhen, Mitrollen) statt sie zu beäugen — mit einer Wegwerf-Playwright-Spec, Geometriezahlen und elementFromPoint. Nutzen bei „fühlt sich gedrungen/überdeckt an“, FAB-/Dock-/Composer-Flächen, Scrollverhalten.
 ---
 
 # Layout-Beweis statt Layout-Beäugung
