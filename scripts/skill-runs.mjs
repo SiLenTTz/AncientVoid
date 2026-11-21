@@ -88,7 +88,7 @@ export function extractRuns(root, { project = null, since = null } = {}) {
     const run = {
       sessionId, adapter: null, project: null,
       skills: { chain: [], invoked: [] },
-      commands: [], cost: null, unparsed,
+      commands: [], prompts: [], cost: null, unparsed,
     };
     const resultsByCall = new Map();
     const pending = []; // {seq, cmd, callId}
@@ -113,6 +113,9 @@ export function extractRuns(root, { project = null, since = null } = {}) {
         } else if (name && SHELL_TOOLS.has(name.toLowerCase())) {
           unparsed.unknownShape++; // Shell-Form ausserhalb der Tabelle
         }
+      } else if (event.type === "user") {
+        const text = payload?.text ?? event.summary;
+        if (typeof text === "string" && text) run.prompts.push(text);
       } else if (event.type === "tool_result") {
         const id = payload?.toolUseId;
         if (id) resultsByCall.set(id, { text: payload?.content ?? payload?.output ?? payload?.error, isError: Boolean(payload?.isError) });
@@ -147,6 +150,43 @@ function readTurnMetrics(root) {
   };
 }
 
+// --- T72.7: Regelkatalog-Auswertung (evaluate) --------------------------------
+
+// Treffer je Regel; scope invoked nur bei zugeordnetem Skill, scope project für alle Runs.
+// unless literal-in-user-prompt: guard=true (Ausnahme greift; im Report sichtbar, nie still).
+export function evaluateRuns(runs, catalog) {
+  const hits = [];
+  for (const [skillKey, rules] of Object.entries(catalog)) {
+    if (skillKey === "$config") continue;
+    for (const rule of rules) {
+      for (const run of runs) {
+        const applies =
+          rule.scope === "invoked"
+            ? run.skills.chain.includes(skillKey) || run.skills.invoked.includes(skillKey)
+            : true;
+        if (!applies) continue;
+        const re = new RegExp(rule.match);
+        if (rule.kind === "order") {
+          const before = new RegExp(rule.before);
+          const after = new RegExp(rule.after);
+          const firstAfter = run.commands.find((c) => after.test(c.cmd));
+          if (firstAfter && !run.commands.some((c) => before.test(c.cmd) && c.seq < firstAfter.seq)) {
+            hits.push({ ruleId: rule.id, skill: skillKey, sessionId: run.sessionId, seq: firstAfter.seq, cmd: firstAfter.cmd, guard: false });
+          }
+          continue;
+        }
+        for (const c of run.commands) {
+          if (!re.test(c.cmd)) continue;
+          const guard = rule.unless === "literal-in-user-prompt" && (run.prompts ?? []).some((p) => p.includes(c.cmd));
+          hits.push({ ruleId: rule.id, skill: skillKey, sessionId: run.sessionId, seq: c.seq, cmd: c.cmd, guard });
+        }
+      }
+    }
+  }
+  hits.sort((a, b) => a.ruleId.localeCompare(b.ruleId) || a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq);
+  return hits;
+}
+
 // --- T72.8: Signatur-Normalisierung + Mining ---------------------------------
 
 // Pfade, UUIDs, Zahlen, Quoted-Strings -> Platzhalter; Pipes/&& in Einzelbefehle.
@@ -158,6 +198,7 @@ export function normalizeCommand(cmd) {
       part
         .replace(/(["'])(?:[^"'\\]|\\.)*\1/g, "<str>")
         .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<uuid>")
+        .replace(/\b[\w.@-]+(?:\/[\w.@-]+)+\b/g, "<path>")
         .replace(/(?:\/|\.\/|~\/)[\w./@-]+/g, "<path>")
         .replace(/\b\d+\b/g, "<n>")
         .replace(/\s+/g, " ")
@@ -226,6 +267,15 @@ function main() {
       for (const r of runs.slice(0, 38)) process.stdout.write(`- ${r.sessionId.slice(0, 8)} ${r.adapter ?? "?"} ${r.project ?? "?"} chain=[${r.skills.chain.join(",")}] invoked=[${r.skills.invoked.join(",")}] cmds=${r.commands.length} unparsed=${JSON.stringify(r.unparsed)}\n`);
       return 0;
     }
+    if (args._[0] === "evaluate") {
+      const catalogPath = args.catalog ?? join(REPO_ROOT, ".claude", "skills", "_shared", "skill-checks.json");
+      const runs = args.runs ? JSON.parse(readFileSync(args.runs, "utf8")) : extractRuns(root, { project: args.project, since: args.since });
+      const hits = evaluateRuns(Array.isArray(runs) ? runs : [runs], JSON.parse(readFileSync(catalogPath, "utf8")));
+      if (args.json) { process.stdout.write(JSON.stringify(hits, null, 2) + "\n"); return 0; }
+      process.stdout.write(`# Regeltreffer (${hits.length})\n\n`);
+      for (const h of hits) process.stdout.write(`- ${h.ruleId} @ ${h.sessionId.slice(0, 8)} seq ${h.seq}: \`${h.cmd}\`${h.guard ? " (Ausnahme: wörtlich im Prompt)" : ""}\n`);
+      return hits.some((h) => !h.guard) ? 1 : 0; // Befund = echter Treffer
+    }
     if (args._[0] === "mine") {
       const candidates = mineSequences(runs);
       if (args.json) { process.stdout.write(JSON.stringify(candidates, null, 2) + "\n"); return 0; }
@@ -233,7 +283,7 @@ function main() {
       for (const c of candidates.slice(0, 10)) process.stdout.write(`- ${c.hits}x in ${c.sessions.length} Sessions — score ${c.score}: \`${c.gram}\` → ${c.suggestion}\n`);
       return candidates.length ? 1 : 0; // Befund = Kandidaten vorhanden
     }
-    process.stderr.write("usage: skill-runs.mjs extract|mine [--root <dir>] [--project <p>] [--since <ISO>] [--json]\n");
+    process.stderr.write("usage: skill-runs.mjs extract|evaluate|mine [--root <dir>] [--runs <file>] [--catalog <file>] [--project <p>] [--since <ISO>] [--json]\n");
     return 2;
   } catch (err) {
     process.stderr.write(`skill-runs: ${err.message}\n`);

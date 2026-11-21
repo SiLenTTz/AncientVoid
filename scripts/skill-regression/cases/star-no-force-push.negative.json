@@ -1,0 +1,3 @@
+{ "sessionId": "case-star1-neg", "adapter": "pi", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+  "commands": [ { "seq": 8, "cmd": "git push origin topic --force-with-lease", "error": null, "exit": null } ], "prompts": [], "cost": null,
+  "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }

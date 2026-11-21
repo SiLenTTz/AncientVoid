@@ -25,6 +25,7 @@
         "exit": null
       }
     ],
+    "prompts": [],
     "cost": null,
     "unparsed": {
       "shellWithoutCommand": 0,
@@ -48,6 +49,7 @@
         "exit": 1
       }
     ],
+    "prompts": [],
     "cost": null,
     "unparsed": {
       "shellWithoutCommand": 0,
@@ -64,6 +66,7 @@
       "invoked": []
     },
     "commands": [],
+    "prompts": [],
     "cost": null,
     "unparsed": {
       "shellWithoutCommand": 2,
@@ -80,6 +83,7 @@
       "invoked": []
     },
     "commands": [],
+    "prompts": [],
     "cost": null,
     "unparsed": {
       "shellWithoutCommand": 2,
@@ -104,6 +108,9 @@
         "error": "permission-denied",
         "exit": null
       }
+    ],
+    "prompts": [
+      "mach das hier bitte komplett"
     ],
     "cost": null,
     "unparsed": {

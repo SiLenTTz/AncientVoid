@@ -1,0 +1,4 @@
+{ "sessionId": "case-gates-neg", "adapter": "codex", "project": "/anon/av", "skills": { "chain": [], "invoked": [] },
+  "commands": [ { "seq": 3, "cmd": "npm test", "error": null, "exit": null } ],
+  "prompts": ["Bitte einmal npm test laufen lassen, danke"], "cost": null,
+  "unparsed": { "shellWithoutCommand": 0, "blobMissing": 0, "unknownShape": 0 } }
