@@ -213,8 +213,10 @@
   min-width: 0;
 }
 
+/* Nicht selbst positioniert: das Menü ankert an der Topbar (sticky, TILE-breit) —
+ * am 44-px-⋯ verankert, lief es am Tablet aus der schmalen Kachel heraus in die
+ * Listenspalte und wurde dort unbedienbar (Inventar S13, 21.11.2026). */
 .session-menu {
-  position: relative;
   flex: 0 0 auto;
 }
 
