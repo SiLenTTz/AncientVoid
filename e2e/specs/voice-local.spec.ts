@@ -14,8 +14,10 @@ let server: Server;
 let streamServer: WebSocketServer;
 const received: { rate: number; channels: number; bytes: number; prompt: boolean; language: string }[] = [];
 
-// Der Ersatz-Fluesterer antwortet mit einem festen Text.
-const antwort = "Starte die Tests im Worktree";
+// ADR-0092: dieselbe Aufnahme kann mehrfach erkannt werden. Der Ersatz-Fluesterer
+// antwortet deshalb unterschiedlich – und kann auf Ausfall gestellt werden.
+let antwort = "Starte die Tests im Worktree";
+let kaputt = false;
 
 test.beforeAll(async () => {
   server = createServer((req, res) => {
@@ -28,6 +30,11 @@ test.beforeAll(async () => {
       const text = body.toString("latin1");
       const info = { rate: wav.length > 28 ? wav.readUInt32LE(24) : 0, channels: wav.length > 24 ? wav.readUInt16LE(22) : 0, bytes: wav.length, prompt: text.includes('name="prompt"') && text.includes("Worktree"), language: /name="language"\r\n\r\n(\w+)/.exec(text)?.[1] ?? "" };
       received.push(info);
+      if (kaputt) {
+        res.writeHead(502, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "Spracherkennung nicht erreichbar (fake)" }));
+        return;
+      }
       const ok = info.rate === 16_000 && info.channels === 1 && info.bytes > 3000;
       res.writeHead(ok ? 200 : 400, { "content-type": "application/json" });
       res.end(JSON.stringify(ok ? { text: antwort } : { error: "not 16k mono wav" }));
@@ -176,5 +183,57 @@ test.describe("Lokale Spracherkennung (T10.2)", () => {
     await expect(app.getByText(/Aufnahme abgebrochen — Mikrofon nicht mehr verfügbar/)).toBeVisible();
     await expect(app.getByTestId("nyx-fab")).not.toHaveClass(/recording/);
     expect(received.length).toBe(before);
+  });
+
+  test.describe("Neu-Erkennung der gemerkten Sprachnachricht (ADR-0092, Nachtrag)", () => {
+    test.beforeEach(() => {
+      kaputt = false;
+      antwort = "Starte die Tests im Worktree";
+    });
+
+    test("die Sprachnachricht in der Ablage wird neu erkannt und ersetzt den unveraenderten Text", async ({ app, hub }) => {
+      const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByPlaceholder("Antworten…").click();
+      const fab = app.locator('[data-testid=nyx-fab]');
+      await fab.click();
+      await expect(app.getByText(/Aufnahme läuft \d+:\d+ — erneut tippen stoppt/)).toBeVisible();
+      await app.waitForTimeout(1200);
+      await fab.click();
+      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests im Worktree");
+      // Nutzerentscheidung 21.11.2026: keine Zeile am Eingabefeld — die Ablage trägt die Aufnahme.
+      await app.getByTestId("clipboard-open").click();
+      const zeile = app.getByTestId("shelf-voice-row");
+      await expect(zeile).toContainText("Sprachnachricht");
+      const vor = received.length;
+      antwort = "Starte die Tests — jetzt mit Protokoll";
+      await app.getByTestId("shelf-voice-run").click();
+      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Starte die Tests — jetzt mit Protokoll");
+      expect(received.length).toBe(vor + 1);
+      // Die wartende Aufnahme ist verbraucht; was bleibt, ist der ehrliche Hinweis im Blatt.
+      await expect(app.getByTestId("shelf-voice-row")).toHaveCount(0);
+      await expect(app.getByTestId("shelf-note")).toContainText("ersetzt");
+    });
+
+    test("ein fehlgeschlagener Durchlauf wirft die Aufnahme nicht weg — spaeter laeuft sie doch", async ({ app, hub }) => {
+      kaputt = true;
+      const id = await hub.createSession({ adapter: "opencode", prompt: "Start" });
+      await app.goto(`${hub.origin}/#/sessions/${id}`);
+      await app.getByPlaceholder("Antworten…").click();
+      const fab = app.locator('[data-testid=nyx-fab]');
+      await fab.click();
+      await app.waitForTimeout(1200);
+      await fab.click();
+      await expect(app.locator('[data-testid=nyx-fab-toast] .err')).toBeVisible();
+      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("");
+      await app.getByTestId("clipboard-open").click();
+      await expect(app.getByTestId("shelf-voice-row")).toContainText("Sprachnachricht");
+      kaputt = false;
+      antwort = "Doch, jetzt klar";
+      const vor = received.length;
+      await app.getByTestId("shelf-voice-run").click();
+      await expect(app.getByPlaceholder("Antworten…")).toHaveValue("Doch, jetzt klar");
+      expect(received.length).toBe(vor + 1);
+    });
   });
 });

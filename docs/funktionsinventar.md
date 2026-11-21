@@ -2,7 +2,7 @@
 
 **Art:** referenz
 
-**Stand:** 2026-11-21 (P43-Basis, P43.5-Abschluss integriert; S27/S29 nach Nutzerentscheidung vom 21.11.2026 entfallen — „nehmen zu viel Platz weg und lenken ab“) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
+**Stand:** 2026-11-21 (P43-Basis, P43.5-Abschluss integriert; S27/S29 nach Nutzerentscheidung vom 21.11.2026 entfallen — „nehmen zu viel Platz weg und lenken ab“; S79 kehrt am selben Tag als Ablage-Sprachnachricht zurück) · **Zweck:** Leitplanke E10 — beim Umbau der Oberfläche
 geht keine Funktion verloren. · **Gate:** [`e2e/specs/funktionsinventar.spec.ts`](../e2e/specs/funktionsinventar.spec.ts)
 
 Jede Zeile ist eine Funktion, die ein Mensch in der PWA erreichen kann. Die letzte Spalte
@@ -196,6 +196,7 @@ Zusätzliche Chat-Regressionen (angehefteter Auftrag, große Denktexte und Werkz
 | S76 | Installierter Stand: Modus, Fenster-Ausrichtung, Winkel, Manifest, Worker-Stufe; dreht das Gerät nicht, erzwingt die App Querformat oder nennt die Abweisung | Einstellungen → Geräte | BUG-0186 | spec:installations-stand.spec.ts |
 | S77 | Ein langes Gespräch bleibt bis zu seinem Anfang lesbar: hochscrollen (oder der Knopf „frühere Einträge“) holt die früheren, die Lesestelle hält ihre Position | Session → Chat oder Verlauf → nach oben scrollen | BUG-0211 | spec:chat-aeltere-laden.spec.ts |
 | S78 | Kopiertes bleibt greifbar: die Ablage hält sechs sichtbare Stufen (Diktat, Markierung, Befehl, Eintrag, Kennung) und fügt sie wieder ein — Token bleiben draußen | Composer → Ablage-Knopf; oder Text markieren/kopieren | ADR-0090 | spec:clipboard-shelf.spec.ts |
+| S79 | Diktat-Aufnahmen bleiben als Sprachnachricht in der Ablage (drei neueste, höchstens 12 MB) und lassen sich neu erkennen — auch nach einem Ausfall der eigenen Erkennung; ersetzt wird nur ein unveränderter Text | Composer → Ablage → Sprachnachricht → „neu erkennen“ | ADR-0092 (Nachträge) | spec:voice-local.spec.ts |
 | S80 | Die Ablage nimmt beim Wiederkommen auch extern Kopiertes auf — Text als „Andere App“, Screenshots als Bild-Stufe mit Vorschaubild — und hängt ein solches Bild an die Session an | Ablage-Blatt; automatisch beim Fokus | ADR-0093 | spec:clipboard-aussen.spec.ts |
 | S81 | Welche Spracheingabe ein Gerät benutzt, ist pro Gerät wählbar — Automatisch, Lokal (Hub) oder Browser (meist Cloud) — mit ehrlicher Quellenangabe, und „Lokal“ fällt nie still in die Cloud zurück | Mikro-Knopf gedrückt halten (Menü) oder Einstellungen → Spracheingabe | ADR-0095 (mit Nachtrag) | spec:stt-modus.spec.ts |
 

@@ -109,7 +109,8 @@ export function Composer({
   // statt Mikro-Feld; im expanded-Zustand setzt CSS die Höhe, Auto-Grow
   // greift dann nicht ein (offsetHeight ist schon groß).
   const [expanded, setExpanded] = useState(false);
-  // ADR-0090: die Ablage atmet mit — der Knopf zeigt, wie viele Stufen da sind.
+  // ADR-0090/0092: die Ablage atmet mit — der Knopf zeigt, wie viele Einträge (Stufen
+  // und Sprachnachrichten) da sind.
   const shelfCount = useShelfCount();
   // EPIC-P43 T43.4: einzeilig, bis das Feld zum ersten Mal den Fokus bekommt.
   const [touched, setTouched] = useState(false);
@@ -389,8 +390,8 @@ export function Composer({
           class={shelfCount > 0 ? "composer-shelf has-items" : "composer-shelf"}
           data-testid="clipboard-open"
           onClick={openClipboardShelf}
-          aria-label={shelfCount > 0 ? `Ablage öffnen, ${shelfCount} Stufen` : "Ablage öffnen, noch leer"}
-          title={shelfCount > 0 ? `Zwischenablage-Ablage (${shelfCount} Stufen)` : "Zwischenablage-Ablage — noch nichts kopiert"}
+          aria-label={shelfCount > 0 ? `Ablage öffnen, ${shelfCount} Einträge` : "Ablage öffnen, noch leer"}
+          title={shelfCount > 0 ? `Zwischenablage-Ablage (${shelfCount} Einträge)` : "Zwischenablage-Ablage — noch nichts kopiert"}
         >
           <ShelfGlyph />
           {shelfCount > 0 && <span class="shelf-badge" data-testid="clipboard-count" aria-hidden="true">{shelfCount > 9 ? "9+" : shelfCount}</span>}
