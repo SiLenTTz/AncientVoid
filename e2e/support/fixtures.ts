@@ -67,7 +67,14 @@ export async function signIn(page: Page, hub: TestHub): Promise<void> {
   // preview iframe (EPIC-P29, opaque origin) would throw on localStorage
   // and surface as an uncaught page error that belongs to nobody.
   await page.addInitScript((token) => {
-    if (window.top === window) localStorage.setItem("ancientvoid.token", token);
+    if (window.top === window) {
+      localStorage.setItem("ancientvoid.token", token);
+      // EPIC-P61 (Premortem 2): Sprach-Standard Deutsch — die bestehenden Specs
+      // suchen deutsche Strings; der Runner-Host darf nicht die Sprache wählen.
+      // Set-default: Das Sprach-Spec schreibt den Wert selbst und behält ihn
+      // über Reloads (addInitScript läuft vor jeder Navigation).
+      if (!localStorage.getItem("ancientvoid.language")) localStorage.setItem("ancientvoid.language", "de");
+    }
   }, hub.token);
 }
 
