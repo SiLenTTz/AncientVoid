@@ -18,6 +18,7 @@ import { installShortcutHints } from "../shared/shortcut-hint.ts";
 import { installSoundUnlock } from "../shared/audio.ts";
 import { classifyGateError, gateMessage, lastHubContact, noteHubContact } from "./token-gate.ts";
 import { applyTheme, getTheme } from "./theme.ts";
+import { applyLanguage } from "../shared/i18n/index.ts";
 import { initAppearance } from "./appearance.ts";
 import { applyPinchZoom, pinchZoomAllowed } from "./zoom.ts";
 import { applyCtxMotion, applyScale, ctxMotionOn, getScale, installScaleShortcuts } from "./ui-scale.ts";
@@ -46,6 +47,8 @@ import { ClipboardShelf } from "../features/clipboard/ClipboardShelf.tsx";
 // never flashes dark first — index.html's data-theme="dark" was previously
 // the only value that ever existed.
 applyTheme(getTheme());
+// EPIC-P61 (ADR-0101): <html lang> folgt der Geräte-Sprache, vor dem ersten Paint.
+applyLanguage();
 // EPIC-P34 T34.4: Akzentfarbe, Schrift und Größe dieses Geräts, ebenfalls vor dem ersten Paint.
 initAppearance();
 initPresentation();

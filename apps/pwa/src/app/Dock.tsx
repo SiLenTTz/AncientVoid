@@ -11,18 +11,19 @@ import { TabIcon, type TabIconName } from "../shared/TabIcon.tsx";
 import { openCommandBar } from "../features/commands/CommandBar.tsx";
 import { openLayer } from "../shared/layers.ts";
 import { ariaCombo, comboLabel, registerShortcut } from "../shared/shortcuts/registry.ts";
+import { t } from "../shared/i18n/index.ts";
 export type { ListPage as Page } from "./route.ts";
 import type { ListPage as Page } from "./route.ts";
 
 const MORE: readonly { page: Page; icon: TabIconName; label: string; title: string }[] = [
-  { page: "media", icon: "medien", label: "Medien", title: "Medien: Videos analysieren" },
-  { page: "vault", icon: "notizen", label: "Notizen", title: "Notizen (Knowledge Vault)" },
-  { page: "automationen", icon: "automationen", label: "Automationen", title: "Automationen (Zeitpläne)" },
-  { page: "settings", icon: "einstellungen", label: "Einstellungen", title: "Einstellungen" },
-  { page: "aimetrics", icon: "bericht", label: "Metrik", title: "Metrik: Auslastung des lokalen KI-Servers (EPIC-P59)" },
-  { page: "statistics", icon: "bericht", label: "Statistik", title: "Statistik: Session-, Zug- und Tool-Kennzahlen (EPIC-P56)" },
-  { page: "terminal", icon: "terminal", label: "Terminal", title: "Terminal: Shell auf erlaubten Hosts (ADR-0087)" },
-  { page: "releasenotes", icon: "verlauf", label: "Release-Notes", title: "Release-Notes: pro PR was geändert wurde und warum (EPIC-P68)" },
+  { page: "media", icon: "medien", label: t("dock.media"), title: t("dock.mediaTitle") },
+  { page: "vault", icon: "notizen", label: t("dock.vault"), title: t("dock.vaultTitle") },
+  { page: "automationen", icon: "automationen", label: t("dock.automations"), title: t("dock.automationsTitle") },
+  { page: "settings", icon: "einstellungen", label: t("dock.settings"), title: t("dock.settingsTitle") },
+  { page: "aimetrics", icon: "bericht", label: t("dock.aimetrics"), title: t("dock.aimetricsTitle") },
+  { page: "statistics", icon: "bericht", label: t("dock.statistics"), title: t("dock.statisticsTitle") },
+  { page: "terminal", icon: "terminal", label: t("dock.terminal"), title: t("dock.terminalTitle") },
+  { page: "releasenotes", icon: "verlauf", label: t("dock.releasenotes"), title: t("dock.releasenotesTitle") },
 ];
 
 /**
@@ -65,32 +66,32 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
   };
   if (desktop) return <Sidebar active={active} onNavigate={onNavigate} />;
   return (
-    <nav class="dock" aria-label="Navigation" ref={dockRef} onKeyDown={onDockKey}>
-      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title="Start" onClick={() => go("dashboard")}>
-        <TabIcon name="uebersicht" /><span class="lb">Start</span>
+    <nav class="dock" aria-label={t("dock.nav")} ref={dockRef} onKeyDown={onDockKey}>
+      <button class={`dock-item ${active === "dashboard" ? "active" : ""}`} type="button" title={t("dock.start")} onClick={() => go("dashboard")}>
+        <TabIcon name="uebersicht" /><span class="lb">{t("dock.start")}</span>
       </button>
-      <button class="dock-item" type="button" title={`Suchen und Auftrag in Worten (${comboLabel("command.toggle")})`} aria-keyshortcuts={ariaCombo("command.toggle")} data-shortcut="command.toggle" onClick={() => { setMore(false); openCommandBar(); }}>
-        <TabIcon name="suche" /><span class="lb">Suchen</span>
+      <button class="dock-item" type="button" title={t("dock.searchTitle", { combo: comboLabel("command.toggle") })} aria-keyshortcuts={ariaCombo("command.toggle")} data-shortcut="command.toggle" onClick={() => { setMore(false); openCommandBar(); }}>
+        <TabIcon name="suche" /><span class="lb">{t("dock.search")}</span>
       </button>
-      <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title="Neue Session" aria-label="Neue Session" onClick={() => go("new")}>
+      <button class={`dock-item dock-main ${active === "new" ? "active" : ""}`} type="button" title={t("dock.newSession")} aria-label={t("dock.newSession")} onClick={() => go("new")}>
         <TabIcon name="neu" />
       </button>
-      <button class={`dock-item ${active === "teams" ? "active" : ""}`} type="button" title="Teams (Agenten-Teams)" onClick={() => go("teams")}>
+      <button class={`dock-item ${active === "teams" ? "active" : ""}`} type="button" title={t("dock.teams")} onClick={() => go("teams")}>
         <TabIcon name="teams" /><span class="lb">Teams</span>
       </button>
-      <button class={`dock-item dock-more ${inMore ? "active" : ""}`} type="button" title="Mehr" aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore((on) => !on)}>
-        <TabIcon name="mehr" /><span class="lb">Mehr</span>
+      <button class={`dock-item dock-more ${inMore ? "active" : ""}`} type="button" title={t("dock.more")} aria-haspopup="dialog" aria-expanded={more} onClick={() => setMore((on) => !on)}>
+        <TabIcon name="mehr" /><span class="lb">{t("dock.more")}</span>
       </button>
       {MORE.map((m) => (
         <button key={m.page} class={`dock-item dock-extra ${active === m.page ? "active" : ""}`} type="button" title={m.title} onClick={() => go(m.page)}>
           <TabIcon name={m.icon} /><span class="lb">{m.label}</span>
         </button>
       ))}
-      <button class="dock-item dock-extra" type="button" title={`Dateibaum (${comboLabel("files.toggle")})`} aria-keyshortcuts={ariaCombo("files.toggle")} data-shortcut="files.toggle" onClick={() => openLayer("files")}>
-        <TabIcon name="baum" /><span class="lb">Dateibaum</span>
+      <button class="dock-item dock-extra" type="button" title={t("dock.filetreeTitle", { combo: comboLabel("files.toggle") })} aria-keyshortcuts={ariaCombo("files.toggle")} data-shortcut="files.toggle" onClick={() => openLayer("files")}>
+        <TabIcon name="baum" /><span class="lb">{t("dock.filetree")}</span>
       </button>
       {more && (
-        <Sheet open onClose={() => setMore(false)} label="Mehr" class="more-sheet">
+        <Sheet open onClose={() => setMore(false)} label={t("dock.more")} class="more-sheet">
             {MORE.map((m) => (
               <button key={m.page} class={`more-item ${active === m.page ? "active" : ""}`} type="button" onClick={() => go(m.page)}>
                 <TabIcon name={m.icon} />
@@ -99,12 +100,12 @@ export function GlobalDock({ active, onNavigate }: { active: Page | null; onNavi
             ))}
             <button class={`more-item ${active === "status" ? "active" : ""}`} type="button" onClick={() => go("status")}>
               <TabIcon name="bericht" />
-              <span>Provider-Status</span>
+              <span>{t("dock.providerStatus")}</span>
             </button>
             {/* Ohne offene Session: Dateibaum über alle Projekte (früher die Randlasche „Dateien“). */}
             <button class="more-item" type="button" onClick={() => { setMore(false); openLayer("files"); }}>
               <TabIcon name="baum" />
-              <span>Dateibaum</span>
+              <span>{t("dock.filetree")}</span>
             </button>
         </Sheet>
       )}

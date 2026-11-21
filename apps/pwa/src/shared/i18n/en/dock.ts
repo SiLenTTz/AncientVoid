@@ -1,0 +1,31 @@
+// EPIC-P61: Dock/Navigation (Englisch).
+import type { de as deDock } from "../de/dock.ts";
+
+export const en: Record<keyof typeof deDock, string> = {
+  "dock.nav": "Navigation",
+  "dock.start": "Home",
+  "dock.search": "Search",
+  "dock.searchTitle": "Search and voice command ({combo})",
+  "dock.newSession": "New session",
+  "dock.teams": "Teams (agent teams)",
+  "dock.more": "More",
+  "dock.filetree": "File tree",
+  "dock.filetreeTitle": "File tree ({combo})",
+  "dock.media": "Media",
+  "dock.mediaTitle": "Media: analyze videos",
+  "dock.vault": "Notes",
+  "dock.vaultTitle": "Notes (knowledge vault)",
+  "dock.automations": "Automations",
+  "dock.automationsTitle": "Automations (schedules)",
+  "dock.settings": "Settings",
+  "dock.settingsTitle": "Settings",
+  "dock.aimetrics": "Metrics",
+  "dock.aimetricsTitle": "Metrics: local AI server load (EPIC-P59)",
+  "dock.statistics": "Statistics",
+  "dock.statisticsTitle": "Statistics: session, run and tool metrics (EPIC-P56)",
+  "dock.terminal": "Terminal",
+  "dock.terminalTitle": "Terminal: shell on allowed hosts (ADR-0087)",
+  "dock.releasenotes": "Release notes",
+  "dock.releasenotesTitle": "Release notes: what changed per PR and why (EPIC-P68)",
+  "dock.providerStatus": "Provider status",
+};

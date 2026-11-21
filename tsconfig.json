@@ -29,5 +29,5 @@
     "playwright.live.config.ts",
     "eslint.config.mjs"
   ],
-  "exclude": ["apps/pwa", "e2e/fixtures"]
+  "exclude": ["apps/pwa", "e2e/fixtures", "scripts/fixtures"]
 }

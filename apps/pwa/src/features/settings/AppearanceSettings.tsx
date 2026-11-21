@@ -3,6 +3,7 @@ import { applyTheme, getTheme, THEME_KEY, type Theme } from "../../app/theme.ts"
 import { applyCtxMotion, ctxMotionOn, getScale, setScale, SCALE_MAX, SCALE_MIN, SCALE_STEP } from "../../app/ui-scale.ts";
 import { applyShortcutHints, shortcutHintsOn } from "../../shared/shortcut-hint.ts";
 import { AccentSetting } from "./AccentPicker.tsx";
+import { LanguageSettingRow } from "./LanguageSettings.tsx";
 import { SettingRow, SettingsSection, Segmented, Switch } from "./parts.tsx";
 import { Button } from "../../shared/ui/index.ts";
 
@@ -80,6 +81,7 @@ export function AppearanceSettings() {
           }}
         />
       </SettingRow>
+      <LanguageSettingRow />
     </SettingsSection>
   );
 }

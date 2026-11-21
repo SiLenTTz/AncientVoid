@@ -1,6 +1,6 @@
 # EPIC-P61 — Mehrsprachigkeit: Oberfläche auf Englisch oder per Spracheinstellung
 
-**Status:** offen — Planungsentwurf 2026-11-15; Entscheidung Default 17.11.2026; Skalierungs-Konzept §3.8 präsentiert 21.11.2026, wartet auf Genehmigung; Umsetzung noch nicht beauftragt · **Issue:** [#6](https://github.com/securesight-ai/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
+**Status:** in Arbeit — beauftragt und umgesetzt ab 21.11.2026 (ADR-0101 ✓) · **Issue:** [#6](https://github.com/securesight-ai/AncientVoid/issues/6) · **Phase:** P61 · **Dauer:** 4–6 Agenten-Wochen (gemessen, s. §3.1)
 **Abhängigkeit:** keine fachliche offene (Quer-Epic, Präzedenz P50–P53/P58–P60; Vorgänger P60 umgesetzt 14.11.2026). Berührt P33 (englische Einstiegsdoku, „vertagt") nur an der Grenze: P33 = Doku, P61 = Produktoberfläche.
 
 Quelle: Nutzerauftrag vom 15.11.2026 im Zuge der Veröffentlichung
@@ -204,12 +204,12 @@ hart verdrahtet. Für „praktisch alle Sprachen" gilt:
 
 ## 4. Aufgaben (Checkliste T61.m)
 
-- [ ] **T61.1** ADR „Mehrsprachigkeit: Kataloge, Nachrichtenschlüssel im
+- [x] **T61.1** ADR „Mehrsprachigkeit: Kataloge, Nachrichtenschlüssel im
   Notification-Contract, Locale am Push-Abo" — vor jeder Contract-Änderung.
-- [ ] **T61.2** PWA-Grundgerüst: `shared/i18n/{de,en,index,format}.ts`,
+- [x] **T61.2** PWA-Grundgerüst: `shared/i18n/{de,en,index,format}.ts`,
   Sprachwahl in Einstellungen, `<html lang>`, Reload-Pfad mit Draft-Erhalt;
   Unit-Tests für `t()`, Plural, Fallback. (K10)
-- [ ] **T61.3** `check-i18n` mit Baseline ins Gate; Test mit positivem und
+- [x] **T61.3** `check-i18n` mit Baseline ins Gate; Test mit positivem und
   negativem Fixture; `docs/check-context.md`-Eintrag „script-ref" erfüllt.
 - [ ] **T61.4** Migration Shell/Übersicht/Status/Benachrichtigungen
   (häufigste Erstkontakt-Flächen) inkl. `fmt*`-Ersatz der `"de-DE"`-Literale.
