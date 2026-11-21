@@ -328,7 +328,7 @@ Kandidaten nach heutigem Stand: `gates` (gezielte Tests aus `git diff` bestimmen
 - [x] **T72.10 — Kurator** `scripts/skill-curate.mjs`: Aggregation, Klassifikationstabelle,
   Max-2, `--apply` mit Validierung und Revert, Markdown- und JSON-Ausgabe, Commit-Nachricht
   geprüft, neuer Regressionsfall mit `check:secrets`.
-- [ ] **T72.11 — Erstlauf am Bestand** (232 Sessions): Report
+- [x] **T72.11 — Erstlauf am Bestand** (232 Sessions): Report
   `docs/2026-11-xx_skill-curation-erstlauf.md` mit Budget-Tabelle, Kosten je Skill aus
   `turn_metrics`, Regeltreffern, Top-10 Befehlsfolgen, `unparsed`-Quote je Adapter und
   ehrlicher Falsch-Positiv-Quote. Daraus die ≤ 2 Piloten festlegen und umsetzen

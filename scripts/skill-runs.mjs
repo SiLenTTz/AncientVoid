@@ -250,7 +250,7 @@ export function mineSequences(runs, { minHits = 3, minSessions = 2 } = {}) {
 
 // Deterministischer Skriptname-Vorschlag aus dem ersten Befehl der Folge.
 function suggestScriptName(gram) {
-  const words = gram.split(" ; ")[0].replace(/[#<>()]/g, "").replace(/&{1,2}/g, " ").split(/[\s./-]+/).filter((w) => w && !/^\d+$/.test(w));
+  const words = gram.split(" ; ")[0].replace(/#\S+/g, "").replace(/[#<>()]/g, "").replace(/&{1,2}/g, " ").split(/[\s./-]+/).filter((w) => w && !/^\d+$/.test(w));
   const slug = words.slice(0, 2).join("-").toLowerCase().replace(/[^a-z0-9-]/g, "");
   return `scripts/${slug || "run"}.mjs`;
 }

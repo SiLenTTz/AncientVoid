@@ -34,6 +34,8 @@
 | [`setup-wizard`](setup-wizard/SKILL.md) | Setup-Hilfe für `./setup.sh` (Provider zuerst, Exit-Code-Diagnose) | „Installation", „Setup", „läuft nicht", Provider anbinden | Wizard-Fehlersuche; Defekte → `bugfix` |
 | [`factory`](factory/SKILL.md) | Factory-Orchestrator: Story-Zerlegung, Bahnen A/B, verify-Gates, Abnahme | factory-Aufträge, Spiel-/UI-Projekt mit PRD und `.factory/` | Harness-Template-Skill, projectlokal |
 | [`context-audit`](context-audit/SKILL.md) | Monatlicher semantischer Kontext-Audit (Veraltung/Widersprüche), nur Diff-Vorschläge | „Kontext-Audit", „docs aufräumen", „AGENTS.md prüfen" | Struktur-Gate bleibt `npm run check:context`; nie auto-mergen |
+| [`head-n`](head-n/SKILL.md) | Zeilenanfang deterministisch (Pilot EPIC-P72) | nur erste Zeilen einer Datei | Logik in `scripts/head-n.mjs` |
+| [`sort`](sort/SKILL.md) | Sortieren/Histogramm deterministisch (Pilot EPIC-P72) | Sortier-/Haeufigkeits-Idiom | Logik in `scripts/sort.mjs` |
 | (`_shared/skill-checks.json`) | Regelkatalog + `$config` für die Skill-Kur (Mindestläufe pro Lernfall) | — | maschinenlesbar; Lint-Check: `check:skills` |
 
 Vorlage für neue Skills: [`skill-template.md`](_shared/skill-template.md).
