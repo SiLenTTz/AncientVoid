@@ -218,7 +218,7 @@ hart verdrahtet. Für „praktisch alle Sprachen" gilt:
 - [ ] **T61.6** Migration übrige Features (Workspace, Files, Vault, Graph,
   Fleet, Teams, Automations, Forge, Media, Metriken, Settings …) — je
   Feature-Bereich ein MR, Baseline sinkt nachweisbar.
-- [ ] **T61.7** Contract + Hub: `messageKey`/`params` an Notifications,
+- [x] **T61.7** Contract + Hub: `messageKey`/`params` an Notifications,
   `error.<code>`-Mapping, `locale` am Push-Abo, Server-Push-Katalog. (K5, K7)
 - [ ] **T61.8** `hubctl`-Katalog und `--lang`; Referenz-Doku neu generieren
   (`npm run docs:reference`).
